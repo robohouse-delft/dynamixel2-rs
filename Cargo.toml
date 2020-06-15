@@ -1,0 +1,13 @@
+[package]
+name = "dynamixel2"
+version = "0.1.0"
+authors = ["Maarten de Vries <maarten@de-vri.es>"]
+edition = "2018"
+
+[dependencies]
+byteorder = "1.3.4"
+log = { version = "0.4.8", optional = true }
+
+[dev-dependencies]
+serial = "0.4.0"
+env_logger = "0.7.1"
