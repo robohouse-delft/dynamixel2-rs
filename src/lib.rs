@@ -1,6 +1,13 @@
 #[macro_use]
 mod log;
 
-mod bitstuff;
-pub mod instructions;
 pub mod crc;
+pub mod instructions;
+
+mod bitstuff;
+mod endian;
+mod transfer;
+
+pub use transfer::ReadError;
+pub use transfer::read_response;
+pub use transfer::write_request;

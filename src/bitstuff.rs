@@ -105,8 +105,6 @@ mod test {
 	fn stuff(mut data: Vec<u8>) -> Result<Vec<u8>, ()> {
 		let used = data.len();
 		data.resize(maximum_stuffed_len(used), 0);
-		eprintln!("resized data vector from {} to {}", used, data.len());
-
 		let new_size = stuff_inplace(&mut data, used)?;
 		data.resize(new_size, 0);
 		Ok(data)

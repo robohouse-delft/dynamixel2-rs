@@ -1,6 +1,6 @@
 use serial::SerialPort;
 
-use dynamixel2::instructions::{Ping, PingResponse};
+use dynamixel2::instructions::Write;
 
 fn main() {
 	if do_main().is_err() {
@@ -9,7 +9,7 @@ fn main() {
 }
 
 fn print_usage() {
-	eprintln!("usage: ping TTY BAUD-RATE MOTOR-ID");
+	eprintln!("usage: write TTY BAUD-RATE MOTOR-ID ADDRESS DATA...");
 }
 
 fn do_main() -> Result<(), ()> {
@@ -25,9 +25,13 @@ fn do_main() -> Result<(), ()> {
 	let tty = args.next().ok_or_else(print_usage)?;
 	let baud_rate = args.next().ok_or_else(print_usage)?;
 	let motor_id = args.next().ok_or_else(print_usage)?;
+	let address = args.next().ok_or_else(print_usage)?;
+	let data : Vec<_> = args.collect();
 
-	let baud_rate : usize = baud_rate.parse().map_err(|_| eprintln!("invalid baud rate: {}", baud_rate))?;
-	let motor_id  : u8    = motor_id.parse().map_err(|_| eprintln!("invalid motor ID: {}", motor_id))?;
+	let baud_rate : usize   = baud_rate.parse().map_err(|_| eprintln!("invalid baud rate: {}", baud_rate))?;
+	let motor_id  : u8      = motor_id.parse().map_err(|_| eprintln!("invalid motor ID: {}", motor_id))?;
+	let address   : u16     = address.parse().map_err(|_| eprintln!("invalid register address: {}", address))?;
+	let data      : Vec<u8> = data.into_iter().map(|x| x.parse().map_err(|_| eprintln!("invalid data value: {}", x))).collect::<Result<_, _>>()?;
 
 	let baud_rate = match baud_rate {
 		110  => serial::Baud110,
@@ -57,12 +61,11 @@ fn do_main() -> Result<(), ()> {
 	eprintln!("configuring serial port with: {:#?}", config);
 	tty.configure(&config).map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	let mut request = Ping::new(motor_id);
+	let mut request = Write::new(motor_id, address, &data);
 	dynamixel2::write_request(&mut tty, &request)
 		.map_err(|e| eprintln!("failed to send PING instruction: {}", e))?;
-	let status : PingResponse = dynamixel2::read_response(&mut tty, &mut request)
+	let status = dynamixel2::read_response(&mut tty, &mut request)
 		.map_err(|e| eprintln!("failed to read PING status: {:?}", e))?;
 
-	println!("{:#?}", status);
 	Ok(())
 }
