@@ -27,7 +27,8 @@ pub trait Instruction {
 
 	fn instruction_id(&self) -> u8;
 
-	fn body_size(&self) -> u16;
+	// The length of parameter bytes, unstuffed body.
+	fn parameters_len(&self) -> u16;
 
 	fn encode_body_to(&self, buffer: &mut [u8]);
 }
@@ -57,21 +58,34 @@ where
 	W: std::io::Write + ?Sized,
 	I: Instruction,
 {
-	let body_size = instruction.body_size();
-	let mut buffer = vec![0u8; HEADER_SIZE + usize::from(body_size) + 2];
+	// Encode the body.
+	let raw_body_len : usize = instruction.parameters_len().into();
+
+	// Make buffer with enough capacity for fully stuffed message.
+	let max_padded_body = crate::bitstuff::maximum_stuffed_len(raw_body_len);
+	let mut buffer = vec![0u8; HEADER_SIZE + max_padded_body + 2];
+
+	// Add the header, with a placeholder for the length field.
 	buffer[0..4].copy_from_slice(&HEADER_PREFIX);
-
 	buffer[4] = instruction.packet_id();
-	LE::write_u16(&mut buffer[5..7], body_size + 3);
 	buffer[7] = instruction.instruction_id();
+	instruction.encode_body_to(&mut buffer[HEADER_SIZE..][..raw_body_len]);
 
-	let body_end = usize::from(8 + body_size);
+	// Perform bitstuffing on the body.
+	// The header never needs stuffing.
+	let stuffed_body_len = crate::bitstuff::stuff_inplace(&mut buffer[HEADER_SIZE..], raw_body_len).unwrap();
 
-	instruction.encode_body_to(&mut buffer[8..body_end]);
+	buffer[5] = (stuffed_body_len >> 0 & 0xFF) as u8;
+	buffer[6] = (stuffed_body_len >> 8 & 0xFF) as u8;
 
-	let crc = calculate_crc(0, &buffer[..body_end]);
-	LE::write_u16(&mut buffer[body_end..], crc);
+	// Add checksum.
+	let crc_index = HEADER_SIZE + stuffed_body_len;
+	let checksum = calculate_crc(0, &buffer[..crc_index]);
+	buffer[crc_index + 0] = (checksum >> 0 & 0xFF) as u8;
+	buffer[crc_index + 1] = (checksum >> 8 & 0xFF) as u8;
+	buffer.resize(crc_index + 2, 0);
 
+	// Send message.
 	trace!("Sending instruction: {:02X?}", buffer);
 	stream.write_all(&buffer)
 }
@@ -93,21 +107,26 @@ where
 		return Err(ReadError::InvalidInstruction);
 	}
 
-	let body_size = usize::from(LE::read_u16(&raw_header[5..7]) - 4);
+	let parameters = usize::from(LE::read_u16(&raw_header[5..7]) - 4);
 	let packet_id = raw_header[4];
 
-	let mut body = vec![0u8; body_size + 2];
+	let mut body = vec![0u8; parameters + 2];
 	stream.read_exact(&mut body)?;
 	trace!("Read status body: {:02X?}", body);
-	let crc_from_msg = LE::read_u16(&body[body_size..]);
+	let crc_from_msg = 0
+		| (body.pop().unwrap() as u16) << 8
+		| (body.pop().unwrap() as u16) << 0;
 
 	let crc = calculate_crc(0, &raw_header);
-	let crc = calculate_crc(crc, &body[..body_size]);
+	let crc = calculate_crc(crc, &body);
 	if crc != crc_from_msg {
 		return Err(ReadError::InvalidCrc)
 	}
 
-	S::decode_body_from(packet_id, &body[..body_size])
+	// Remove bit-stuffing on the body.
+	crate::bitstuff::unstuff_inplace_vec(&mut body);
+
+	S::decode_body_from(packet_id, &body)
 }
 
 #[derive(Debug, Clone)]
@@ -132,7 +151,7 @@ impl Instruction for PingInstruction {
 		id::PING
 	}
 
-	fn body_size(&self) -> u16 {
+	fn parameters_len(&self) -> u16 {
 		0
 	}
 
