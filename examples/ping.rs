@@ -61,7 +61,7 @@ fn do_main() -> Result<(), ()> {
 	dynamixel2::write_request(&mut tty, &request)
 		.map_err(|e| eprintln!("failed to send PING instruction: {}", e))?;
 	let status : PingResponse = dynamixel2::read_response(&mut tty, &mut request)
-		.map_err(|e| eprintln!("failed to read PING status: {:?}", e))?;
+		.map_err(|e| eprintln!("failed to read PING status: {}", e))?;
 
 	println!("{:#?}", status);
 	Ok(())
