@@ -1,4 +1,4 @@
-use crate::instructions::Instruction;
+use crate::instructions::{id, Instruction};
 use crate::endian::{read_u16_le, write_u16_le};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -43,7 +43,7 @@ where
 	stream.write_all(&buffer)
 }
 
-pub fn read_response<R, I>(stream: &mut R, instruction: &mut I) -> Result<I::Response, ReadError>
+pub fn read_response<R, I>(stream: &mut R, instruction: &mut I) -> Result<I::Response, crate::ReadError>
 where
 	R: std::io::Read + ?Sized,
 	I: Instruction,
@@ -52,13 +52,8 @@ where
 	stream.read_exact(&mut raw_header[..])?;
 	trace!("read status header: {:02X?}", raw_header);
 
-	if &raw_header[0..4] != HEADER_PREFIX {
-		return Err(ReadError::InvalidPrefix);
-	}
-
-	if raw_header[7] != crate::instructions::id::STATUS {
-		return Err(ReadError::InvalidInstruction);
-	}
+	crate::InvalidHeaderPrefix::check(&raw_header[0..4], HEADER_PREFIX)?;
+	crate::InvalidInstruction::check(raw_header[7], id::STATUS)?;
 
 	let parameters = usize::from(read_u16_le(&raw_header[5..7]) - 4);
 	let packet_id = raw_header[4];
@@ -72,28 +67,10 @@ where
 
 	let crc = calculate_crc(0, &raw_header);
 	let crc = calculate_crc(crc, &body);
-	if crc != crc_from_msg {
-		return Err(ReadError::InvalidCrc)
-	}
+	crate::InvalidChecksum::check(crc, crc_from_msg)?;
 
 	// Remove bit-stuffing on the body.
 	crate::bitstuff::unstuff_inplace_vec(&mut body);
 
-	instruction.decode_response_parameters(packet_id, &body)
-}
-
-#[derive(Debug)]
-pub enum ReadError {
-	Io(std::io::Error),
-	InvalidPrefix,
-	InvalidCrc,
-	InvalidPacketId,
-	InvalidInstruction,
-	InvalidParameterCount,
-}
-
-impl From<std::io::Error> for ReadError {
-	fn from(other: std::io::Error) -> Self {
-		Self::Io(other)
-	}
+	Ok(instruction.decode_response_parameters(packet_id, &body)?)
 }

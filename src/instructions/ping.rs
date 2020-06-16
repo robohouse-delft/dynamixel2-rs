@@ -41,10 +41,8 @@ impl Instruction for Ping {
 	fn encode_request_parameters(&self, _buffer: &mut [u8]) {
 	}
 
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::ReadError> {
-		if parameters.len() != 3 {
-			return Err(crate::ReadError::InvalidParameterCount);
-		}
+	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
+		crate::InvalidParameterCount::check(parameters.len(), 3)?;
 
 		Ok(Self::Response {
 			motor_id: packet_id,

@@ -34,15 +34,9 @@ impl Instruction for Write<'_> {
 		buffer[2..].copy_from_slice(&self.data);
 	}
 
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::ReadError> {
-		if packet_id != self.motor_id {
-			return Err(crate::ReadError::InvalidPacketId);
-		}
-
-		if parameters.len() != 0 {
-			return Err(crate::ReadError::InvalidParameterCount);
-		}
-
+	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
+		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidParameterCount::check(parameters.len(), 0)?;
 		Ok(())
 	}
 }

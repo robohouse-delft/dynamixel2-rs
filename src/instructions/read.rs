@@ -34,15 +34,9 @@ impl Instruction for Read<'_> {
 		write_u16_le(&mut buffer[2..], self.buffer.len() as u16);
 	}
 
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::ReadError> {
-		if packet_id != self.motor_id {
-			return Err(crate::ReadError::InvalidPacketId);
-		}
-
-		if parameters.len() != self.buffer.len() {
-			return Err(crate::ReadError::InvalidParameterCount);
-		}
-
+	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
+		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidParameterCount::check(parameters.len(), self.buffer.len())?;
 		self.buffer.copy_from_slice(parameters);
 		Ok(())
 	}

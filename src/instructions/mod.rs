@@ -34,7 +34,7 @@ pub trait Instruction {
 	fn encode_request_parameters(&self, buffer: &mut [u8]);
 
 	/// Decode the response from the parameters.
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::ReadError>;
+	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage>;
 }
 
 mod ping;
