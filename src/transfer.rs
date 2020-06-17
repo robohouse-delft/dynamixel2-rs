@@ -6,7 +6,7 @@ const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
-use crate::crc::calculate_crc;
+use crate::checksum::calculate_checksum;
 
 pub fn write_instruction<W, I>(stream: &mut W, instruction: &I) -> Result<(), WriteError>
 where
@@ -33,10 +33,10 @@ where
 	write_u16_le(&mut buffer[5..], stuffed_body_len as u16 + 3);
 
 	// Add checksum.
-	let crc_index = HEADER_SIZE + stuffed_body_len;
-	let checksum = calculate_crc(0, &buffer[..crc_index]);
-	write_u16_le(&mut buffer[crc_index..], checksum);
-	buffer.resize(crc_index + 2, 0);
+	let checksum_index = HEADER_SIZE + stuffed_body_len;
+	let checksum = calculate_checksum(0, &buffer[..checksum_index]);
+	write_u16_le(&mut buffer[checksum_index..], checksum);
+	buffer.resize(checksum_index + 2, 0);
 
 	// Send message.
 	trace!("sending instruction: {:02X?}", buffer);
@@ -62,12 +62,12 @@ where
 	let mut body = vec![0u8; parameters + 2];
 	stream.read_exact(&mut body)?;
 	trace!("read status parameters: {:02X?}", body);
-	let crc_from_msg = read_u16_le(&body[parameters..]);
+	let checksum_from_msg = read_u16_le(&body[parameters..]);
 	let body = &mut body[..parameters];
 
-	let crc = calculate_crc(0, &raw_header);
-	let crc = calculate_crc(crc, &body);
-	crate::InvalidChecksum::check(crc, crc_from_msg)?;
+	let checksum = calculate_checksum(0, &raw_header);
+	let checksum = calculate_checksum(checksum, &body);
+	crate::InvalidChecksum::check(checksum, checksum_from_msg)?;
 
 	// Remove bit-stuffing on the body.
 	let unstuffed_size = crate::bitstuff::unstuff_inplace(body);

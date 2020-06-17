@@ -1,5 +1,5 @@
 #[rustfmt::skip]
-const CRC_TABLE: [u16; 256] = [
+const TABLE: [u16; 256] = [
 	0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
 	0x8033, 0x0036, 0x003C, 0x8039, 0x0028, 0x802D, 0x8027, 0x0022,
 	0x8063, 0x0066, 0x006C, 0x8069, 0x0078, 0x807D, 0x8077, 0x0072,
@@ -34,14 +34,14 @@ const CRC_TABLE: [u16; 256] = [
 	0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202,
 ];
 
-pub fn calculate_crc(initial: u16, data: &[u8]) -> u16 {
-	let mut crc = initial;
+pub fn calculate_checksum(initial: u16, data: &[u8]) -> u16 {
+	let mut checksum = initial;
 	for &byte in data {
-		let index = ((crc >> 8) ^ (byte as u16) & 0xff) as usize;
-		crc = (crc << 8) ^ CRC_TABLE[index];
+		let index = ((checksum >> 8) ^ (byte as u16) & 0xff) as usize;
+		checksum = (checksum << 8) ^ TABLE[index];
 	}
 
-	crc
+	checksum
 }
 
 #[cfg(test)]
@@ -49,8 +49,8 @@ mod tests {
 	use super::*;
 
 	#[test]
-	fn test_calculate_crc() {
+	fn test_calculate_checksum() {
 		let data = [0xFF, 0xFF, 0xFD, 0x00, 0x01, 0x03, 0x00, 0x01];
-		assert_eq!(calculate_crc(0, &data), 0x4E19);
+		assert_eq!(calculate_checksum(0, &data), 0x4E19);
 	}
 }

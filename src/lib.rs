@@ -55,7 +55,7 @@
 #[macro_use]
 mod log;
 
-pub mod crc;
+pub mod checksum;
 pub mod instructions;
 
 mod bitstuff;
