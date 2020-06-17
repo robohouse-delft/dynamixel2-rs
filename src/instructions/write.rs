@@ -1,4 +1,4 @@
-use super::{id, Instruction};
+use super::{instruction_id, Instruction};
 use crate::endian::{write_u16_le, write_u32_le};
 
 #[derive(Debug, Clone)]
@@ -61,7 +61,7 @@ impl Instruction for Write<'_> {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::WRITE
+		instruction_id::WRITE
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -88,7 +88,7 @@ impl Instruction for WriteU8 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::WRITE
+		instruction_id::WRITE
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -115,7 +115,7 @@ impl Instruction for WriteU16 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::WRITE
+		instruction_id::WRITE
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -142,7 +142,7 @@ impl Instruction for WriteU32 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::WRITE
+		instruction_id::WRITE
 	}
 
 	fn request_parameters_len(&self) -> u16 {

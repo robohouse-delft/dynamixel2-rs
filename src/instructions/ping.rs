@@ -1,4 +1,4 @@
-use super::{id, Instruction};
+use super::{instruction_id, Instruction, packet_id};
 use crate::endian::read_u16_le;
 
 #[derive(Debug, Clone)]
@@ -14,12 +14,12 @@ pub struct PingResponse {
 }
 
 impl Ping {
-	pub fn new(motor_id: u8) -> Self {
+	pub fn unicast(motor_id: u8) -> Self {
 		Self { motor_id }
 	}
 
 	pub fn broadcast() -> Self {
-		Self::new(0xFE)
+		Self { motor_id: packet_id::BROADCAST }
 	}
 }
 
@@ -31,7 +31,7 @@ impl Instruction for Ping {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::PING
+		instruction_id::PING
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -39,6 +39,7 @@ impl Instruction for Ping {
 	}
 
 	fn encode_request_parameters(&self, _buffer: &mut [u8]) {
+		// Empty parameters.
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {

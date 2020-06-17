@@ -1,4 +1,4 @@
-use crate::instructions::{id, Instruction};
+use crate::instructions::{instruction_id, Instruction};
 use crate::endian::{read_u16_le, write_u16_le};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -53,7 +53,7 @@ where
 	trace!("read status header: {:02X?}", raw_header);
 
 	crate::InvalidHeaderPrefix::check(&raw_header[0..4], HEADER_PREFIX)?;
-	crate::InvalidInstruction::check(raw_header[7], id::STATUS)?;
+	crate::InvalidInstruction::check(raw_header[7], instruction_id::STATUS)?;
 
 	let parameters = usize::from(read_u16_le(&raw_header[5..7]) - 4);
 	let packet_id = raw_header[4];

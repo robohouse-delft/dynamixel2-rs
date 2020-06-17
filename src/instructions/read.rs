@@ -1,4 +1,4 @@
-use super::{id, Instruction};
+use super::{instruction_id, Instruction};
 use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
 
 #[derive(Debug)]
@@ -58,7 +58,7 @@ impl Instruction for Read<'_> {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::READ
+		instruction_id::READ
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -86,7 +86,7 @@ impl Instruction for ReadU8 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::READ
+		instruction_id::READ
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -113,7 +113,7 @@ impl Instruction for ReadU16 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::READ
+		instruction_id::READ
 	}
 
 	fn request_parameters_len(&self) -> u16 {
@@ -140,7 +140,7 @@ impl Instruction for ReadU32 {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		id::READ
+		instruction_id::READ
 	}
 
 	fn request_parameters_len(&self) -> u16 {

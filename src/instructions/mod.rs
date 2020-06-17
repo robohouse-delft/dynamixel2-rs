@@ -1,4 +1,4 @@
-pub mod id {
+pub mod instruction_id {
 	pub const PING:  u8 = 1;
 	pub const READ:  u8 = 2;
 	pub const WRITE: u8 = 3;
@@ -12,6 +12,10 @@ pub mod id {
 	pub const BULK_READ: u8 = 11;
 	pub const BULK_WRITE: u8 = 12;
 	pub const STATUS: u8 = 0x55;
+}
+
+pub mod packet_id {
+	pub const BROADCAST: u8 = 0xFE;
 }
 
 pub trait Instruction {
