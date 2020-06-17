@@ -34,8 +34,7 @@ where
 	// Add checksum.
 	let crc_index = HEADER_SIZE + stuffed_body_len;
 	let checksum = calculate_crc(0, &buffer[..crc_index]);
-	buffer[crc_index + 0] = ((checksum >> 0) & 0xFF) as u8;
-	buffer[crc_index + 1] = ((checksum >> 8) & 0xFF) as u8;
+	write_u16_le(&mut buffer[crc_index..], checksum);
 	buffer.resize(crc_index + 2, 0);
 
 	// Send message.
@@ -55,22 +54,21 @@ where
 	crate::InvalidHeaderPrefix::check(&raw_header[0..4], HEADER_PREFIX)?;
 	crate::InvalidInstruction::check(raw_header[7], instruction_id::STATUS)?;
 
-	let parameters = usize::from(read_u16_le(&raw_header[5..7]) - 4);
+	let parameters = usize::from(read_u16_le(&raw_header[5..]) - 4);
 	let packet_id = raw_header[4];
 
 	let mut body = vec![0u8; parameters + 2];
 	stream.read_exact(&mut body)?;
 	trace!("read status parameters: {:02X?}", body);
-	let crc_from_msg = 0
-		| (body.pop().unwrap() as u16) << 8
-		| (body.pop().unwrap() as u16) << 0;
+	let crc_from_msg = read_u16_le(&body[parameters..]);
+	let body = &mut body[..parameters];
 
 	let crc = calculate_crc(0, &raw_header);
 	let crc = calculate_crc(crc, &body);
 	crate::InvalidChecksum::check(crc, crc_from_msg)?;
 
 	// Remove bit-stuffing on the body.
-	crate::bitstuff::unstuff_inplace_vec(&mut body);
+	let unstuffed_size = crate::bitstuff::unstuff_inplace(body);
 
-	Ok(instruction.decode_response_parameters(packet_id, &body)?)
+	Ok(instruction.decode_response_parameters(packet_id, &body[..unstuffed_size])?)
 }

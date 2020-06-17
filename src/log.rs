@@ -1,7 +1,7 @@
 #[cfg(feature = "log")]
 #[allow(unused)]
 #[macro_use]
-mod log {
+mod details {
 	macro_rules! trace {
 		($($args:tt)*) => { ::log::trace!($($args)*) }
 	}
@@ -26,7 +26,7 @@ mod log {
 #[cfg(not(feature = "log"))]
 #[allow(unused)]
 #[macro_use]
-mod log {
+mod details {
 	macro_rules! trace {
 		($($args:tt)*) => {}
 	}
