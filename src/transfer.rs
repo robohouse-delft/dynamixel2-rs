@@ -49,6 +49,8 @@ where
 	R: std::io::Read + ?Sized,
 	I: Instruction,
 {
+	// TODO: Scan for header prefix rather than assuming it is at start.
+	// This matters in case of noise on the serial line.
 	let mut raw_header = [0u8; STATUS_HEADER_SIZE];
 	stream.read_exact(&mut raw_header[..])?;
 	trace!("read status header: {:02X?}", raw_header);
