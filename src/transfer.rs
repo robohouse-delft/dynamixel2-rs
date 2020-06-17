@@ -8,6 +8,7 @@ const STATUS_HEADER_SIZE: usize = 9;
 
 use crate::checksum::calculate_checksum;
 
+/// Write an instruction to a stream.
 pub fn write_instruction<W, I>(stream: &mut W, instruction: &I) -> Result<(), WriteError>
 where
 	W: std::io::Write + ?Sized,
@@ -44,6 +45,7 @@ where
 	Ok(())
 }
 
+/// Read a response from a stream.
 pub fn read_response<R, I>(stream: &mut R, instruction: &mut I) -> Result<I::Response, ReadError>
 where
 	R: std::io::Read + ?Sized,
@@ -77,7 +79,7 @@ where
 	Ok(instruction.decode_response_parameters(packet_id, &body[..unstuffed_size])?)
 }
 
-/// Perform a transfer with a single response.
+/// Write an instruction to a stream, and read a single response.
 ///
 /// This is not suitable for broadcast instructions where each motor sends an individual response.
 pub fn transfer_single<S, I>(stream: &mut S, instruction: &mut I) -> Result<I::Response, TransferError>

@@ -34,6 +34,12 @@ const TABLE: [u16; 256] = [
 	0x8213, 0x0216, 0x021C, 0x8219, 0x0208, 0x820D, 0x8207, 0x0202,
 ];
 
+/// Calculate the checksum of some data.
+///
+/// You can compute the checksum of non-contiguous data
+/// by passing the checksum of the first block as the `initial` parameter for the second block.
+///
+/// If there is no previous data, pass 0 as `initial` value.
 pub fn calculate_checksum(initial: u16, data: &[u8]) -> u16 {
 	let mut checksum = initial;
 	for &byte in data {

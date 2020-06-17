@@ -32,7 +32,7 @@ pub fn maximum_stuffed_len(unstuffed_length: usize) -> usize {
 	unstuffed_length / 3 * 4 + unstuffed_length % 3
 }
 
-/// Calculate the amount of stuffing bytes required for certain data.
+/// Calculate the amount of stuffing bytes required for specific data.
 pub fn stuffing_required(data: &[u8]) -> usize {
 	let mut state = 0;
 	let mut count = 0;
@@ -51,6 +51,12 @@ pub fn stuffing_required(data: &[u8]) -> usize {
 	count
 }
 
+/// Perform byte-stuffing in-place.
+///
+/// The actual length of the unstuffed data must be passed in through the `len` parameter.
+///
+/// The full buffer must be large enough to hold the stuffed data,
+/// or an error is returned.
 pub fn stuff_inplace(buffer: &mut [u8], len: usize) -> Result<usize, ()> {
 	let stuffing_required = stuffing_required(&buffer[..len]);
 	if stuffing_required == 0 {

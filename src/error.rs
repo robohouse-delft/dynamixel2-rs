@@ -1,20 +1,24 @@
+/// An error that can occur during a read/write transfer.
 #[derive(Debug)]
 pub enum TransferError {
 	WriteError(WriteError),
 	ReadError(ReadError),
 }
 
+/// An error that can occur during a write transfer.
 #[derive(Debug)]
 pub enum WriteError {
 	Io(std::io::Error),
 }
 
+/// An error that can occur during a read transfer.
 #[derive(Debug)]
 pub enum ReadError {
 	Io(std::io::Error),
 	InvalidMessage(InvalidMessage),
 }
 
+/// The received message is not valid.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum InvalidMessage {
 	InvalidHeaderPrefix(InvalidHeaderPrefix),
@@ -24,30 +28,35 @@ pub enum InvalidMessage {
 	InvalidParameterCount(InvalidParameterCount),
 }
 
+/// The received message has an invalid header prefix.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidHeaderPrefix {
 	pub actual: [u8; 4],
 	pub expected: [u8; 4],
 }
 
+/// The received message has an invalid checksum value.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidChecksum {
 	pub actual: u16,
 	pub expected: u16,
 }
 
+/// The received message has an invalid or unexpected packet ID.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidPacketId {
 	pub actual: u8,
 	pub expected: u8,
 }
 
+/// The received message has an invalid or unexpected instruction value.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidInstruction {
 	pub actual: u8,
 	pub expected: u8,
 }
 
+/// The received message has an invalid or unexpected parameter count.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidParameterCount {
 	pub actual: usize,
