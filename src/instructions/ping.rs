@@ -45,6 +45,7 @@ impl Instruction for Ping {
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
+		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
 		crate::InvalidParameterCount::check(parameters.len(), 3)?;
 
 		Ok(Self::Response {

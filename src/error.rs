@@ -1,3 +1,5 @@
+use crate::instructions::packet_id::BROADCAST;
+
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
 pub enum TransferError {
@@ -92,6 +94,14 @@ impl InvalidPacketId {
 			Ok(())
 		} else {
 			Err(Self { actual, expected })
+		}
+	}
+
+	pub fn check_ignore_broadcast(actual: u8, expected: u8) -> Result<(), Self> {
+		if expected == BROADCAST {
+			Ok(())
+		} else {
+			Self::check(actual, expected)
 		}
 	}
 }

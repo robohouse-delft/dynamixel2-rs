@@ -71,7 +71,7 @@ impl Instruction for Read<'_> {
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
 		crate::InvalidParameterCount::check(parameters.len(), self.buffer.len())?;
 		self.buffer.copy_from_slice(parameters);
 		Ok(())
@@ -99,7 +99,7 @@ impl Instruction for ReadU8 {
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
 		crate::InvalidParameterCount::check(parameters.len(), 1)?;
 		Ok(parameters[0])
 	}
@@ -126,7 +126,7 @@ impl Instruction for ReadU16 {
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
 		crate::InvalidParameterCount::check(parameters.len(), 2)?;
 		Ok(read_u16_le(&parameters[0..2]))
 	}
@@ -153,7 +153,7 @@ impl Instruction for ReadU32 {
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check(packet_id, self.motor_id)?;
+		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
 		crate::InvalidParameterCount::check(parameters.len(), 4)?;
 		Ok(read_u32_le(&parameters[0..4]))
 	}
