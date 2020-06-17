@@ -52,7 +52,7 @@ The following planned functionality is currently implemented (PRs welcome!):
 * [ ] Optional integration with [`serial`](https://docs.rs/serial).
 * [x] Utility function to perform unicast instructions.
 * [ ] Utility function to perform broadcast instructions.
-* [ ] Utility function to scan a bus for motors.
+* [x] Utility function to scan a bus for motors.
 
 ## Optional features
 

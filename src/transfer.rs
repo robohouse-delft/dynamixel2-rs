@@ -1,5 +1,5 @@
 use crate::endian::{read_u16_le, write_u16_le};
-use crate::instructions::{instruction_id, Instruction};
+use crate::instructions::{instruction_id, Instruction, Ping, PingResponse};
 use crate::{ReadError, TransferError, WriteError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -89,4 +89,45 @@ where
 {
 	write_instruction(stream, instruction)?;
 	Ok(read_response(stream, instruction)?)
+}
+
+/// Scan a bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
+///
+/// Only timeouts are filtered out since they indicate a lack of response.
+/// All other responses (including errors) are passed to the handler.
+pub fn scan<S, F>(stream: &mut S, mut on_response: F) -> Result<(), WriteError>
+where
+	S: std::io::Read + std::io::Write + ?Sized,
+	F: FnMut(Result<PingResponse, ReadError>),
+{
+	let mut ping = Ping::broadcast();
+	write_instruction(stream, &ping)?;
+
+	// TODO: See if we can terminate quicker.
+	// Peek at the official SDK to see what they do.
+
+	for _ in 0..253 {
+		let response = read_response(stream, &mut ping);
+		if let Err(ReadError::Io(e)) = &response {
+			if e.kind() == std::io::ErrorKind::TimedOut {
+				continue;
+			}
+		}
+		on_response(response)
+	}
+
+	Ok(())
+}
+
+/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
+///
+/// Only timeouts are filtered out since they indicate a lack of response.
+/// All other responses (including errors) are collected.
+pub fn scan_to_vec<S>(stream: &mut S) -> Result<Vec<Result<PingResponse, ReadError>>, WriteError>
+where
+	S: std::io::Read + std::io::Write + ?Sized,
+{
+	let mut result = Vec::with_capacity(253);
+	scan(stream, |x| result.push(x))?;
+	Ok(result)
 }

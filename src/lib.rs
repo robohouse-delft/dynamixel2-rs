@@ -46,7 +46,7 @@
 //! * [ ] Optional integration with [`serial`](https://docs.rs/serial).
 //! * [x] Utility function to perform unicast instructions.
 //! * [ ] Utility function to perform broadcast instructions.
-//! * [ ] Utility function to scan a bus for motors.
+//! * [x] Utility function to scan a bus for motors.
 //!
 //! # Optional features
 //!
@@ -76,3 +76,5 @@ pub use error::WriteError;
 pub use transfer::read_response;
 pub use transfer::transfer_single;
 pub use transfer::write_instruction;
+pub use transfer::scan;
+pub use transfer::scan_to_vec;
