@@ -1,6 +1,6 @@
 pub mod instruction_id {
-	pub const PING:  u8 = 1;
-	pub const READ:  u8 = 2;
+	pub const PING: u8 = 1;
+	pub const READ: u8 = 2;
 	pub const WRITE: u8 = 3;
 	pub const REG_WRITE: u8 = 4;
 	pub const ACTION: u8 = 5;
@@ -47,6 +47,6 @@ mod reboot;
 mod write;
 
 pub use ping::{Ping, PingResponse};
-pub use read::{Read, ReadU8, ReadU16, ReadU32};
+pub use read::{Read, ReadU16, ReadU32, ReadU8};
 pub use reboot::Reboot;
-pub use write::{Write, WriteU8, WriteU16, WriteU32};
+pub use write::{Write, WriteU16, WriteU32, WriteU8};

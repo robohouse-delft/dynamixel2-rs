@@ -60,12 +60,7 @@ impl InvalidHeaderPrefix {
 			Ok(())
 		} else {
 			Err(Self {
-				actual: [
-					actual[0],
-					actual[1],
-					actual[2],
-					actual[3],
-				],
+				actual: [actual[0], actual[1], actual[2], actual[3]],
 				expected,
 			})
 		}
@@ -252,13 +247,21 @@ impl std::fmt::Display for InvalidMessage {
 
 impl std::fmt::Display for InvalidHeaderPrefix {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "invalid header prefix, expected {:02X?}, got {:02X?}", self.expected, self.actual)
+		write!(
+			f,
+			"invalid header prefix, expected {:02X?}, got {:02X?}",
+			self.expected, self.actual
+		)
 	}
 }
 
 impl std::fmt::Display for InvalidChecksum {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "invalid checksum, message claims {:#02X}, computed {:#02X}", self.expected, self.actual)
+		write!(
+			f,
+			"invalid checksum, message claims {:#02X}, computed {:#02X}",
+			self.expected, self.actual
+		)
 	}
 }
 
@@ -270,7 +273,11 @@ impl std::fmt::Display for InvalidPacketId {
 
 impl std::fmt::Display for InvalidInstruction {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "invalid instruction ID, expected {:#02X}, got {:#02X}", self.expected, self.actual)
+		write!(
+			f,
+			"invalid instruction ID, expected {:#02X}, got {:#02X}",
+			self.expected, self.actual
+		)
 	}
 }
 

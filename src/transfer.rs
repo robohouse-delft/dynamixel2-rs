@@ -1,6 +1,6 @@
-use crate::instructions::{instruction_id, Instruction};
 use crate::endian::{read_u16_le, write_u16_le};
-use crate::{ReadError, WriteError, TransferError};
+use crate::instructions::{instruction_id, Instruction};
+use crate::{ReadError, TransferError, WriteError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
@@ -14,7 +14,7 @@ where
 	I: Instruction,
 {
 	// Encode the body.
-	let raw_body_len : usize = instruction.request_parameters_len().into();
+	let raw_body_len: usize = instruction.request_parameters_len().into();
 
 	// Make buffer with enough capacity for fully stuffed message.
 	let max_padded_body = crate::bitstuff::maximum_stuffed_len(raw_body_len);

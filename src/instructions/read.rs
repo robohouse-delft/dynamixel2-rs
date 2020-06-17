@@ -34,19 +34,19 @@ impl<'a> Read<'a> {
 
 impl ReadU8 {
 	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address}
+		Self { motor_id, address }
 	}
 }
 
 impl ReadU16 {
 	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address}
+		Self { motor_id, address }
 	}
 }
 
 impl ReadU32 {
 	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address}
+		Self { motor_id, address }
 	}
 }
 

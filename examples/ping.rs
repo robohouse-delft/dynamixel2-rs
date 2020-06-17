@@ -26,22 +26,22 @@ fn do_main() -> Result<(), ()> {
 	let baud_rate = args.next().ok_or_else(print_usage)?;
 	let motor_id = args.next().ok_or_else(print_usage)?;
 
-	let baud_rate : usize = baud_rate.parse().map_err(|_| eprintln!("invalid baud rate: {}", baud_rate))?;
-	let motor_id  : u8    = motor_id.parse().map_err(|_| eprintln!("invalid motor ID: {}", motor_id))?;
+	let baud_rate: usize = baud_rate.parse().map_err(|_| eprintln!("invalid baud rate: {}", baud_rate))?;
+	let motor_id: u8 = motor_id.parse().map_err(|_| eprintln!("invalid motor ID: {}", motor_id))?;
 
 	let baud_rate = match baud_rate {
-		110  => serial::Baud110,
-		300  => serial::Baud300,
-		600  => serial::Baud600,
-		1200  => serial::Baud1200,
-		2400  => serial::Baud2400,
-		4800  => serial::Baud4800,
-		9600  => serial::Baud9600,
-		19200  => serial::Baud19200,
-		38400  => serial::Baud38400,
-		57600  => serial::Baud57600,
+		110 => serial::Baud110,
+		300 => serial::Baud300,
+		600 => serial::Baud600,
+		1200 => serial::Baud1200,
+		2400 => serial::Baud2400,
+		4800 => serial::Baud4800,
+		9600 => serial::Baud9600,
+		19200 => serial::Baud19200,
+		38400 => serial::Baud38400,
+		57600 => serial::Baud57600,
 		115200 => serial::Baud115200,
-		other  => serial::BaudOther(other),
+		other => serial::BaudOther(other),
 	};
 
 	let mut tty = serial::open(&tty).map_err(|e| eprintln!("failed to open serial port at {}: {}", tty, e))?;
@@ -55,10 +55,10 @@ fn do_main() -> Result<(), ()> {
 	};
 
 	eprintln!("configuring serial port with: {:#?}", config);
-	tty.configure(&config).map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
+	tty.configure(&config)
+		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	let status = dynamixel2::transfer_single(&mut tty, &mut Ping::unicast(motor_id))
-		.map_err(|e| eprintln!("{}", e))?;
+	let status = dynamixel2::transfer_single(&mut tty, &mut Ping::unicast(motor_id)).map_err(|e| eprintln!("{}", e))?;
 
 	println!("{:#?}", status);
 	Ok(())

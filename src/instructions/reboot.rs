@@ -1,4 +1,4 @@
-use super::{instruction_id, Instruction, packet_id};
+use super::{instruction_id, packet_id, Instruction};
 
 #[derive(Debug, Clone)]
 pub struct Reboot {
@@ -11,7 +11,9 @@ impl Reboot {
 	}
 
 	pub fn broadcast() -> Self {
-		Self { motor_id: packet_id::BROADCAST }
+		Self {
+			motor_id: packet_id::BROADCAST,
+		}
 	}
 }
 

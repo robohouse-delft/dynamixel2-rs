@@ -28,22 +28,22 @@ mod details {
 #[macro_use]
 mod details {
 	macro_rules! trace {
-		($($args:tt)*) => {}
+		($($args:tt)*) => {};
 	}
 
 	macro_rules! debug {
-		($($args:tt)*) => {}
+		($($args:tt)*) => {};
 	}
 
 	macro_rules! info {
-		($($args:tt)*) => {}
+		($($args:tt)*) => {};
 	}
 
 	macro_rules! warn {
-		($($args:tt)*) => {}
+		($($args:tt)*) => {};
 	}
 
 	macro_rules! error {
-		($($args:tt)*) => {}
+		($($args:tt)*) => {};
 	}
 }

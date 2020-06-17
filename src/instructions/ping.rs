@@ -1,4 +1,4 @@
-use super::{instruction_id, Instruction, packet_id};
+use super::{instruction_id, packet_id, Instruction};
 use crate::endian::read_u16_le;
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,9 @@ impl Ping {
 	}
 
 	pub fn broadcast() -> Self {
-		Self { motor_id: packet_id::BROADCAST }
+		Self {
+			motor_id: packet_id::BROADCAST,
+		}
 	}
 }
 

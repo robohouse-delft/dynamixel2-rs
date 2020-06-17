@@ -5,7 +5,7 @@ use crate::endian::{write_u16_le, write_u32_le};
 pub struct Write<'a> {
 	pub motor_id: u8,
 	pub address: u16,
-	pub data: &'a[u8],
+	pub data: &'a [u8],
 }
 
 #[derive(Debug, Clone)]
