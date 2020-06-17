@@ -65,7 +65,7 @@ fn do_main() -> Result<(), ()> {
 	let mut request = Read::new(motor_id, address, &mut read_buffer);
 	dynamixel2::write_request(&mut tty, &request)
 		.map_err(|e| eprintln!("failed to send READ instruction: {}", e))?;
-	let status = dynamixel2::read_response(&mut tty, &mut request)
+	dynamixel2::read_response(&mut tty, &mut request)
 		.map_err(|e| eprintln!("failed to read READ status: {}", e))?;
 
 	println!("{:02X?}", read_buffer);
