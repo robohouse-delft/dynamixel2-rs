@@ -21,4 +21,4 @@ pub use error::WriteError;
 
 pub use transfer::read_response;
 pub use transfer::transfer_single;
-pub use transfer::write_request;
+pub use transfer::write_instruction;

@@ -8,7 +8,7 @@ const STATUS_HEADER_SIZE: usize = 9;
 
 use crate::crc::calculate_crc;
 
-pub fn write_request<W, I>(stream: &mut W, instruction: &I) -> Result<(), WriteError>
+pub fn write_instruction<W, I>(stream: &mut W, instruction: &I) -> Result<(), WriteError>
 where
 	W: std::io::Write + ?Sized,
 	I: Instruction,
@@ -83,6 +83,6 @@ where
 	S: std::io::Read + std::io::Write + ?Sized,
 	I: Instruction,
 {
-	write_request(stream, instruction)?;
+	write_instruction(stream, instruction)?;
 	Ok(read_response(stream, instruction)?)
 }
