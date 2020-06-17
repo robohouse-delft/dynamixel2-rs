@@ -2,6 +2,9 @@
 name = "dynamixel2"
 version = "0.1.0"
 authors = ["Maarten de Vries <maarten@de-vri.es>"]
+
+readme = "README.md"
+
 edition = "2018"
 
 [dependencies]
