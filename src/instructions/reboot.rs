@@ -25,7 +25,7 @@ impl Instruction for Reboot {
 	}
 
 	fn request_instruction_id(&self) -> u8 {
-		instruction_id::PING
+		instruction_id::REBOOT
 	}
 
 	fn request_parameters_len(&self) -> u16 {

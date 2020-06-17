@@ -1,17 +1,18 @@
+#[rustfmt::skip]
 pub mod instruction_id {
-	pub const PING: u8 = 1;
-	pub const READ: u8 = 2;
-	pub const WRITE: u8 = 3;
-	pub const REG_WRITE: u8 = 4;
-	pub const ACTION: u8 = 5;
-	pub const FACTORY_RESET: u8 = 6;
-	pub const REBOOT: u8 = 7;
-	pub const CLEAR: u8 = 8;
-	pub const SYNC_READ: u8 = 9;
-	pub const SYNC_WRITE: u8 = 10;
-	pub const BULK_READ: u8 = 11;
-	pub const BULK_WRITE: u8 = 12;
-	pub const STATUS: u8 = 0x55;
+	pub const PING          : u8 = 0x01;
+	pub const READ          : u8 = 0x02;
+	pub const WRITE         : u8 = 0x03;
+	pub const REG_WRITE     : u8 = 0x04;
+	pub const ACTION        : u8 = 0x05;
+	pub const FACTORY_RESET : u8 = 0x06;
+	pub const REBOOT        : u8 = 0x08;
+	pub const CLEAR         : u8 = 0x10;
+	pub const SYNC_READ     : u8 = 0x82;
+	pub const SYNC_WRITE    : u8 = 0x83;
+	pub const BULK_READ     : u8 = 0x92;
+	pub const BULK_WRITE    : u8 = 0x93;
+	pub const STATUS        : u8 = 0x55;
 }
 
 pub mod packet_id {
