@@ -1,6 +1,6 @@
 use serial::SerialPort;
 
-use dynamixel2::instructions::{Ping, PingResponse};
+use dynamixel2::instructions::Ping;
 
 fn main() {
 	if do_main().is_err() {
@@ -57,11 +57,8 @@ fn do_main() -> Result<(), ()> {
 	eprintln!("configuring serial port with: {:#?}", config);
 	tty.configure(&config).map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	let mut request = Ping::unicast(motor_id);
-	dynamixel2::write_request(&mut tty, &request)
-		.map_err(|e| eprintln!("failed to send PING instruction: {}", e))?;
-	let status : PingResponse = dynamixel2::read_response(&mut tty, &mut request)
-		.map_err(|e| eprintln!("failed to read PING status: {}", e))?;
+	let status = dynamixel2::transfer_single(&mut tty, &mut Ping::unicast(motor_id))
+		.map_err(|e| eprintln!("{}", e))?;
 
 	println!("{:#?}", status);
 	Ok(())

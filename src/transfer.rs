@@ -1,5 +1,6 @@
 use crate::instructions::{instruction_id, Instruction};
 use crate::endian::{read_u16_le, write_u16_le};
+use crate::{ReadError, WriteError, TransferError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
@@ -7,7 +8,7 @@ const STATUS_HEADER_SIZE: usize = 9;
 
 use crate::crc::calculate_crc;
 
-pub fn write_request<W, I>(stream: &mut W, instruction: &I) -> std::io::Result<()>
+pub fn write_request<W, I>(stream: &mut W, instruction: &I) -> Result<(), WriteError>
 where
 	W: std::io::Write + ?Sized,
 	I: Instruction,
@@ -39,10 +40,11 @@ where
 
 	// Send message.
 	trace!("sending instruction: {:02X?}", buffer);
-	stream.write_all(&buffer)
+	stream.write_all(&buffer)?;
+	Ok(())
 }
 
-pub fn read_response<R, I>(stream: &mut R, instruction: &mut I) -> Result<I::Response, crate::ReadError>
+pub fn read_response<R, I>(stream: &mut R, instruction: &mut I) -> Result<I::Response, ReadError>
 where
 	R: std::io::Read + ?Sized,
 	I: Instruction,
@@ -71,4 +73,16 @@ where
 	let unstuffed_size = crate::bitstuff::unstuff_inplace(body);
 
 	Ok(instruction.decode_response_parameters(packet_id, &body[..unstuffed_size])?)
+}
+
+/// Perform a transfer with a single response.
+///
+/// This is not suitable for broadcast instructions where each motor sends an individual response.
+pub fn transfer_single<S, I>(stream: &mut S, instruction: &mut I) -> Result<I::Response, TransferError>
+where
+	S: std::io::Read + std::io::Write + ?Sized,
+	I: Instruction,
+{
+	write_request(stream, instruction)?;
+	Ok(read_response(stream, instruction)?)
 }

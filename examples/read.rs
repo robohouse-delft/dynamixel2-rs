@@ -62,11 +62,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config).map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
 	let mut read_buffer = vec![0u8; length.into()];
-	let mut request = Read::new(motor_id, address, &mut read_buffer);
-	dynamixel2::write_request(&mut tty, &request)
-		.map_err(|e| eprintln!("failed to send READ instruction: {}", e))?;
-	dynamixel2::read_response(&mut tty, &mut request)
-		.map_err(|e| eprintln!("failed to read READ status: {}", e))?;
+	dynamixel2::transfer_single(&mut tty, &mut Read::new(motor_id, address, &mut read_buffer))
+		.map_err(|e| eprintln!("{}", e))?;
 
 	println!("{:02X?}", read_buffer);
 	Ok(())

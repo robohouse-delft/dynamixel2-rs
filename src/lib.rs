@@ -16,6 +16,9 @@ pub use error::InvalidMessage;
 pub use error::InvalidPacketId;
 pub use error::InvalidParameterCount;
 pub use error::ReadError;
+pub use error::TransferError;
+pub use error::WriteError;
 
 pub use transfer::read_response;
 pub use transfer::write_request;
+pub use transfer::transfer_single;

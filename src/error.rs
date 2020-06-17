@@ -1,4 +1,15 @@
 #[derive(Debug)]
+pub enum TransferError {
+	WriteError(WriteError),
+	ReadError(ReadError),
+}
+
+#[derive(Debug)]
+pub enum WriteError {
+	Io(std::io::Error),
+}
+
+#[derive(Debug)]
 pub enum ReadError {
 	Io(std::io::Error),
 	InvalidMessage(InvalidMessage),
@@ -101,12 +112,8 @@ impl InvalidParameterCount {
 	}
 }
 
-impl From<std::io::Error> for ReadError {
-	fn from(other: std::io::Error) -> Self {
-		Self::Io(other)
-	}
-}
-
+impl std::error::Error for TransferError {}
+impl std::error::Error for WriteError {}
 impl std::error::Error for ReadError {}
 impl std::error::Error for InvalidMessage {}
 impl std::error::Error for InvalidHeaderPrefix {}
@@ -114,6 +121,30 @@ impl std::error::Error for InvalidChecksum {}
 impl std::error::Error for InvalidPacketId {}
 impl std::error::Error for InvalidInstruction {}
 impl std::error::Error for InvalidParameterCount {}
+
+impl From<WriteError> for TransferError {
+	fn from(other: WriteError) -> Self {
+		Self::WriteError(other)
+	}
+}
+
+impl From<ReadError> for TransferError {
+	fn from(other: ReadError) -> Self {
+		Self::ReadError(other)
+	}
+}
+
+impl From<std::io::Error> for WriteError {
+	fn from(other: std::io::Error) -> Self {
+		Self::Io(other)
+	}
+}
+
+impl From<std::io::Error> for ReadError {
+	fn from(other: std::io::Error) -> Self {
+		Self::Io(other)
+	}
+}
 
 impl From<InvalidMessage> for ReadError {
 	fn from(other: InvalidMessage) -> Self {
@@ -178,6 +209,23 @@ impl From<InvalidInstruction> for InvalidMessage {
 impl From<InvalidParameterCount> for InvalidMessage {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidParameterCount(other)
+	}
+}
+
+impl std::fmt::Display for TransferError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			Self::WriteError(e) => write!(f, "failed to write instruction: {}", e),
+			Self::ReadError(e) => write!(f, "failed to read response: {}", e),
+		}
+	}
+}
+
+impl std::fmt::Display for WriteError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			Self::Io(e) => write!(f, "{}", e),
+		}
 	}
 }
 
