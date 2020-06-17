@@ -7,6 +7,10 @@ authors = [
 	"RoboHouse <robohouse@robovalley.com>",
 ]
 
+description = "dynamixel protocol 2.0"
+keywords = ["dynamixel", "servo", "motor", "serial"]
+categories = ["science::robotics"]
+repository = "https://github.com/robohouse-delft/dynamixel2-rs"
 readme = "README.md"
 
 edition = "2018"
