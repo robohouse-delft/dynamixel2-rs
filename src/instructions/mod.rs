@@ -43,8 +43,10 @@ pub trait Instruction {
 
 mod ping;
 mod read;
+mod reboot;
 mod write;
 
 pub use ping::{Ping, PingResponse};
 pub use read::{Read, ReadU8, ReadU16, ReadU32};
+pub use reboot::Reboot;
 pub use write::{Write, WriteU8, WriteU16, WriteU32};
