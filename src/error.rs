@@ -228,6 +228,6 @@ impl std::fmt::Display for InvalidInstruction {
 
 impl std::fmt::Display for InvalidParameterCount {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "invalid parameter count, expected {:#02X}, got {:#02X}", self.expected, self.actual)
+		write!(f, "invalid parameter count, expected {}, got {}", self.expected, self.actual)
 	}
 }
