@@ -17,7 +17,7 @@ where
 	let raw_body_len: usize = instruction.request_parameters_len().into();
 
 	// Make buffer with enough capacity for fully stuffed message.
-	let max_padded_body = crate::bitstuff::maximum_stuffed_len(raw_body_len);
+	let max_padded_body = crate::bytestuff::maximum_stuffed_len(raw_body_len);
 	let mut buffer = vec![0u8; HEADER_SIZE + max_padded_body + 2];
 
 	// Add the header, with a placeholder for the length field.
@@ -28,7 +28,7 @@ where
 
 	// Perform bitstuffing on the body.
 	// The header never needs stuffing.
-	let stuffed_body_len = crate::bitstuff::stuff_inplace(&mut buffer[HEADER_SIZE..], raw_body_len).unwrap();
+	let stuffed_body_len = crate::bytestuff::stuff_inplace(&mut buffer[HEADER_SIZE..], raw_body_len).unwrap();
 
 	write_u16_le(&mut buffer[5..], stuffed_body_len as u16 + 3);
 
@@ -72,7 +72,7 @@ where
 	crate::InvalidChecksum::check(checksum, checksum_from_msg)?;
 
 	// Remove bit-stuffing on the body.
-	let unstuffed_size = crate::bitstuff::unstuff_inplace(body);
+	let unstuffed_size = crate::bytestuff::unstuff_inplace(body);
 
 	Ok(instruction.decode_response_parameters(packet_id, &body[..unstuffed_size])?)
 }

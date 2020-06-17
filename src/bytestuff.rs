@@ -1,3 +1,5 @@
+//! Byte-stuffing and de-stuffing.
+
 pub const PATTERN: [u8; 4] = [0xFF, 0xFF, 0xFD, 0xFD];
 
 /// Remove bit-stuffing in-place.

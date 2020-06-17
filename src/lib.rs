@@ -58,7 +58,7 @@ mod log;
 pub mod checksum;
 pub mod instructions;
 
-mod bitstuff;
+mod bytestuff;
 mod endian;
 mod error;
 mod transfer;
