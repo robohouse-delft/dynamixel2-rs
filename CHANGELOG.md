@@ -1,3 +1,6 @@
+0.1.1:
+  * Fix encoding of WriteU8 instruction parameters.
+
 0.1.0:
   * Initial release.
   * Implemented instructions: ping, read, write, reboot.

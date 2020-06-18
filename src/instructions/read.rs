@@ -66,8 +66,8 @@ impl Instruction for Read<'_> {
 	}
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		write_u16_le(&mut buffer[2..], self.buffer.len() as u16);
+		write_u16_le(&mut buffer[0..2], self.address);
+		write_u16_le(&mut buffer[2..4], self.buffer.len() as u16);
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
@@ -94,8 +94,8 @@ impl Instruction for ReadU8 {
 	}
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		write_u16_le(&mut buffer[2..], 1);
+		write_u16_le(&mut buffer[0..2], self.address);
+		write_u16_le(&mut buffer[2..4], 1);
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
@@ -121,8 +121,8 @@ impl Instruction for ReadU16 {
 	}
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		write_u16_le(&mut buffer[2..], 2);
+		write_u16_le(&mut buffer[0..2], self.address);
+		write_u16_le(&mut buffer[2..4], 2);
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
@@ -148,8 +148,8 @@ impl Instruction for ReadU32 {
 	}
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		write_u16_le(&mut buffer[2..], 4);
+		write_u16_le(&mut buffer[0..2], self.address);
+		write_u16_le(&mut buffer[2..4], 4);
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {

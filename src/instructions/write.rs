@@ -96,8 +96,8 @@ impl Instruction for WriteU8 {
 	}
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		buffer[3] = self.data;
+		write_u16_le(&mut buffer[0..2], self.address);
+		buffer[2] = self.data;
 	}
 
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
