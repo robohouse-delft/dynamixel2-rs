@@ -1,3 +1,6 @@
+0.1.2:
+  * Fix `write_u32_le()` to actually write in little endian.
+
 0.1.1:
   * Fix encoding of WriteU8 instruction parameters.
 

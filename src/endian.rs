@@ -13,8 +13,8 @@ pub fn read_u16_le(buffer: &[u8]) -> u16 {
 
 /// Write a u32 to a buffer in little endian format.
 pub fn write_u32_le(buffer: &mut [u8], value: u32) {
-	write_u16_le(&mut buffer[0..2], (value >> 16 & 0xFFFF) as u16);
-	write_u16_le(&mut buffer[2..4], (value & 0xFFFF) as u16);
+	write_u16_le(&mut buffer[0..2], (value & 0xFFFF) as u16);
+	write_u16_le(&mut buffer[2..4], (value >> 16 & 0xFFFF) as u16);
 }
 
 /// Read a u32 in little endian format from a buffer.
