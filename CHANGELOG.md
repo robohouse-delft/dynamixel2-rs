@@ -1,10 +1,13 @@
-0.1.2:
+v0.1.3:
+  * Include correct license file.
+
+v0.1.2:
   * Fix `write_u32_le()` to actually write in little endian.
 
-0.1.1:
+v0.1.1:
   * Fix encoding of WriteU8 instruction parameters.
 
-0.1.0:
+v0.1.0:
   * Initial release.
   * Implemented instructions: ping, read, write, reboot.
   * Add function to write a single instruction.
