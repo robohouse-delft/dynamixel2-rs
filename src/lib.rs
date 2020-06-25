@@ -30,7 +30,7 @@
 //! * [x] Factory Reset
 //! * [x] Reboot
 //! * [x] Clear
-//! * [ ] Sync Read
+//! * [x] Sync Read
 //! * [ ] Sync Write
 //! * [ ] Bulk Read
 //! * [ ] Bulk Write

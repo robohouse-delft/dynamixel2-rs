@@ -48,7 +48,7 @@ pub struct InvalidChecksum {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidPacketId {
 	pub actual: u8,
-	pub expected: u8,
+	pub expected: Option<u8>,
 }
 
 /// The received message has an invalid or unexpected instruction value.
@@ -100,7 +100,7 @@ impl InvalidPacketId {
 		if actual == expected {
 			Ok(())
 		} else {
-			Err(Self { actual, expected })
+			Err(Self { actual, expected: Some(expected) })
 		}
 	}
 
@@ -307,7 +307,11 @@ impl std::fmt::Display for InvalidChecksum {
 
 impl std::fmt::Display for InvalidPacketId {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "invalid packet ID, expected {:#02X}, got {:#02X}", self.expected, self.actual)
+		if let Some(expected) = self.expected {
+			write!(f, "invalid packet ID, expected {:#02X}, got {:#02X}", expected, self.actual)
+		} else {
+			write!(f, "invalid packet ID: {:#02X}", self.actual)
+		}
 	}
 }
 
