@@ -1,4 +1,5 @@
 v0.1.3:
+  * Implement custom raw instructions.
   * Include correct license file.
 
 v0.1.2:

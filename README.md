@@ -40,6 +40,7 @@ The following instructions are currently implemented (PRs welcome!):
 * [ ] Sync Write
 * [ ] Bulk Read
 * [ ] Bulk Write
+* [x] Custom raw instructions
 
 ## Functionaility implementation status
 

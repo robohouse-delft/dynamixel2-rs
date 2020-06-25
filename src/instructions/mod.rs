@@ -42,11 +42,13 @@ pub trait Instruction {
 	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage>;
 }
 
+mod raw;
 mod ping;
 mod read;
 mod reboot;
 mod write;
 
+pub use raw::{Raw, RawResponse};
 pub use ping::{Ping, PingResponse};
 pub use read::{Read, ReadU16, ReadU32, ReadU8};
 pub use reboot::Reboot;

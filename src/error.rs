@@ -58,11 +58,18 @@ pub struct InvalidInstruction {
 	pub expected: u8,
 }
 
+/// The expected number of parameters.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ExpectedCount {
+	Exact(usize),
+	Max(usize),
+}
+
 /// The received message has an invalid or unexpected parameter count.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidParameterCount {
 	pub actual: usize,
-	pub expected: usize,
+	pub expected: ExpectedCount,
 }
 
 impl InvalidHeaderPrefix {
@@ -121,7 +128,21 @@ impl InvalidParameterCount {
 		if actual == expected {
 			Ok(())
 		} else {
-			Err(Self { actual, expected })
+			Err(Self {
+				actual,
+				expected: ExpectedCount::Exact(expected),
+			})
+		}
+	}
+
+	pub fn check_max(actual: usize, max: usize) -> Result<(), Self> {
+		if actual <= max {
+			Ok(())
+		} else {
+			Err(Self {
+				actual,
+				expected: ExpectedCount::Max(max),
+			})
 		}
 	}
 }
@@ -297,6 +318,15 @@ impl std::fmt::Display for InvalidInstruction {
 			"invalid instruction ID, expected {:#02X}, got {:#02X}",
 			self.expected, self.actual
 		)
+	}
+}
+
+impl std::fmt::Display for ExpectedCount {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		match self {
+			Self::Exact(x) => write!(f, "exactly {}", x),
+			Self::Max(x) => write!(f, "at most {}", x),
+		}
 	}
 }
 

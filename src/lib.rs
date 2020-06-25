@@ -34,6 +34,7 @@
 //! * [ ] Sync Write
 //! * [ ] Bulk Read
 //! * [ ] Bulk Write
+//! * [x] Custom raw instructions
 //!
 //! # Functionaility implementation status
 //!
