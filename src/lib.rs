@@ -13,7 +13,7 @@
 //! which can be used to send an instruction to a servo and read a single reply.
 //! The function can work with any `Read` + `Write` stream.
 //!
-//! It is also also to use [`write_instruction`] followed by multiple [`read_response`] calls
+//! It is also possible to use [`write_instruction`] followed by multiple [`read_response`] calls
 //! to receive replies from multiple motors.
 //!
 //! See the [`instructions`] module for available instructions.
@@ -25,8 +25,8 @@
 //! * [x] Ping
 //! * [x] Read
 //! * [x] Write
-//! * [ ] Reg Write
-//! * [ ] Action
+//! * [x] Reg Write
+//! * [x] Action
 //! * [ ] Factory Reset
 //! * [x] Reboot
 //! * [ ] Clear
@@ -75,7 +75,7 @@ pub use error::TransferError;
 pub use error::WriteError;
 
 pub use transfer::read_response;
-pub use transfer::transfer_single;
-pub use transfer::write_instruction;
 pub use transfer::scan;
 pub use transfer::scan_to_vec;
+pub use transfer::transfer_single;
+pub use transfer::write_instruction;

@@ -31,8 +31,8 @@ The following instructions are currently implemented (PRs welcome!):
 * [x] Ping
 * [x] Read
 * [x] Write
-* [ ] Reg Write
-* [ ] Action
+* [x] Reg Write
+* [x] Action
 * [ ] Factory Reset
 * [x] Reboot
 * [ ] Clear
