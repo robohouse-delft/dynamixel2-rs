@@ -33,7 +33,7 @@ The following instructions are currently implemented (PRs welcome!):
 * [x] Write
 * [x] Reg Write
 * [x] Action
-* [ ] Factory Reset
+* [x] Factory Reset
 * [x] Reboot
 * [ ] Clear
 * [ ] Sync Read

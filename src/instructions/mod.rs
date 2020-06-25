@@ -43,6 +43,7 @@ pub trait Instruction {
 }
 
 mod action;
+mod factory_reset;
 mod ping;
 mod raw;
 mod read;
@@ -51,6 +52,7 @@ mod reg_write;
 mod write;
 
 pub use action::Action;
+pub use factory_reset::{FactoryReset, FactoryResetKind};
 pub use ping::{Ping, PingResponse};
 pub use raw::{Raw, RawResponse};
 pub use read::{Read, ReadU16, ReadU32, ReadU8};
