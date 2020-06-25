@@ -1,7 +1,5 @@
 use serial::SerialPort;
 
-use dynamixel2::instructions::Ping;
-
 fn main() {
 	if do_main().is_err() {
 		std::process::exit(1);
