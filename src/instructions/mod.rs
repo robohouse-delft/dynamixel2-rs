@@ -43,6 +43,7 @@ pub trait Instruction {
 }
 
 mod action;
+mod clear;
 mod factory_reset;
 mod ping;
 mod raw;
@@ -52,6 +53,7 @@ mod reg_write;
 mod write;
 
 pub use action::Action;
+pub use clear::{ClearMultiTurnCounter};
 pub use factory_reset::{FactoryReset, FactoryResetKind};
 pub use ping::{Ping, PingResponse};
 pub use raw::{Raw, RawResponse};

@@ -29,7 +29,7 @@
 //! * [x] Action
 //! * [x] Factory Reset
 //! * [x] Reboot
-//! * [ ] Clear
+//! * [x] Clear
 //! * [ ] Sync Read
 //! * [ ] Sync Write
 //! * [ ] Bulk Read

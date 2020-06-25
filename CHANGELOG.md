@@ -1,6 +1,7 @@
 v0.1.3:
   * Implement reg_write and action instruction.
   * Implement factory_reset instruction.
+  * Implement clear instruction.
   * Implement custom raw instructions.
   * Include correct license file.
 
