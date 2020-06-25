@@ -1,8 +1,8 @@
 v0.1.3:
-  * Implement `reg_write` and `action` instructions.
-  * Implement `factory_reset` instruction.
-  * Implement `clear` instruction.
-  * Implement `sync_read` instruction.
+  * Implement the `reg_write` and `action` instructions.
+  * Implement the `factory_reset` instruction.
+  * Implement the `clear` instruction.
+  * Implement the `sync_read` and `sync_write` instructions.
   * Implement custom raw instructions.
   * Include correct license file.
 

@@ -37,7 +37,7 @@ The following instructions are currently implemented (PRs welcome!):
 * [x] Reboot
 * [x] Clear
 * [x] Sync Read
-* [ ] Sync Write
+* [x] Sync Write
 * [ ] Bulk Read
 * [ ] Bulk Write
 * [x] Custom raw instructions

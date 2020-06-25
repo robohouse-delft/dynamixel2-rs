@@ -4,7 +4,7 @@ use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
 /// Perform a sync read, reading the data into a supplied buffer.
 #[derive(Debug)]
 pub struct SyncRead<'a> {
-	/// The motors ro read from.
+	/// The motors to read from.
 	pub motor_ids: &'a [u8],
 
 	/// The address to read from.
@@ -17,29 +17,43 @@ pub struct SyncRead<'a> {
 /// Perform a sync read, returning the data as [`Vec`].
 #[derive(Debug)]
 pub struct SyncReadVec<'a> {
+	/// The motors to read from.
 	pub motor_ids: &'a [u8],
+
+	/// The address to read from.
 	pub address: u16,
+
+	/// The number of bytes to read from each motor.
 	pub length: u16,
 }
 
 /// Synchronously read an [`u8`] from multiple motors.
 #[derive(Debug)]
 pub struct SyncReadU8<'a> {
+	/// The motors to read from.
 	pub motor_ids: &'a [u8],
+
+	/// The address to read from.
 	pub address: u16,
 }
 
 /// Synchronously read an [`u16`] from multiple motors.
 #[derive(Debug)]
 pub struct SyncReadU16<'a> {
+	/// The motors to read from.
 	pub motor_ids: &'a [u8],
+
+	/// The address to read from.
 	pub address: u16,
 }
 
 /// Synchronously read an [`u32`] from multiple motors.
 #[derive(Debug)]
 pub struct SyncReadU32<'a> {
+	/// The motors to read from.
 	pub motor_ids: &'a [u8],
+
+	/// The address to read from.
 	pub address: u16,
 }
 
@@ -81,14 +95,14 @@ impl<'a> SyncReadVec<'a> {
 }
 
 impl<'a> SyncReadU8<'a> {
-	/// Create a new SyncReadVec instruction to read data from a list of motors.
+	/// Create a new SyncReadU8 instruction to read data from a list of motors.
 	pub fn new(motor_ids: &'a [u8], address: u16) -> Self {
 		Self { motor_ids, address }
 	}
 }
 
 impl<'a> SyncReadU16<'a> {
-	/// Create a new SyncReadVec instruction to read data from a list of motors.
+	/// Create a new SyncReadU16 instruction to read data from a list of motors.
 	pub fn new(motor_ids: &'a [u8], address: u16) -> Self {
 		Self { motor_ids, address }
 	}

@@ -31,7 +31,7 @@
 //! * [x] Reboot
 //! * [x] Clear
 //! * [x] Sync Read
-//! * [ ] Sync Write
+//! * [x] Sync Write
 //! * [ ] Bulk Read
 //! * [ ] Bulk Write
 //! * [x] Custom raw instructions
