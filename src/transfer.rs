@@ -1,6 +1,6 @@
 use crate::endian::{read_u16_le, write_u16_le};
 use crate::instructions::{instruction_id, Instruction, Ping, PingResponse};
-use crate::{ReadError, TransferError, WriteError};
+use crate::{MotorError, ReadError, TransferError, WriteError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
@@ -72,6 +72,11 @@ where
 	let checksum = calculate_checksum(0, &raw_header);
 	let checksum = calculate_checksum(checksum, &body);
 	crate::InvalidChecksum::check(checksum, checksum_from_msg)?;
+
+	let status = raw_header[8];
+	if status != 0 {
+		return Err(MotorError { raw: status })?;
+	}
 
 	// Remove bit-stuffing on the body.
 	let unstuffed_size = crate::bytestuff::unstuff_inplace(body);

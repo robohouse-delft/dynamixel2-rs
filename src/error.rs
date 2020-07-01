@@ -18,6 +18,7 @@ pub enum WriteError {
 pub enum ReadError {
 	Io(std::io::Error),
 	InvalidMessage(InvalidMessage),
+	MotorError(MotorError),
 }
 
 /// The received message is not valid.
@@ -28,6 +29,12 @@ pub enum InvalidMessage {
 	InvalidPacketId(InvalidPacketId),
 	InvalidInstruction(InvalidInstruction),
 	InvalidParameterCount(InvalidParameterCount),
+}
+
+/// An error reported by the motor.
+#[derive(Debug)]
+pub struct MotorError {
+	pub raw: u8,
 }
 
 /// The received message has an invalid header prefix.
@@ -151,6 +158,7 @@ impl std::error::Error for TransferError {}
 impl std::error::Error for WriteError {}
 impl std::error::Error for ReadError {}
 impl std::error::Error for InvalidMessage {}
+impl std::error::Error for MotorError {}
 impl std::error::Error for InvalidHeaderPrefix {}
 impl std::error::Error for InvalidChecksum {}
 impl std::error::Error for InvalidPacketId {}
@@ -184,6 +192,12 @@ impl From<std::io::Error> for ReadError {
 impl From<InvalidMessage> for ReadError {
 	fn from(other: InvalidMessage) -> Self {
 		Self::InvalidMessage(other)
+	}
+}
+
+impl From<MotorError> for ReadError {
+	fn from(other: MotorError) -> Self {
+		Self::MotorError(other)
 	}
 }
 
@@ -269,6 +283,7 @@ impl std::fmt::Display for ReadError {
 		match self {
 			Self::Io(e) => write!(f, "{}", e),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
+			Self::MotorError(e) => write!(f, "{}", e),
 		}
 	}
 }
@@ -282,6 +297,16 @@ impl std::fmt::Display for InvalidMessage {
 			Self::InvalidInstruction(e) => write!(f, "{}", e),
 			Self::InvalidParameterCount(e) => write!(f, "{}", e),
 		}
+	}
+}
+
+impl std::fmt::Display for MotorError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(
+			f,
+			"motor reported error status: {:#02X}",
+			self.raw,
+		)
 	}
 }
 
