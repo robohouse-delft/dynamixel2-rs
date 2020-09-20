@@ -15,6 +15,11 @@ jobs:
         with:
           command: build
           args: --all-features --color=always
+      - name: Clippy
+        uses: actions-rs/clippy-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --release --all-features
       - name: Test
         uses: actions-rs/cargo@v1
         with:
