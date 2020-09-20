@@ -75,7 +75,7 @@ where
 
 	let status = raw_header[8];
 	if status != 0 {
-		return Err(MotorError { raw: status })?;
+		return Err(MotorError { raw: status }.into());
 	}
 
 	// Remove bit-stuffing on the body.
