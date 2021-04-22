@@ -1,3 +1,6 @@
+v0.1.4:
+  * Fix visibility of `WriteData` struct for `SyncWriteU*`.
+
 v0.1.3:
   * Implement the `reg_write` and `action` instructions.
   * Implement the `factory_reset` instruction.

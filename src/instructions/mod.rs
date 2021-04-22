@@ -55,7 +55,7 @@ mod sync_write;
 mod write;
 
 pub use action::Action;
-pub use clear::{ClearMultiTurnCounter};
+pub use clear::ClearMultiTurnCounter;
 pub use factory_reset::{FactoryReset, FactoryResetKind};
 pub use ping::{Ping, PingResponse};
 pub use raw::{Raw, RawResponse};
@@ -63,5 +63,5 @@ pub use read::{Read, ReadU16, ReadU32, ReadU8};
 pub use reboot::Reboot;
 pub use reg_write::{RegWrite, RegWriteU16, RegWriteU32, RegWriteU8};
 pub use sync_read::{SyncRead, SyncReadU16, SyncReadU32, SyncReadU8, SyncReadVec};
-pub use sync_write::{SyncWrite, SyncWriteU16, SyncWriteU32, SyncWriteU8};
+pub use sync_write::{SyncWrite, SyncWriteU16, SyncWriteU32, SyncWriteU8, WriteData};
 pub use write::{Write, WriteU16, WriteU32, WriteU8};
