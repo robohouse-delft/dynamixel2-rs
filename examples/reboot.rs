@@ -1,4 +1,5 @@
 use serial::SerialPort;
+use std::time::Duration;
 
 use dynamixel2::instructions::Reboot;
 
@@ -58,7 +59,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config)
 		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	dynamixel2::transfer_single(&mut tty, &mut Reboot::unicast(motor_id)).map_err(|e| eprintln!("{}", e))?;
+	let mut stream = dynamixel2::Bus::new(tty);
+	stream.transfer_single(&mut Reboot::unicast(motor_id), Duration::from_millis(50)).map_err(|e| eprintln!("{}", e))?;
 	println!("reboot command sent sucesfully");
 	Ok(())
 }

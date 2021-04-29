@@ -62,7 +62,7 @@ pub mod instructions;
 mod bytestuff;
 mod endian;
 mod error;
-mod transfer;
+mod bus;
 
 pub use error::InvalidChecksum;
 pub use error::InvalidHeaderPrefix;
@@ -75,8 +75,4 @@ pub use error::ReadError;
 pub use error::TransferError;
 pub use error::WriteError;
 
-pub use transfer::read_response;
-pub use transfer::scan;
-pub use transfer::scan_to_vec;
-pub use transfer::transfer_single;
-pub use transfer::write_instruction;
+pub use bus::Bus;

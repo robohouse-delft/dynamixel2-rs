@@ -1,4 +1,5 @@
 use serial::SerialPort;
+use std::time::Duration;
 
 use dynamixel2::instructions::Write;
 
@@ -65,7 +66,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config)
 		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	dynamixel2::transfer_single(&mut tty, &mut Write::new(motor_id, address, &data)).map_err(|e| eprintln!("{}", e))?;
+	let mut stream = dynamixel2::Bus::new(tty);
+	stream.transfer_single(&mut Write::new(motor_id, address, &data), Duration::from_millis(50)).map_err(|e| eprintln!("{}", e))?;
 
 	Ok(())
 }

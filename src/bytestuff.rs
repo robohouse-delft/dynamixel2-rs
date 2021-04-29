@@ -27,11 +27,6 @@ pub fn unstuff_inplace(data: &mut [u8]) -> usize {
 	data.len() - deleted
 }
 
-/// Calculate the maximum required size for stuffing arbitrary data of a certain length.
-pub fn maximum_stuffed_len(unstuffed_length: usize) -> usize {
-	unstuffed_length / 3 * 4 + unstuffed_length % 3
-}
-
 /// Calculate the amount of stuffing bytes required for specific data.
 pub fn stuffing_required(data: &[u8]) -> usize {
 	let mut state = 0;
@@ -51,7 +46,7 @@ pub fn stuffing_required(data: &[u8]) -> usize {
 	count
 }
 
-/// Perform byte-stuffing in-place.
+/// Perform byte-stuffing in-place and return the length of the stuffed data.
 ///
 /// The actual length of the unstuffed data must be passed in through the `len` parameter.
 ///
@@ -96,6 +91,11 @@ mod test {
 		let new_size = unstuff_inplace(&mut data);
 		data.resize(new_size, 0);
 		data
+	}
+
+	/// Calculate the maximum required size for stuffing arbitrary data of a certain length.
+	pub fn maximum_stuffed_len(unstuffed_length: usize) -> usize {
+		unstuffed_length / 3 * 4 + unstuffed_length % 3
 	}
 
 	fn stuff(mut data: Vec<u8>) -> Result<Vec<u8>, ()> {

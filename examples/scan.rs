@@ -54,7 +54,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config)
 		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	dynamixel2::scan(&mut tty, |response| {
+	let mut stream = dynamixel2::Bus::new(tty);
+	stream.scan(|response| {
 		println!("{:#?}", response);
 	})
 	.map_err(|e| eprintln!("{}", e))?;
