@@ -195,7 +195,7 @@ impl Instruction for SyncWriteU16<'_> {
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
 		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], 1);
+		write_u16_le(&mut buffer[2..4], 2);
 		for (i, entry) in self.data.iter().enumerate() {
 			buffer[i * 3 + 4] = entry.motor_id;
 			write_u16_le(&mut buffer[i * 3 + 5..], entry.data);
@@ -229,7 +229,7 @@ impl Instruction for SyncWriteU32<'_> {
 
 	fn encode_request_parameters(&self, buffer: &mut [u8]) {
 		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], 1);
+		write_u16_le(&mut buffer[2..4], 4);
 		for (i, entry) in self.data.iter().enumerate() {
 			buffer[i * 5 + 4] = entry.motor_id;
 			write_u32_le(&mut buffer[i * 5 + 5..], entry.data);
