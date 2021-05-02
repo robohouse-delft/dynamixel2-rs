@@ -1,6 +1,6 @@
+use super::{instruction_id, packet_id, ReadResponse};
 use crate::endian::write_u16_le;
 use crate::{Bus, ReadError, WriteError};
-use super::{instruction_id, packet_id, ReadResponse};
 
 /// The responses to a [`Bus::sync_read`] command.
 ///
@@ -67,7 +67,12 @@ where
 	///
 	/// Additionally, you must not wait any significant time before reading each response,
 	/// or you risk the OS throwing away unread data from the serial port.
-	pub fn sync_read<'a>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16) -> Result<SyncReadResponse<'a, Stream, ReadBuffer, WriteBuffer>, WriteError> {
+	pub fn sync_read<'a>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+	) -> Result<SyncReadResponse<'a, Stream, ReadBuffer, WriteBuffer>, WriteError> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);

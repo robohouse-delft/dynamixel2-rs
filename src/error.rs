@@ -107,7 +107,10 @@ impl InvalidPacketId {
 		if actual == expected {
 			Ok(())
 		} else {
-			Err(Self { actual, expected: Some(expected) })
+			Err(Self {
+				actual,
+				expected: Some(expected),
+			})
 		}
 	}
 
@@ -314,11 +317,7 @@ impl std::fmt::Display for InvalidMessage {
 
 impl std::fmt::Display for MotorError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(
-			f,
-			"motor reported error status: {:#02X}",
-			self.raw,
-		)
+		write!(f, "motor reported error status: {:#02X}", self.raw,)
 	}
 }
 

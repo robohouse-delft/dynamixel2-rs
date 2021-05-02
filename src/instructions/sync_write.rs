@@ -1,6 +1,6 @@
+use super::{instruction_id, packet_id};
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::{Bus, TransferError};
-use super::{instruction_id, packet_id};
 
 /// Data for a specific motor.
 ///
@@ -127,5 +127,3 @@ where
 		Ok(())
 	}
 }
-
-

@@ -26,10 +26,10 @@ mod log;
 pub mod checksum;
 pub mod instructions;
 
+mod bus;
 mod bytestuff;
 mod endian;
 mod error;
-mod bus;
 
 pub use error::InvalidChecksum;
 pub use error::InvalidHeaderPrefix;

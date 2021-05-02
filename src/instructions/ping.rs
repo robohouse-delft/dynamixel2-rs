@@ -1,5 +1,5 @@
-use crate::{Bus, ReadError, TransferError, WriteError};
 use super::{instruction_id, packet_id};
+use crate::{Bus, ReadError, TransferError, WriteError};
 
 #[derive(Debug, Clone)]
 pub struct PingResponse {

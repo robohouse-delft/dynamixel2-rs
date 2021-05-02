@@ -1,6 +1,6 @@
+use super::instruction_id;
 use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
 use crate::{Bus, TransferError};
-use super::instruction_id;
 
 pub struct ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
 where
@@ -44,8 +44,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into())
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into()).map_err(crate::ReadError::from)?;
 		Ok(ReadResponse { response })
 	}
 

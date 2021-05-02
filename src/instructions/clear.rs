@@ -1,5 +1,5 @@
-use crate::Bus;
 use super::{instruction_id, packet_id};
+use crate::Bus;
 
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
@@ -23,8 +23,7 @@ where
 			self.broadcast_clear_revolution_counter()?;
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0)
-				.map_err(crate::ReadError::from)?;
+			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
 		Ok(())
 	}
@@ -35,7 +34,12 @@ where
 	/// It is not possible to clear the mutli-revolution counter of a motor while it is moving.
 	/// Doing so will cause the motor to return an error, and the revolution counter will not be reset.
 	pub fn broadcast_clear_revolution_counter(&mut self) -> Result<(), crate::WriteError> {
-		self.write_instruction(packet_id::BROADCAST, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
+		self.write_instruction(
+			packet_id::BROADCAST,
+			instruction_id::CLEAR,
+			CLEAR_REVOLUTION_COUNT.len(),
+			encode_parameters,
+		)?;
 		Ok(())
 	}
 }

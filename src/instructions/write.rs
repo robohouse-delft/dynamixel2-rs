@@ -1,6 +1,6 @@
+use super::instruction_id;
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::{Bus, TransferError};
-use super::instruction_id;
 
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
 where
@@ -14,8 +14,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			buffer[2..].copy_from_slice(data)
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
@@ -25,8 +24,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			buffer[2] = value;
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
@@ -36,8 +34,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], value);
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
@@ -47,8 +44,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u32_le(&mut buffer[2..], value);
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 }

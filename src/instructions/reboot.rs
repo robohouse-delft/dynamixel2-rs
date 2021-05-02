@@ -1,5 +1,5 @@
-use crate::{Bus, TransferError, WriteError};
 use super::{instruction_id, packet_id};
+use crate::{Bus, TransferError, WriteError};
 
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
 where
@@ -20,8 +20,7 @@ where
 			self.broadcast_action()?;
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::REBOOT, 0, |_| ())?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0)
-				.map_err(crate::ReadError::from)?;
+			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
 		Ok(())
 	}
@@ -31,4 +30,3 @@ where
 		self.write_instruction(packet_id::BROADCAST, instruction_id::REBOOT, 0, |_| ())
 	}
 }
-

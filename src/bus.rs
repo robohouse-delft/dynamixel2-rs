@@ -82,13 +82,18 @@ where
 	{
 		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)?;
 		let response = self.read_status_response()?;
-		crate::error::InvalidPacketId::check(response.packet_id(), packet_id)
-			.map_err(crate::ReadError::from)?;
+		crate::error::InvalidPacketId::check(response.packet_id(), packet_id).map_err(crate::ReadError::from)?;
 		Ok(response)
 	}
 
 	/// Write an instruction message to the bus.
-	pub fn write_instruction<F>(&mut self, packet_id: u8, instruction_id: u8, parameter_count: usize, encode_parameters: F) -> Result<(), WriteError>
+	pub fn write_instruction<F>(
+		&mut self,
+		packet_id: u8,
+		instruction_id: u8,
+		parameter_count: usize,
+		encode_parameters: F,
+	) -> Result<(), WriteError>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -162,13 +167,14 @@ where
 
 		let buffer = self.read_buffer.as_mut();
 		let checksum_message = read_u16_le(&buffer[parameters_end..]);
-		let checksum_computed = calculate_checksum(0, &buffer[.. parameters_end]);
+		let checksum_computed = calculate_checksum(0, &buffer[..parameters_end]);
 		if checksum_message != checksum_computed {
 			self.consume_read_bytes(stuffed_message_len);
 			return Err(crate::InvalidChecksum {
 				message: checksum_message,
 				computed: checksum_computed,
-			}.into());
+			}
+			.into());
 		}
 
 		// Remove byte-stuffing from the parameters.
@@ -224,7 +230,6 @@ where
 	parameter_count: usize,
 }
 
-
 impl<'a, Stream, ReadBuffer, WriteBuffer> Response<'a, Stream, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -235,7 +240,7 @@ where
 	/// This includes the message header and the parameters.
 	/// It does not include the CRC or byte-stuffing.
 	pub fn as_bytes(&self) -> &[u8] {
-		&self.bus.read_buffer.as_ref()[.. STATUS_HEADER_SIZE + self.parameter_count]
+		&self.bus.read_buffer.as_ref()[..STATUS_HEADER_SIZE + self.parameter_count]
 	}
 
 	/// The packet ID of the response.

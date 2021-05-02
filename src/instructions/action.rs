@@ -16,8 +16,7 @@ where
 			self.broadcast_action()?;
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::ACTION, 0, |_| ())?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0)
-				.map_err(crate::ReadError::from)?;
+			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
 		Ok(())
 	}

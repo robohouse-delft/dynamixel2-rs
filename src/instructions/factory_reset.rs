@@ -1,5 +1,5 @@
-use crate::Bus;
 use super::{instruction_id, packet_id};
+use crate::Bus;
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -39,10 +39,9 @@ where
 			self.broadcast_factory_reset(kind)?;
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0)
-				.map_err(crate::ReadError::from)?;
+			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
-			Ok(())
+		Ok(())
 	}
 
 	/// Reset the settings of all connected motors to the factory defaults.
@@ -57,7 +56,9 @@ where
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
 	pub fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), crate::WriteError> {
-		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)?;
+		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| {
+			buffer[0] = kind as u8
+		})?;
 		Ok(())
 	}
 }
