@@ -1,8 +1,6 @@
 use serial::SerialPort;
 use std::time::Duration;
 
-use dynamixel2::instructions::Ping;
-
 fn main() {
 	if do_main().is_err() {
 		std::process::exit(1);
@@ -59,8 +57,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config)
 		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	let mut bus = dynamixel2::Bus::new(tty);
-	let status = bus.transfer_single(&mut Ping::unicast(motor_id), Duration::from_millis(50)).map_err(|e| eprintln!("{}", e))?;
+	let mut bus = dynamixel2::Bus::new(tty, Duration::from_millis(100));
+	let status = bus.ping(motor_id).map_err(|e| eprintln!("{}", e))?;
 
 	println!("{:#?}", status);
 	Ok(())

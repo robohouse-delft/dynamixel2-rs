@@ -1,4 +1,5 @@
 use serial::SerialPort;
+use std::time::Duration;
 
 fn main() {
 	if do_main().is_err() {
@@ -54,8 +55,8 @@ fn do_main() -> Result<(), ()> {
 	tty.configure(&config)
 		.map_err(|e| eprintln!("failed to configure serial port: {}", e))?;
 
-	let mut stream = dynamixel2::Bus::new(tty);
-	stream.scan(|response| {
+	let mut bus = dynamixel2::Bus::new(tty, Duration::from_millis(50));
+	bus.scan_cb(|response| {
 		println!("{:#?}", response);
 	})
 	.map_err(|e| eprintln!("{}", e))?;
