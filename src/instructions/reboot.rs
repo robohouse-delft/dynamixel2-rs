@@ -1,44 +1,34 @@
-use super::{instruction_id, packet_id, Instruction};
+use crate::{Bus, TransferError, WriteError};
+use super::{instruction_id, packet_id};
 
-#[derive(Debug, Clone)]
-pub struct Reboot {
-	pub motor_id: u8,
-}
-
-impl Reboot {
-	pub fn unicast(motor_id: u8) -> Self {
-		Self { motor_id }
-	}
-
-	pub fn broadcast() -> Self {
-		Self {
-			motor_id: packet_id::BROADCAST,
+impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+where
+	Stream: std::io::Read + std::io::Write,
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Send a reboot command to a specific motor.
+	///
+	/// Certain error conditions can only be cleared by rebooting a motor.
+	/// When a motor reboots, all volatile (non-EEPROM) registers are reset to their initial value.
+	/// This also has the effect of disabling motor torque and resetting the multi-revolution information.
+	///
+	/// The `motor_id` parameter may be set to [`packet_id::BROADCAST`],
+	/// although the [`Self::broadcast_reboot`] is generally easier to use.
+	pub fn reboot(&mut self, motor_id: u8) -> Result<(), TransferError> {
+		if motor_id == packet_id::BROADCAST {
+			self.broadcast_action()?;
+		} else {
+			let response = self.transfer_single(motor_id, instruction_id::REBOOT, 0, |_| ())?;
+			crate::InvalidParameterCount::check(response.parameters().len(), 0)
+				.map_err(crate::ReadError::from)?;
 		}
-	}
-}
-
-impl Instruction for Reboot {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::REBOOT
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		0
-	}
-
-	fn encode_request_parameters(&self, _buffer: &mut [u8]) {
-		// Empty parameters.
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 0)?;
 		Ok(())
 	}
+
+	/// Broadcast an reboot command to all connected motors to trigger a previously registered instruction.
+	pub fn broadcast_reboot(&mut self) -> Result<(), WriteError> {
+		self.write_instruction(packet_id::BROADCAST, instruction_id::REBOOT, 0, |_| ())
+	}
 }
+

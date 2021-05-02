@@ -47,8 +47,8 @@ pub struct InvalidHeaderPrefix {
 /// The received message has an invalid checksum value.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidChecksum {
-	pub actual: u16,
-	pub expected: u16,
+	pub message: u16,
+	pub computed: u16,
 }
 
 /// The received message has an invalid or unexpected packet ID.
@@ -79,6 +79,16 @@ pub struct InvalidParameterCount {
 	pub expected: ExpectedCount,
 }
 
+impl MotorError {
+	pub fn check(raw: u8) -> Result<(), Self> {
+		if raw == 0 {
+			Ok(())
+		} else {
+			Err(Self { raw })
+		}
+	}
+}
+
 impl InvalidHeaderPrefix {
 	pub fn check(actual: &[u8], expected: [u8; 4]) -> Result<(), Self> {
 		if actual == expected {
@@ -88,16 +98,6 @@ impl InvalidHeaderPrefix {
 				actual: [actual[0], actual[1], actual[2], actual[3]],
 				expected,
 			})
-		}
-	}
-}
-
-impl InvalidChecksum {
-	pub fn check(actual: u16, expected: u16) -> Result<(), Self> {
-		if actual == expected {
-			Ok(())
-		} else {
-			Err(Self { actual, expected })
 		}
 	}
 }
@@ -183,9 +183,21 @@ impl From<std::io::Error> for WriteError {
 	}
 }
 
+impl From<std::io::ErrorKind> for WriteError {
+	fn from(other: std::io::ErrorKind) -> Self {
+		Self::Io(other.into())
+	}
+}
+
 impl From<std::io::Error> for ReadError {
 	fn from(other: std::io::Error) -> Self {
 		Self::Io(other)
+	}
+}
+
+impl From<std::io::ErrorKind> for ReadError {
+	fn from(other: std::io::ErrorKind) -> Self {
+		Self::Io(other.into())
 	}
 }
 
@@ -325,7 +337,7 @@ impl std::fmt::Display for InvalidChecksum {
 		write!(
 			f,
 			"invalid checksum, message claims {:#02X}, computed {:#02X}",
-			self.expected, self.actual
+			self.message, self.computed
 		)
 	}
 }

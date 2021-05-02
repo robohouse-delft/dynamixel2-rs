@@ -1,162 +1,54 @@
-use super::{instruction_id, Instruction};
 use crate::endian::{write_u16_le, write_u32_le};
+use crate::{Bus, TransferError};
+use super::instruction_id;
 
-#[derive(Debug, Clone)]
-pub struct Write<'a> {
-	pub motor_id: u8,
-	pub address: u16,
-	pub data: &'a [u8],
-}
-
-#[derive(Debug, Clone)]
-pub struct WriteU8 {
-	pub motor_id: u8,
-	pub address: u16,
-	pub data: u8,
-}
-
-#[derive(Debug, Clone)]
-pub struct WriteU16 {
-	pub motor_id: u8,
-	pub address: u16,
-	pub data: u16,
-}
-
-#[derive(Debug, Clone)]
-pub struct WriteU32 {
-	pub motor_id: u8,
-	pub address: u16,
-	pub data: u32,
-}
-
-impl<'a> Write<'a> {
-	pub fn new(motor_id: u8, address: u16, data: &'a [u8]) -> Self {
-		Self { motor_id, address, data }
-	}
-}
-
-impl WriteU8 {
-	pub fn new(motor_id: u8, address: u16, data: u8) -> Self {
-		Self { motor_id, address, data }
-	}
-}
-
-impl WriteU16 {
-	pub fn new(motor_id: u8, address: u16, data: u16) -> Self {
-		Self { motor_id, address, data }
-	}
-}
-
-impl WriteU32 {
-	pub fn new(motor_id: u8, address: u16, data: u32) -> Self {
-		Self { motor_id, address, data }
-	}
-}
-
-impl Instruction for Write<'_> {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::WRITE
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		2 + self.data.len() as u16
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..], self.address);
-		buffer[2..].copy_from_slice(&self.data);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 0)?;
+impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+where
+	Stream: std::io::Read + std::io::Write,
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Write an arbitrary number of bytes to a specific motor.
+	pub fn write(&mut self, motor_id: u8, address: u16, data: &[u8]) -> Result<(), TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + data.len(), |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			buffer[2..].copy_from_slice(data)
+		})?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
+			.map_err(crate::ReadError::from)?;
 		Ok(())
 	}
-}
 
-impl Instruction for WriteU8 {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::WRITE
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		3
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		buffer[2] = self.data;
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 0)?;
+	/// Write an 8 bit value to a specific motor.
+	pub fn write_u8(&mut self, motor_id: u8, address: u16, value: u8) -> Result<(), TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 1, |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			buffer[2] = value;
+		})?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
+			.map_err(crate::ReadError::from)?;
 		Ok(())
 	}
-}
 
-impl Instruction for WriteU16 {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::WRITE
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		4
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], self.data);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 0)?;
+	/// Write an 16 bit value to a specific motor.
+	pub fn write_u16(&mut self, motor_id: u8, address: u16, value: u16) -> Result<(), TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 2, |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			write_u16_le(&mut buffer[2..], value);
+		})?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
+			.map_err(crate::ReadError::from)?;
 		Ok(())
 	}
-}
 
-impl Instruction for WriteU32 {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::WRITE
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		6
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u32_le(&mut buffer[2..6], self.data);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 0)?;
+	/// Write an 32 bit value to a specific motor.
+	pub fn write_u32(&mut self, motor_id: u8, address: u16, value: u32) -> Result<(), TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 4, |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			write_u32_le(&mut buffer[2..], value);
+		})?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), 0)
+			.map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 }

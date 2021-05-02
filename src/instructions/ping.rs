@@ -1,57 +1,81 @@
-use super::{instruction_id, packet_id, Instruction};
-use crate::endian::read_u16_le;
-
-#[derive(Debug, Clone)]
-pub struct Ping {
-	pub motor_id: u8,
-}
+use crate::{Bus, ReadError, TransferError, WriteError};
+use super::{instruction_id, packet_id};
 
 #[derive(Debug, Clone)]
 pub struct PingResponse {
+	/// The ID of the motor.
 	pub motor_id: u8,
+
+	/// The model of the motor.
+	///
+	/// Refer to the online manual to find the codes for each model.
 	pub model: u16,
+
+	/// The firmware version of the motor.
 	pub firmware: u8,
 }
 
-impl Ping {
-	pub fn unicast(motor_id: u8) -> Self {
-		Self { motor_id }
+impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+where
+	Stream: std::io::Read + std::io::Write,
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Ping a specific motor by ID.
+	///
+	/// This will not work correctly if the motor ID is [`packet_id::BROADCAST`].
+	/// Use [`Self::scan`] or [`Self::scan_cb`] instead.
+	pub fn ping(&mut self, motor_id: u8) -> Result<PingResponse, TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::PING, 0, |_| ())?;
+		Ok(parse_ping_response(response.packet_id(), response.parameters()))
 	}
 
-	pub fn broadcast() -> Self {
-		Self {
-			motor_id: packet_id::BROADCAST,
+	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
+	///
+	/// Only timeouts are filtered out since they indicate a lack of response.
+	/// All other responses (including errors) are collected.
+	pub fn scan(&mut self) -> Result<Vec<Result<PingResponse, ReadError>>, WriteError> {
+		let mut result = Vec::with_capacity(253);
+		self.scan_cb(|x| result.push(x))?;
+		Ok(result)
+	}
+
+	/// Scan a bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
+	///
+	/// Only timeouts are filtered out since they indicate a lack of response.
+	/// All other responses (including errors) are passed to the handler.
+	pub fn scan_cb<F>(&mut self, mut on_response: F) -> Result<(), WriteError>
+	where
+		F: FnMut(Result<PingResponse, ReadError>),
+	{
+		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())?;
+
+		// TODO: See if we can terminate quicker.
+		// Peek at the official SDK to see what they do.
+
+		for _ in 0..253 {
+			let response = self.read_status_response();
+			if let Err(ReadError::Io(e)) = &response {
+				if e.kind() == std::io::ErrorKind::TimedOut {
+					continue;
+				}
+			}
+			let response = response.and_then(|response| {
+				crate::InvalidParameterCount::check(response.parameters().len(), 3)?;
+				Ok(parse_ping_response(response.packet_id(), response.parameters()))
+			});
+			on_response(response);
 		}
+
+		Ok(())
 	}
 }
 
-impl Instruction for Ping {
-	type Response = PingResponse;
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::PING
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		0
-	}
-
-	fn encode_request_parameters(&self, _buffer: &mut [u8]) {
-		// Empty parameters.
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 3)?;
-
-		Ok(Self::Response {
-			motor_id: packet_id,
-			model: read_u16_le(&parameters[0..]),
-			firmware: parameters[2],
-		})
+/// Parse a ping response from the motor ID and status response parameters.
+fn parse_ping_response(motor_id: u8, parameters: &[u8]) -> PingResponse {
+	PingResponse {
+		motor_id,
+		model: crate::endian::read_u16_le(parameters),
+		firmware: parameters[2],
 	}
 }

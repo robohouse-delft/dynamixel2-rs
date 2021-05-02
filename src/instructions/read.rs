@@ -1,160 +1,78 @@
-use super::{instruction_id, Instruction};
 use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
+use crate::{Bus, TransferError};
+use super::instruction_id;
 
-#[derive(Debug)]
-pub struct Read<'a> {
-	pub motor_id: u8,
-	pub address: u16,
-	pub buffer: &'a mut [u8],
+pub struct ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	pub(crate) response: crate::Response<'a, Stream, ReadBuffer, WriteBuffer>,
 }
 
-#[derive(Debug)]
-pub struct ReadU8 {
-	pub motor_id: u8,
-	pub address: u16,
-}
-
-#[derive(Debug)]
-pub struct ReadU16 {
-	pub motor_id: u8,
-	pub address: u16,
-}
-
-#[derive(Debug)]
-pub struct ReadU32 {
-	pub motor_id: u8,
-	pub address: u16,
-}
-
-impl<'a> Read<'a> {
-	pub fn new(motor_id: u8, address: u16, buffer: &'a mut [u8]) -> Self {
-		Self { motor_id, address, buffer }
+impl<'a, Stream, ReadBuffer, WriteBuffer> ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Get the ID of the motor.
+	pub fn motor_id(&self) -> u8 {
+		self.response.packet_id()
 	}
-}
 
-impl ReadU8 {
-	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address }
+	/// Get the read data as byte slice.
+	///
+	/// The individual registers of the motor are encoded as little-endian.
+	/// Refer to the online manual of your motor for the addresses and sizes of all registers.
+	pub fn data(&self) -> &[u8] {
+		self.response.parameters()
 	}
 }
 
-impl ReadU16 {
-	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address }
-	}
-}
-
-impl ReadU32 {
-	pub fn new(motor_id: u8, address: u16) -> Self {
-		Self { motor_id, address }
-	}
-}
-
-impl Instruction for Read<'_> {
-	type Response = ();
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::READ
+impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+where
+	Stream: std::io::Read + std::io::Write,
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Read an arbitrary number of bytes from a specific motor.
+	///
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// Use [`Self::sync_read`] to read from multiple motors with one command.
+	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<ReadResponse<Stream, ReadBuffer, WriteBuffer>, TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::READ, 4, |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			write_u16_le(&mut buffer[2..], count);
+		})?;
+		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into())
+			.map_err(crate::ReadError::from)?;
+		Ok(ReadResponse { response })
 	}
 
-	fn request_parameters_len(&self) -> u16 {
-		4
+	/// Read an 8 bit register from a specific motor.
+	///
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// Use [`Self::sync_read`] to read from multiple motors with one command.
+	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<u8, TransferError> {
+		let response = self.read(motor_id, address, 1)?;
+		Ok(response.data()[0])
 	}
 
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], self.buffer.len() as u16);
+	/// Read 16 bit register from a specific motor.
+	///
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// Use [`Self::sync_read`] to read from multiple motors with one command.
+	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<u16, TransferError> {
+		let response = self.read(motor_id, address, 2)?;
+		Ok(read_u16_le(response.data()))
 	}
 
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), self.buffer.len())?;
-		self.buffer.copy_from_slice(parameters);
-		Ok(())
-	}
-}
-
-impl Instruction for ReadU8 {
-	type Response = u8;
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::READ
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		4
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], 1);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 1)?;
-		Ok(parameters[0])
-	}
-}
-
-impl Instruction for ReadU16 {
-	type Response = u16;
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::READ
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		4
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], 2);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 2)?;
-		Ok(read_u16_le(&parameters[0..2]))
-	}
-}
-
-impl Instruction for ReadU32 {
-	type Response = u32;
-
-	fn request_packet_id(&self) -> u8 {
-		self.motor_id
-	}
-
-	fn request_instruction_id(&self) -> u8 {
-		instruction_id::READ
-	}
-
-	fn request_parameters_len(&self) -> u16 {
-		4
-	}
-
-	fn encode_request_parameters(&self, buffer: &mut [u8]) {
-		write_u16_le(&mut buffer[0..2], self.address);
-		write_u16_le(&mut buffer[2..4], 4);
-	}
-
-	fn decode_response_parameters(&mut self, packet_id: u8, parameters: &[u8]) -> Result<Self::Response, crate::InvalidMessage> {
-		crate::InvalidPacketId::check_ignore_broadcast(packet_id, self.motor_id)?;
-		crate::InvalidParameterCount::check(parameters.len(), 4)?;
-		Ok(read_u32_le(&parameters[0..4]))
+	/// Read 32 bit register from a specific motor.
+	///
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// Use [`Self::sync_read`] to read from multiple motors with one command.
+	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<u32, TransferError> {
+		let response = self.read(motor_id, address, 4)?;
+		Ok(read_u32_le(response.data()))
 	}
 }
