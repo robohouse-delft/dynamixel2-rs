@@ -13,6 +13,12 @@ pub struct SyncWriteData<T> {
 	pub data: T,
 }
 
+impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
+	fn as_ref(&self) -> &Self {
+		self
+	}
+}
+
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
 where
 	Stream: std::io::Read + std::io::Write,
@@ -27,10 +33,11 @@ where
 	/// # Panics
 	/// The amount of data to write for each motor must be exactly `count` bytes.
 	/// This function panics if that is not the case.
-	pub fn sync_write<'a, I>(&mut self, address: u16, count: u16, data: I) -> Result<(), TransferError>
+	pub fn sync_write<'a, Iter, Data>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), TransferError>
 	where
-		I: IntoIterator<Item = SyncWriteData<&'a [u8]>>,
-		I::IntoIter: std::iter::ExactSizeIterator,
+		Iter: IntoIterator<Item = Data>,
+		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Data: AsRef<SyncWriteData<&'a [u8]>>,
 	{
 		let data = data.into_iter();
 		let motors = data.len();
@@ -40,6 +47,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 			for (i, command) in data.enumerate() {
+				let command = command.as_ref();
 				assert!(command.data.len() == count as usize);
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
@@ -53,10 +61,11 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u8<I>(&mut self, address: u16, data: I) -> Result<(), TransferError>
+	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
 	where
-		I: IntoIterator<Item = SyncWriteData<u8>>,
-		I::IntoIter: std::iter::ExactSizeIterator,
+		Iter: IntoIterator<Item = Data>,
+		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Data: AsRef<SyncWriteData<u8>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u8>();
@@ -67,6 +76,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			for (i, command) in data.enumerate() {
+				let command = command.as_ref();
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
 				buffer[1] = command.data;
@@ -79,10 +89,11 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u16<I>(&mut self, address: u16, data: I) -> Result<(), TransferError>
+	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
 	where
-		I: IntoIterator<Item = SyncWriteData<u16>>,
-		I::IntoIter: std::iter::ExactSizeIterator,
+		Iter: IntoIterator<Item = Data>,
+		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Data: AsRef<SyncWriteData<u16>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u16>();
@@ -93,6 +104,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			for (i, command) in data.enumerate() {
+				let command = command.as_ref();
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
 				write_u16_le(&mut buffer[1..], command.data);
@@ -105,10 +117,11 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u32<I>(&mut self, address: u16, data: I) -> Result<(), TransferError>
+	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
 	where
-		I: IntoIterator<Item = SyncWriteData<u32>>,
-		I::IntoIter: std::iter::ExactSizeIterator,
+		Iter: IntoIterator<Item = Data>,
+		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Data: AsRef<SyncWriteData<u32>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u32>();
@@ -119,6 +132,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			for (i, command) in data.enumerate() {
+				let command = command.as_ref();
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
 				write_u32_le(&mut buffer[1..], command.data);
