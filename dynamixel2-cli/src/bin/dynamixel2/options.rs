@@ -163,7 +163,7 @@ impl MotorId {
 			Self::Broadcast => {
 				log::error!("Invalid motor ID: this command can not be broadcasted.");
 				Err(())
-			}
+			},
 		}
 	}
 }

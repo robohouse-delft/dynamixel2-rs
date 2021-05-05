@@ -24,7 +24,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 					log::debug!("Sending ping command to motor {}", motor_id);
 					let response = bus.ping(motor_id).map_err(|e| log::error!("Command failed: {}", e))?;
 					log_ping_response(&response);
-				}
+				},
 				MotorId::Broadcast => {
 					log::debug!("Scanning bus for connected motors");
 					bus.scan_cb(|response| match response {
@@ -32,15 +32,15 @@ fn do_main(options: Options) -> Result<(), ()> {
 						Err(e) => log::warn!("Communication error: {}", e),
 					})
 					.map_err(|e| log::error!("Command failed: {}", e))?;
-				}
+				},
 			}
-		}
+		},
 		Command::Reboot { motor_id } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Sending reboot command with motor ID {}", motor_id.raw());
 			bus.reboot(motor_id.raw()).map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok");
-		}
+		},
 		Command::Read8 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading an 8-bit value from motor {} at address {}", motor_id.raw(), address);
@@ -48,7 +48,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				.read_u8(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok: {} (0x{:02X})", value, value);
-		}
+		},
 		Command::Read16 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading a 16-bit value from motor {} at address {}", motor_id.raw(), address);
@@ -56,7 +56,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				.read_u16(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok: {} (0x{:04X})", value, value);
-		}
+		},
 		Command::Read32 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading a 32-bit value from motor {} at address {}", motor_id.raw(), address);
@@ -64,7 +64,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				.read_u32(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok: {} (0x{:04X} {:04X})", value, (value >> 16) & 0xFFFF, value & 0xFFFF);
-		}
+		},
 		Command::Write8 { motor_id, address, value } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!(
@@ -77,7 +77,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			bus.write_u8(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Write failed: {}", e))?;
 			log::info!("Ok");
-		}
+		},
 		Command::Write16 { motor_id, address, value } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!(
@@ -90,7 +90,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			bus.write_u16(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok");
-		}
+		},
 		Command::Write32 { motor_id, address, value } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!(
@@ -104,10 +104,10 @@ fn do_main(options: Options) -> Result<(), ()> {
 			bus.write_u32(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			log::info!("Ok");
-		}
+		},
 		Command::ShellCompletion { shell, output } => {
 			write_shell_completion(*shell, output.as_deref())?;
-		}
+		},
 	}
 
 	Ok(())

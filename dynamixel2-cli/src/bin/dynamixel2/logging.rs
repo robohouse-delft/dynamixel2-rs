@@ -17,21 +17,21 @@ pub fn init(root_module: &str, verbosity: i8) {
 			match record.level() {
 				log::Level::Trace => {
 					prefix = "Trace: ";
-				}
+				},
 				log::Level::Debug => {
 					prefix = "";
-				}
+				},
 				log::Level::Info => {
 					prefix = "";
-				}
+				},
 				log::Level::Warn => {
 					prefix = "Warning: ";
 					prefix_style.set_color(Color::Yellow).set_bold(true);
-				}
+				},
 				log::Level::Error => {
 					prefix = "Error: ";
 					prefix_style.set_color(Color::Red).set_bold(true);
-				}
+				},
 			};
 
 			writeln!(buffer, "{}{}", prefix_style.value(prefix), record.args(),)
