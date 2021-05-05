@@ -136,7 +136,7 @@ where
 			if Instant::now() > deadline {
 				return Err(std::io::ErrorKind::TimedOut.into());
 			}
-			// Try to read more data from the buffer.
+			// Try to read more data into the buffer.
 			let new_data = self.stream.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
 			if new_data == 0 {
 				continue;
@@ -162,10 +162,10 @@ where
 			}
 		};
 
-		let parameters_end = stuffed_message_len - 2;
-		trace!("read packet: {:02X?}", buffer[..parameters_end]);
-
 		let buffer = self.read_buffer.as_mut();
+		let parameters_end = stuffed_message_len - 2;
+		trace!("read packet: {:02X?}", &buffer[..parameters_end]);
+
 		let checksum_message = read_u16_le(&buffer[parameters_end..]);
 		let checksum_computed = calculate_checksum(0, &buffer[..parameters_end]);
 		if checksum_message != checksum_computed {
