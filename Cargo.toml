@@ -22,3 +22,6 @@ log = { version = "0.4.8", optional = true }
 assert2 = "0.3.3"
 env_logger = "0.8.1"
 serial = "0.4.0"
+
+[workspace]
+members = ["dynamixel2-cli"]
