@@ -1,3 +1,7 @@
+v0.2.0:
+  * Ignore noise before message headers.
+  * Rewrite API to a `Bus` struct with functions for the instructions.
+
 v0.1.4:
   * Fix visibility of `WriteData` struct for `SyncWriteU*`.
 
