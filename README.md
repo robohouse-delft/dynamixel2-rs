@@ -11,50 +11,27 @@ An implementation of the [Dynamixel Protocol 2.0].
 This library aims to provide a easy to use but low level implementation of the Dynamixel Protocol 2.0.
 That means it allows you to execute arbitrary commands with arbitrary parameters.
 
-The library does not currently aim to provide an easy interface to the higher level functions of a servo,
+The library does not aim to provide an easy interface to the higher level functions of a servo motor,
 such as moving it to a specific angle or at a specific speed.
 Instead, you will have to write the appropriate values to the correct registers yourself.
 
-The main interface is the `transfer_single` function,
-which can be used to send an instruction to a servo and read a single reply.
-The function can work with any `Read` + `Write` stream.
+The main interface is the [`Bus`] struct, which represents the serial communication bus.
+It can be used to send instructions and receive replys on any [`Read`][std::io::Read] + [`Write`][std::io::Write] stream.
+The [`Bus`] struct exposes functions for all supported instructions such as [`Bus::ping`], [`Bus::read`], [`Bus::write`] and much more.
+Additionally, you can also transmit raw commands using [`Bus::write_instruction`] and [`Bus::read_status_response`], or [`Bus::transfer_single`].
 
-It is also also to use `write_instruction` followed by multiple `read_response` calls
-to receive replies from multiple motors.
-
-See the `instructions` module for available instructions.
-
-## Instruction implementation status
-
-The following instructions are currently implemented (PRs welcome!):
-
-* [x] Ping
-* [x] Read
-* [x] Write
-* [x] Reg Write
-* [x] Action
-* [x] Factory Reset
-* [x] Reboot
-* [x] Clear
-* [x] Sync Read
-* [x] Sync Write
-* [ ] Bulk Read
-* [ ] Bulk Write
-* [x] Custom raw instructions
-
-## Functionaility implementation status
-
-The following planned functionality is currently implemented (PRs welcome!):
-* [x] Write instruction messages.
-* [x] Read response (status) messages.
-* [x] Bit-stuffing and de-stuffing of messages.
-* [x] Checksum calculation and verification.
-* [x] Optional logging of all instructions and responses.
-* [ ] Optional integration with [`serial`](https://docs.rs/serial).
-* [x] Utility function to perform unicast instructions.
-* [ ] Utility function to perform broadcast instructions.
-* [x] Utility function to scan a bus for motors.
+The library currently implements all instructions except for the bulk read and bulk write instructions.
 
 ## Optional features
 
 You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
+
+[`Bus`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html
+[`Bus::ping`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.ping
+[`Bus::read`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read
+[`Bus::write`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write
+[`Bus::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write_instruction
+[`Bus::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read_status_response
+[`Bus::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.transfer_single
+[std::io::Read]: https://doc.rust-lang.org/stable/std/io/trait.Read.html
+[std::io::Write]: https://doc.rust-lang.org/stable/std/io/trait.Write.html
