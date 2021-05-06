@@ -1,6 +1,18 @@
 [package]
 name = "dynamixel2-cli"
 version = "0.1.0"
+license = "BSD-2-Clause"
+authors = [
+	"Maarten de Vries <maarten@de-vri.es>",
+	"RoboHouse <robohouse@robovalley.com>",
+]
+
+description = "dynamixel protocol 2.0 command line utility"
+keywords = ["dynamixel", "servo", "motor", "serial"]
+categories = ["science::robotics"]
+repository = "https://github.com/robohouse-delft/dynamixel2-rs"
+readme = "README.md"
+
 edition = "2018"
 
 [dependencies]

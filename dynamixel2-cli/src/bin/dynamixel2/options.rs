@@ -11,17 +11,20 @@ use structopt::StructOpt;
 #[structopt(setting = AppSettings::UnifiedHelpMessage)]
 #[structopt(setting = AppSettings::DeriveDisplayOrder)]
 pub struct Options {
+	/// Print more verbose messages. Can be used multiple times.
 	#[structopt(long, short)]
 	#[structopt(global = true)]
 	#[structopt(parse(from_occurrences))]
 	pub verbose: i8,
 
+	/// The serial port to use.
 	#[structopt(long, short)]
 	#[structopt(global = true)]
 	#[cfg_attr(target_os = "windows", structopt(default_value = "COM1"))]
 	#[cfg_attr(not(target_os = "windows"), structopt(default_value = "/dev/ttyUSB0"))]
 	pub serial_port: PathBuf,
 
+	/// The baud rate for the serial port.
 	#[structopt(long, short)]
 	#[structopt(global = true)]
 	#[structopt(default_value = "9600")]
@@ -37,6 +40,9 @@ pub struct Options {
 #[structopt(setting = AppSettings::DeriveDisplayOrder)]
 pub enum Command {
 	/// Ping a motor or scan the entire bus.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Ping {
 		/// The motor to ping.
 		///
@@ -46,6 +52,9 @@ pub enum Command {
 	},
 
 	/// Reboot a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Reboot {
 		/// The motor to reboot.
 		///
@@ -55,6 +64,9 @@ pub enum Command {
 	},
 
 	/// Read an 8-bit value from a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Read8 {
 		/// The motor to read from (no broadcast ID allowed).
 		#[structopt(value_name = "MOTOR_ID")]
@@ -66,6 +78,9 @@ pub enum Command {
 	},
 
 	/// Read a 16-bit value from a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Read16 {
 		/// The motor to read from (no broadcast ID allowed).
 		#[structopt(value_name = "MOTOR_ID")]
@@ -77,6 +92,9 @@ pub enum Command {
 	},
 
 	/// Read a 32-bit value from a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Read32 {
 		/// The motor to read from (no broadcast ID allowed).
 		#[structopt(value_name = "MOTOR_ID")]
@@ -88,6 +106,9 @@ pub enum Command {
 	},
 
 	/// Write an 8-bit value to a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Write8 {
 		/// The motor to write to.
 		#[structopt(value_name = "MOTOR_ID")]
@@ -103,6 +124,9 @@ pub enum Command {
 	},
 
 	/// Write a 16-bit value to a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Write16 {
 		/// The motor to write to.
 		#[structopt(value_name = "MOTOR_ID")]
@@ -118,6 +142,9 @@ pub enum Command {
 	},
 
 	/// Write a 32-bit value to a motor.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	Write32 {
 		/// The motor to write to.
 		#[structopt(value_name = "MOTOR_ID")]
@@ -132,7 +159,10 @@ pub enum Command {
 		value: u32,
 	},
 
-	/// Write shell completions to a directory.
+	/// Write shell completions to standard output or a file.
+	#[structopt(setting = AppSettings::ColoredHelp)]
+	#[structopt(setting = AppSettings::UnifiedHelpMessage)]
+	#[structopt(setting = AppSettings::DeriveDisplayOrder)]
 	ShellCompletion {
 		/// The shell for which to generate completions.
 		#[structopt(long)]
