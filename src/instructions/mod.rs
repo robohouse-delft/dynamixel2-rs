@@ -33,5 +33,20 @@ mod write;
 pub use factory_reset::FactoryResetKind;
 pub use ping::PingResponse;
 pub use read::ReadResponse;
-pub use sync_read::SyncReadResponse;
-pub use sync_write::SyncWriteData;
+
+/// Data from or for a specific motor.
+///
+/// Used by synchronous read and write commands.
+pub struct SyncData<T> {
+	/// The ID of the motor.
+	pub motor_id: u8,
+
+	/// The data read from or to be written to the motor.
+	pub data: T,
+}
+
+impl<T> AsRef<SyncData<T>> for SyncData<T> {
+	fn as_ref(&self) -> &Self {
+		self
+	}
+}

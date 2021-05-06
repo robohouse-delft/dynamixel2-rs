@@ -1,23 +1,6 @@
-use super::{instruction_id, packet_id};
+use super::{instruction_id, packet_id, SyncData};
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::{Bus, TransferError};
-
-/// Data for a specific motor.
-///
-/// Used by synchronous write commands.
-pub struct SyncWriteData<T> {
-	/// The motor the data is for.
-	pub motor_id: u8,
-
-	/// The data to be written to the motor.
-	pub data: T,
-}
-
-impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
-	fn as_ref(&self) -> &Self {
-		self
-	}
-}
 
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
 where
@@ -37,7 +20,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<&'a [u8]>>,
+		Data: AsRef<SyncData<&'a [u8]>>,
 	{
 		let data = data.into_iter();
 		let motors = data.len();
@@ -65,7 +48,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<u8>>,
+		Data: AsRef<SyncData<u8>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u8>();
@@ -93,7 +76,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<u16>>,
+		Data: AsRef<SyncData<u16>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u16>();
@@ -121,7 +104,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<u32>>,
+		Data: AsRef<SyncData<u32>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u32>();
