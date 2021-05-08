@@ -147,7 +147,7 @@ where
 	/// Synchronously read an arbitrary number of bytes from multiple motors in one command.
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want an error per motor, see [`Self::sync_read_cb`].
+	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_cb`].
 	pub fn sync_read<'a, F>(
 		&'a mut self,
 		motor_ids: &'a [u8],
@@ -172,7 +172,7 @@ where
 	/// Synchronously read an 8 bit value from multiple motors in one command.
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want an error per motor, see [`Self::sync_read_u8_cb`].
+	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u8_cb`].
 	pub fn sync_read_u8<'a, F>(
 		&'a mut self,
 		motor_ids: &'a [u8],
@@ -193,7 +193,7 @@ where
 	/// Synchronously read a 16 bit value from multiple motors in one command.
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want an error per motor, see [`Self::sync_read_u16_cb`].
+	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u16_cb`].
 	pub fn sync_read_u16<'a, F>(
 		&'a mut self,
 		motor_ids: &'a [u8],
@@ -214,7 +214,7 @@ where
 	/// Synchronously read a 32 bit value from multiple motors in one command.
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want an error per motor, see [`Self::sync_read_u32_cb`].
+	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u32_cb`].
 	pub fn sync_read_u32<'a, F>(
 		&'a mut self,
 		motor_ids: &'a [u8],
