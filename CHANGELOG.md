@@ -1,5 +1,6 @@
 v0.2.1:
   * Change error type of sync write functions to reflect lack of read phase.
+  * Add support for the bulk read and write instructions.
 
 v0.2.0:
   * Ignore noise before message headers.

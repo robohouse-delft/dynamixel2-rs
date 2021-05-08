@@ -20,6 +20,8 @@ pub mod packet_id {
 }
 
 mod action;
+mod bulk_read;
+mod bulk_write;
 mod clear;
 mod factory_reset;
 mod ping;
@@ -46,6 +48,30 @@ pub struct SyncData<T> {
 }
 
 impl<T> AsRef<SyncData<T>> for SyncData<T> {
+	fn as_ref(&self) -> &Self {
+		self
+	}
+}
+
+/// Bulk data from or for a specific motor.
+///
+/// This struct is very comparable to [`SyncData`],
+/// but it supports reads and writes
+/// of different sizes and to different addresses for each motor.
+///
+/// Used by bulk read and write commands.
+pub struct BulkData<T> {
+	/// The ID of the motor.
+	pub motor_id: u8,
+
+	/// The address for the read or write.
+	pub address: u16,
+
+	/// The data read from or to be written to the motor.
+	pub data: T,
+}
+
+impl<T> AsRef<BulkData<T>> for BulkData<T> {
 	fn as_ref(&self) -> &Self {
 		self
 	}
