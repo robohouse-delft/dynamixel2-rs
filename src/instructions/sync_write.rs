@@ -1,6 +1,6 @@
 use super::{instruction_id, packet_id, SyncData};
 use crate::endian::{write_u16_le, write_u32_le};
-use crate::{Bus, TransferError};
+use crate::{Bus, WriteError};
 
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
 where
@@ -16,7 +16,7 @@ where
 	/// # Panics
 	/// The amount of data to write for each motor must be exactly `count` bytes.
 	/// This function panics if that is not the case.
-	pub fn sync_write<'a, Iter, Data>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), TransferError>
+	pub fn sync_write<'a, Iter, Data>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -36,15 +36,14 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1..].copy_from_slice(command.data);
 			}
-		})?;
-		Ok(())
+		})
 	}
 
 	/// Synchronously write a 8 bit value to multiple motors.
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
+	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -64,15 +63,14 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1] = command.data;
 			}
-		})?;
-		Ok(())
+		})
 	}
 
 	/// Synchronously write a 16 bit value to multiple motors.
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
+	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -92,15 +90,14 @@ where
 				buffer[0] = command.motor_id;
 				write_u16_le(&mut buffer[1..], command.data);
 			}
-		})?;
-		Ok(())
+		})
 	}
 
 	/// Synchronously write a 32 bit value to multiple motors.
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), TransferError>
+	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -120,7 +117,6 @@ where
 				buffer[0] = command.motor_id;
 				write_u32_le(&mut buffer[1..], command.data);
 			}
-		})?;
-		Ok(())
+		})
 	}
 }

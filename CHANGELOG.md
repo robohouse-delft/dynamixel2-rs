@@ -1,3 +1,6 @@
+v0.2.1:
+  * Change error type of sync write functions to reflect lack of read phase.
+
 v0.2.0:
   * Ignore noise before message headers.
   * Rewrite API to a `Bus` struct with functions for the instructions.
