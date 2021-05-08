@@ -1,5 +1,5 @@
 use super::instruction_id;
-use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
+use crate::endian::{read_u8_le, read_u16_le, read_u32_le, write_u16_le};
 use crate::{Bus, TransferError};
 
 pub struct ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
@@ -54,7 +54,7 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<u8, TransferError> {
 		let response = self.read(motor_id, address, 1)?;
-		Ok(response.data()[0])
+		Ok(read_u8_le(response.data()))
 	}
 
 	/// Read 16 bit register from a specific motor.

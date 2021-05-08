@@ -1,3 +1,19 @@
+/// Write a u8 to a buffer in little endian format.
+///
+/// Although endianness has no meaning for single-byte values,
+/// having this function keeps the code consistent and easier to read.
+pub fn write_u8_le(buffer: &mut [u8], value: u8) {
+	buffer[0] = value;
+}
+
+/// Read a u8 from a buffer in little endian format.
+///
+/// Although endianness has no meaning for single-byte values,
+/// having this function keeps the code consistent and easier to read.
+pub fn read_u8_le(buffer: &[u8]) -> u8 {
+	buffer[0]
+}
+
 /// Write a u16 to a buffer in little endian format.
 pub fn write_u16_le(buffer: &mut [u8], value: u16) {
 	buffer[0] = (value & 0xFF) as u8;

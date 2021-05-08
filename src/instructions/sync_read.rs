@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id, SyncData};
-use crate::endian::{read_u16_le, read_u32_le, write_u16_le};
+use crate::endian::{read_u8_le, read_u16_le, read_u32_le, write_u16_le};
 use crate::{Bus, ReadError, WriteError, TransferError};
 
 impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
@@ -70,7 +70,7 @@ where
 				crate::InvalidParameterCount::check(response.parameters().len(), count)?;
 				Ok(SyncData {
 					motor_id,
-					data: response.parameters()[0],
+					data: read_u8_le(response.parameters()),
 				})
 			});
 			on_response(data);

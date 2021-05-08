@@ -75,7 +75,7 @@ where
 fn parse_ping_response(motor_id: u8, parameters: &[u8]) -> PingResponse {
 	PingResponse {
 		motor_id,
-		model: crate::endian::read_u16_le(parameters),
-		firmware: parameters[2],
+		model: crate::endian::read_u16_le(&parameters[0..]),
+		firmware: crate::endian::read_u8_le(&parameters[2..]),
 	}
 }
