@@ -202,6 +202,11 @@ where
 	fn remove_garbage(&mut self) {
 		let read_buffer = self.read_buffer.as_mut();
 		let garbage_len = find_header(&read_buffer[..self.read_len]);
+		#[cfg(feature = "log")]
+		if garbage_len > 0 {
+			log::debug!("Skipping {} bytes of leading garbage.", garbage_len);
+			log::trace!("Skipped garbage: {:02X?}", &read_buffer[..garbage_len]);
+		}
 		self.consume_read_bytes(garbage_len);
 	}
 
