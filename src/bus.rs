@@ -140,8 +140,10 @@ where
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			if Instant::now() > deadline {
+				trace!("timeout reading status response, data in buffer: {:02X?}", &self.read_buffer.as_ref()[..self.read_len]);
 				return Err(std::io::ErrorKind::TimedOut.into());
 			}
+
 			// Try to read more data into the buffer.
 			let new_data = self.stream.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
 			if new_data == 0 {
@@ -208,10 +210,9 @@ where
 	fn remove_garbage(&mut self) {
 		let read_buffer = self.read_buffer.as_mut();
 		let garbage_len = find_header(&read_buffer[..self.read_len]);
-		#[cfg(feature = "log")]
 		if garbage_len > 0 {
-			log::debug!("Skipping {} bytes of leading garbage.", garbage_len);
-			log::trace!("Skipped garbage: {:02X?}", &read_buffer[..garbage_len]);
+			debug!("skipping {} bytes of leading garbage.", garbage_len);
+			trace!("skipped garbage: {:02X?}", &read_buffer[..garbage_len]);
 		}
 		self.consume_read_bytes(garbage_len);
 	}
