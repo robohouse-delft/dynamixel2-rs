@@ -83,7 +83,7 @@ dependencies = [
 
 [[package]]
 name = "dynamixel2"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "assert2",
  "env_logger",
