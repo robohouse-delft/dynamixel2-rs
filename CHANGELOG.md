@@ -1,3 +1,6 @@
+v0.2.3:
+  * Clear the read buffer when sending an instruction.
+
 v0.2.2:
   * Add debug and trace logs for skipped noise bytes.
 

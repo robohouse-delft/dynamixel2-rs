@@ -97,6 +97,12 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
+		// Throw away old data in the read buffer.
+		// Ideally, we would also flush the kernel buffer, but the serial crate doesn't expose that.
+		// We don't do this when reading a reply, because we might multiple replies for one instruction,
+		// and read() can potentially read more than one reply per syscall.
+		self.read_len = 0;
+
 		let buffer = self.write_buffer.as_mut();
 		if buffer.len() < HEADER_SIZE + parameter_count + 2 {
 			// TODO: return proper error.
