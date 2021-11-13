@@ -1,6 +1,7 @@
 main:
   * Switch to `serial2` for serial communication.
   * Remove `Bus::with_buffer_sizes()` constructor.
+  * Discard input buffer right before writing instructions.
 
 v0.2.3:
   * Clear the read buffer when sending an instruction.

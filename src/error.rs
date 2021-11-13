@@ -10,7 +10,8 @@ pub enum TransferError {
 /// An error that can occur during a write transfer.
 #[derive(Debug)]
 pub enum WriteError {
-	Io(std::io::Error),
+	DiscardBuffer(std::io::Error),
+	Write(std::io::Error),
 }
 
 /// An error that can occur during a read transfer.
@@ -180,18 +181,6 @@ impl From<ReadError> for TransferError {
 	}
 }
 
-impl From<std::io::Error> for WriteError {
-	fn from(other: std::io::Error) -> Self {
-		Self::Io(other)
-	}
-}
-
-impl From<std::io::ErrorKind> for WriteError {
-	fn from(other: std::io::ErrorKind) -> Self {
-		Self::Io(other.into())
-	}
-}
-
 impl From<std::io::Error> for ReadError {
 	fn from(other: std::io::Error) -> Self {
 		Self::Io(other)
@@ -279,8 +268,8 @@ impl From<InvalidParameterCount> for InvalidMessage {
 impl std::fmt::Display for TransferError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::WriteError(e) => write!(f, "failed to write instruction: {}", e),
-			Self::ReadError(e) => write!(f, "failed to read response: {}", e),
+			Self::WriteError(e) => write!(f, "{}", e),
+			Self::ReadError(e) => write!(f, "{}", e),
 		}
 	}
 }
@@ -288,7 +277,8 @@ impl std::fmt::Display for TransferError {
 impl std::fmt::Display for WriteError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::Io(e) => write!(f, "{}", e),
+			Self::DiscardBuffer(e) => write!(f, "failed to discard input buffer: {}", e),
+			Self::Write(e) => write!(f, "failed to write to serial port: {}", e),
 		}
 	}
 }
@@ -296,7 +286,7 @@ impl std::fmt::Display for WriteError {
 impl std::fmt::Display for ReadError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::Io(e) => write!(f, "{}", e),
+			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),
 		}

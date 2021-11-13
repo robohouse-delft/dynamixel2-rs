@@ -151,7 +151,10 @@ where
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
 		trace!("sending instruction: {:02X?}", stuffed_message);
-		self.serial_port.write_all(stuffed_message)?;
+		self.serial_port.discard_input_buffer()
+			.map_err(WriteError::DiscardBuffer)?;
+		self.serial_port.write_all(stuffed_message)
+			.map_err(WriteError::Write)?;
 		Ok(())
 	}
 
