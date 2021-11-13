@@ -1,3 +1,6 @@
+use serial2::SerialPort;
+use std::io::Write;
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crate::bytestuff;
@@ -10,9 +13,9 @@ const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<Stream, ReadBuffer, WriteBuffer> {
+pub struct Bus<ReadBuffer, WriteBuffer> {
 	/// The underlying stream (normally a serial port).
-	stream: Stream,
+	serial_port: SerialPort,
 
 	/// The timeout for reading a single response.
 	read_timeout: Duration,
@@ -27,35 +30,52 @@ pub struct Bus<Stream, ReadBuffer, WriteBuffer> {
 	write_buffer: WriteBuffer,
 }
 
-impl<Stream> Bus<Stream, Vec<u8>, Vec<u8>>
-where
-	Stream: std::io::Read + std::io::Write,
-{
-	/// Create a new bus with 128 byte read and write buffers.
-	pub fn new(stream: Stream, read_timeout: Duration) -> Self {
-		Self::with_buffer_sizes(stream, read_timeout, 128, 128)
+impl Bus<Vec<u8>, Vec<u8>> {
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
+	pub fn open(path: impl AsRef<Path>, baud_rate: u32, read_timeout: Duration) -> std::io::Result<Self> {
+		let port = SerialPort::open(path, baud_rate)?;
+		Ok(Self::new(port, read_timeout))
 	}
 
-	/// Create a new bus with the specified sizes for the read and write buffers.
-	pub fn with_buffer_sizes(stream: Stream, read_timeout: Duration, read_buffer: usize, write_buffer: usize) -> Self {
-		Self::with_buffers(stream, read_timeout, vec![0; read_buffer], vec![0; write_buffer])
+	/// Create a new bus for an open serial port.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
+	pub fn new(stream: SerialPort, read_timeout: Duration) -> Self {
+		Self::with_buffers(stream, read_timeout, vec![0; 128], vec![0; 128])
 	}
 }
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
-	Stream: std::io::Read + std::io::Write,
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	pub fn open_with_buffers(
+		path: impl AsRef<Path>,
+		baud_rate: u32,
+		read_timeout: Duration,
+		read_buffer: ReadBuffer,
+		write_buffer: WriteBuffer,
+	) -> std::io::Result<Self> {
+		let port = SerialPort::open(path, baud_rate)?;
+		Ok(Self::with_buffers(port, read_timeout, read_buffer, write_buffer))
+	}
+
 	/// Create a new bus using pre-allocated buffers.
-	pub fn with_buffers(stream: Stream, read_timeout: Duration, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer) -> Self {
+	pub fn with_buffers(serial_port: SerialPort, read_timeout: Duration, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer) -> Self {
 		// Pre-fill write buffer with the header prefix.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 2);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
-			stream,
+			serial_port,
 			read_timeout,
 			read_buffer,
 			read_len: 0,
@@ -76,7 +96,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<Response<Stream, ReadBuffer, WriteBuffer>, TransferError>
+	) -> Result<Response<ReadBuffer, WriteBuffer>, TransferError>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -131,12 +151,12 @@ where
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
 		trace!("sending instruction: {:02X?}", stuffed_message);
-		self.stream.write_all(stuffed_message)?;
+		self.serial_port.write_all(stuffed_message)?;
 		Ok(())
 	}
 
 	/// Read a raw status response from the bus.
-	pub fn read_status_response(&mut self) -> Result<Response<Stream, ReadBuffer, WriteBuffer>, ReadError> {
+	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			if Instant::now() > deadline {
@@ -145,7 +165,7 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self.stream.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
+			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
 			if new_data == 0 {
 				continue;
 			}
@@ -201,7 +221,7 @@ where
 	}
 }
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -227,13 +247,13 @@ where
 /// A status response that is currently in the read buffer of a bus.
 ///
 /// When dropped, the response data is removed from the read buffer.
-pub struct Response<'a, Stream, ReadBuffer, WriteBuffer>
+pub struct Response<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// The bus that read the message.
-	bus: &'a mut Bus<Stream, ReadBuffer, WriteBuffer>,
+	bus: &'a mut Bus<ReadBuffer, WriteBuffer>,
 
 	/// The total length of the stuffed message.
 	stuffed_message_len: usize,
@@ -242,7 +262,7 @@ where
 	parameter_count: usize,
 }
 
-impl<'a, Stream, ReadBuffer, WriteBuffer> Response<'a, Stream, ReadBuffer, WriteBuffer>
+impl<'a, ReadBuffer, WriteBuffer> Response<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -276,7 +296,7 @@ where
 	}
 }
 
-impl<'a, Stream, ReadBuffer, WriteBuffer> Drop for Response<'a, Stream, ReadBuffer, WriteBuffer>
+impl<'a, ReadBuffer, WriteBuffer> Drop for Response<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,

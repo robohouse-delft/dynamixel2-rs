@@ -14,9 +14,8 @@ impl AsRef<BulkRead> for BulkRead {
 	}
 }
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
-	Stream: std::io::Read + std::io::Write,
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {

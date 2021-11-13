@@ -4,9 +4,8 @@ use crate::Bus;
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
-	Stream: std::io::Read + std::io::Write,
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {

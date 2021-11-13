@@ -2,15 +2,15 @@ use super::instruction_id;
 use crate::endian::{read_u8_le, read_u16_le, read_u32_le, write_u16_le};
 use crate::{Bus, TransferError};
 
-pub struct ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
+pub struct ReadResponse<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	pub(crate) response: crate::Response<'a, Stream, ReadBuffer, WriteBuffer>,
+	pub(crate) response: crate::Response<'a, ReadBuffer, WriteBuffer>,
 }
 
-impl<'a, Stream, ReadBuffer, WriteBuffer> ReadResponse<'a, Stream, ReadBuffer, WriteBuffer>
+impl<'a, ReadBuffer, WriteBuffer> ReadResponse<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -29,9 +29,8 @@ where
 	}
 }
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
-	Stream: std::io::Read + std::io::Write,
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -39,7 +38,7 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<ReadResponse<Stream, ReadBuffer, WriteBuffer>, TransferError> {
+	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<ReadResponse<ReadBuffer, WriteBuffer>, TransferError> {
 		let response = self.transfer_single(motor_id, instruction_id::READ, 4, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);

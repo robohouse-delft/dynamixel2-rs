@@ -2,9 +2,8 @@ use super::{instruction_id, packet_id, SyncData};
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::{Bus, WriteError};
 
-impl<Stream, ReadBuffer, WriteBuffer> Bus<Stream, ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
-	Stream: std::io::Read + std::io::Write,
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {

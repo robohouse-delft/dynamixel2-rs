@@ -1,4 +1,3 @@
-use serial::SerialPort;
 use std::path::Path;
 use structopt::StructOpt;
 
@@ -113,25 +112,15 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_bus(options: &Options) -> Result<dynamixel2::Bus<serial::SystemPort, Vec<u8>, Vec<u8>>, ()> {
-	let mut serial_port = serial::SystemPort::open(&options.serial_port)
+fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> {
+	let bus = dynamixel2::Bus::open(&options.serial_port, options.baud_rate, std::time::Duration::from_millis(50))
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
-	serial_port
-		.configure(&serial::PortSettings {
-			baud_rate: serial::BaudRate::from_speed(options.baud_rate),
-			char_size: serial::Bits8,
-			stop_bits: serial::Stop1,
-			parity: serial::ParityNone,
-			flow_control: serial::FlowNone,
-		})
-		.map_err(|e| log::error!("Failed to configure serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
 		"Using serial port {} with baud rate {}",
 		options.serial_port.display(),
 		options.baud_rate
 	);
-
-	Ok(dynamixel2::Bus::new(serial_port, std::time::Duration::from_millis(50)))
+	Ok(bus)
 }
 
 fn log_ping_response(response: &dynamixel2::instructions::PingResponse) {

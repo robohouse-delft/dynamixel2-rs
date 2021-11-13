@@ -1,3 +1,7 @@
+main:
+  * Switch to `serial2` for serial communication.
+  * Remove `Bus::with_buffer_sizes()` constructor.
+
 v0.2.3:
   * Clear the read buffer when sending an instruction.
   * Add trace log for discarded partial messages after a timeout.

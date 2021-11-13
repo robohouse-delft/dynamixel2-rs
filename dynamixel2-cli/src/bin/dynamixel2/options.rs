@@ -28,7 +28,7 @@ pub struct Options {
 	#[structopt(long, short)]
 	#[structopt(global = true)]
 	#[structopt(default_value = "9600")]
-	pub baud_rate: usize,
+	pub baud_rate: u32,
 
 	#[structopt(subcommand)]
 	pub command: Command,
