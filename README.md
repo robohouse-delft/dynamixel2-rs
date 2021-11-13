@@ -16,11 +16,10 @@ such as moving it to a specific angle or at a specific speed.
 Instead, you will have to write the appropriate values to the correct registers yourself.
 
 The main interface is the [`Bus`] struct, which represents the serial communication bus.
-It can be used to send instructions and receive replys on any [`Read`][std::io::Read] + [`Write`][std::io::Write] stream.
 The [`Bus`] struct exposes functions for all supported instructions such as [`Bus::ping`], [`Bus::read`], [`Bus::write`] and much more.
 Additionally, you can also transmit raw commands using [`Bus::write_instruction`] and [`Bus::read_status_response`], or [`Bus::transfer_single`].
 
-The library currently implements all instructions except for the bulk read and bulk write instructions.
+The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 
 ## Optional features
 
@@ -33,5 +32,3 @@ You can enable the `log` feature to have the library use `log::trace!()` to log 
 [`Bus::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write_instruction
 [`Bus::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read_status_response
 [`Bus::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.transfer_single
-[std::io::Read]: https://doc.rust-lang.org/stable/std/io/trait.Read.html
-[std::io::Write]: https://doc.rust-lang.org/stable/std/io/trait.Write.html

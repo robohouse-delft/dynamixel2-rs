@@ -10,11 +10,10 @@
 //! Instead, you will have to write the appropriate values to the correct registers yourself.
 //!
 //! The main interface is the [`Bus`] struct, which represents the serial communication bus.
-//! It can be used to send instructions and receive replys on any [`Read`][std::io::Read] + [`Write`][std::io::Write] stream.
 //! The [`Bus`] struct exposes functions for all supported instructions such as [`Bus::ping`], [`Bus::read`], [`Bus::write`] and much more.
 //! Additionally, you can also transmit raw commands using [`Bus::write_instruction`] and [`Bus::read_status_response`], or [`Bus::transfer_single`].
 //!
-//! The library currently implements all instructions except for the bulk read and bulk write instructions.
+//! The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 //!
 //! # Optional features
 //!
