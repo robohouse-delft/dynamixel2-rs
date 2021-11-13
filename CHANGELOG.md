@@ -1,4 +1,4 @@
-main:
+v0.3.1:
   * Update documentation.
 
 v0.3.0:
