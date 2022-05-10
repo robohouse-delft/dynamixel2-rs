@@ -71,7 +71,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -104,7 +104,8 @@ where
 	where
 		F: FnMut(Result<PingResponse, ReadError>),
 	{
-		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ()).await?;
+		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())
+			.await?;
 
 		// TODO: See if we can terminate quicker.
 		// Peek at the official SDK to see what they do.

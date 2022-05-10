@@ -115,7 +115,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -157,7 +157,8 @@ where
 				write_u16_le(&mut buffer[1..], read.address);
 				write_u16_le(&mut buffer[3..], read.count);
 			}
-		}).await?;
+		})
+		.await?;
 		for read in reads {
 			let read = read.as_ref();
 			let response = self.read_status_response().await.and_then(|response| {
@@ -206,7 +207,8 @@ where
 					}),
 				}
 			}
-		}).await?;
+		})
+		.await?;
 
 		if let Some(e) = read_error {
 			Err(e.into())

@@ -121,8 +121,7 @@ where
 	}
 }
 
-
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -156,7 +155,8 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1..].copy_from_slice(command.data);
 			}
-		}).await
+		})
+		.await
 	}
 
 	/// Synchronously write a 8 bit value to multiple motors.
@@ -183,7 +183,8 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1] = command.data;
 			}
-		}).await
+		})
+		.await
 	}
 
 	/// Synchronously write a 16 bit value to multiple motors.
@@ -210,7 +211,8 @@ where
 				buffer[0] = command.motor_id;
 				write_u16_le(&mut buffer[1..], command.data);
 			}
-		}).await
+		})
+		.await
 	}
 
 	/// Synchronously write a 32 bit value to multiple motors.
@@ -237,6 +239,7 @@ where
 				buffer[0] = command.motor_id;
 				write_u32_le(&mut buffer[1..], command.data);
 			}
-		}).await
+		})
+		.await
 	}
 }

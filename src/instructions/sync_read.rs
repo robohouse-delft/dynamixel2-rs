@@ -187,7 +187,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -197,7 +197,13 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub async fn sync_read_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16, mut on_response: F) -> Result<(), WriteError>
+	pub async fn sync_read_cb<'a, F>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+		mut on_response: F,
+	) -> Result<(), WriteError>
 	where
 		F: FnMut(Result<SyncData<&[u8]>, ReadError>),
 	{
@@ -205,7 +211,8 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
-		}).await?;
+		})
+		.await?;
 		for &motor_id in motor_ids {
 			let response = self.read_status_response().await.and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -237,7 +244,8 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			buffer[4..].copy_from_slice(motor_ids);
-		}).await?;
+		})
+		.await?;
 		for &motor_id in motor_ids {
 			let data = self.read_status_response().await.and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -265,7 +273,8 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			buffer[4..].copy_from_slice(motor_ids);
-		}).await?;
+		})
+		.await?;
 		for &motor_id in motor_ids {
 			let data = self.read_status_response().await.and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -293,7 +302,8 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
 			buffer[4..].copy_from_slice(motor_ids);
-		}).await?;
+		})
+		.await?;
 		for &motor_id in motor_ids {
 			let data = self.read_status_response().await.and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -312,7 +322,12 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_cb`].
-	pub async fn sync_read<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16) -> Result<Vec<SyncData<Vec<u8>>>, TransferError> {
+	pub async fn sync_read<'a, F>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+	) -> Result<Vec<SyncData<Vec<u8>>>, TransferError> {
 		let mut result = Vec::with_capacity(motor_ids.len());
 		let mut read_error = None;
 		self.sync_read_cb(motor_ids, address, count, |data| match data {
@@ -322,7 +337,8 @@ where
 				motor_id: response.motor_id,
 				data: response.data.to_owned(),
 			}),
-		}).await?;
+		})
+		.await?;
 		Ok(result)
 	}
 
@@ -337,7 +353,8 @@ where
 			Err(e) if read_error.is_none() => read_error = Some(e),
 			Err(_) => (),
 			Ok(data) => result.push(data),
-		}).await?;
+		})
+		.await?;
 		Ok(result)
 	}
 
@@ -352,7 +369,8 @@ where
 			Err(e) if read_error.is_none() => read_error = Some(e),
 			Err(_) => (),
 			Ok(data) => result.push(data),
-		}).await?;
+		})
+		.await?;
 		Ok(result)
 	}
 
@@ -367,7 +385,8 @@ where
 			Err(e) if read_error.is_none() => read_error = Some(e),
 			Err(_) => (),
 			Ok(data) => result.push(data),
-		}).await?;
+		})
+		.await?;
 		Ok(result)
 	}
 }

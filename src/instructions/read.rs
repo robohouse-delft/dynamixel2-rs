@@ -76,9 +76,7 @@ where
 	}
 }
 
-
-
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -88,11 +86,18 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub async fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<ReadResponse<'_, ReadBuffer, WriteBuffer>, TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::READ, 4, |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-		}).await?;
+	pub async fn read(
+		&mut self,
+		motor_id: u8,
+		address: u16,
+		count: u16,
+	) -> Result<ReadResponse<'_, ReadBuffer, WriteBuffer>, TransferError> {
+		let response = self
+			.transfer_single(motor_id, instruction_id::READ, 4, |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				write_u16_le(&mut buffer[2..], count);
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into()).map_err(crate::ReadError::from)?;
 		Ok(ReadResponse { response })
 	}

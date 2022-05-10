@@ -1,6 +1,7 @@
 #[cfg(feature = "sync")]
 use serial2::SerialPort;
 
+#[cfg(feature = "sync")]
 use std::io::Write;
 
 use std::path::Path;
@@ -13,8 +14,16 @@ use mio_serial::{SerialPortBuilderExt, SerialStream};
 #[cfg(feature = "async_smol")]
 use smol::Async;
 
+#[cfg(feature = "async_tokio")]
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+#[cfg(feature = "async_tokio")]
+use tokio_serial::{SerialPortBuilderExt, SerialStream};
+
 #[cfg(feature = "async_smol")]
 type SerialPort = Async<SerialStream>;
+
+#[cfg(feature = "async_tokio")]
+type SerialPort = SerialStream;
 
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
@@ -56,9 +65,14 @@ impl Bus<Vec<u8>, Vec<u8>> {
 		let port = Async::new(
 			mio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
 				.open_native_async()
-				.unwrap(),
+				.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?,
 		)
-		.unwrap();
+		.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("Wrap serial into Async: {e}")))?;
+
+		#[cfg(feature = "async_tokio")]
+		let port = tokio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
+			.open_native_async()
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?;
 
 		Ok(Self::new(port, read_timeout))
 	}
@@ -94,9 +108,14 @@ where
 		let port = Async::new(
 			mio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
 				.open_native_async()
-				.unwrap(),
+				.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?,
 		)
-		.unwrap();
+		.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("Wrap serial into Async: {e}")))?;
+
+		#[cfg(feature = "async_tokio")]
+		let port = tokio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
+			.open_native_async()
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?;
 
 		Ok(Self::with_buffers(port, read_timeout, read_buffer, write_buffer))
 	}
@@ -140,7 +159,7 @@ where
 		Ok(response)
 	}
 
-	#[cfg(feature = "async_smol")]
+	#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 	pub async fn transfer_single<F>(
 		&mut self,
 		packet_id: u8,
@@ -151,7 +170,8 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
-		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters).await?;
+		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)
+			.await?;
 		let response = self.read_status_response().await?;
 		crate::error::InvalidPacketId::check(response.packet_id(), packet_id).map_err(crate::ReadError::from)?;
 		Ok(response)
@@ -208,7 +228,7 @@ where
 		Ok(())
 	}
 
-	#[cfg(feature = "async_smol")]
+	#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 	/// Write an instruction message to the bus.
 	pub async fn write_instruction<F>(
 		&mut self,
@@ -327,9 +347,8 @@ where
 		Ok(response)
 	}
 
-
 	/// Read a raw status response from the bus.
-	#[cfg(feature = "async_smol")]
+	#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 	pub async fn read_status_response(&mut self) -> Result<Response<'_, ReadBuffer, WriteBuffer>, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {

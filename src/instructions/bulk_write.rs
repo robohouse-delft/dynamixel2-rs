@@ -2,7 +2,6 @@ use super::{instruction_id, packet_id, BulkData};
 use crate::endian::{write_u16_le, write_u8_le};
 use crate::{Bus, WriteError};
 
-
 #[cfg(feature = "sync")]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
@@ -53,7 +52,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -99,6 +98,7 @@ where
 				write_u16_le(&mut buffer[3..], write.data.len() as u16);
 				buffer[5..][..write.data.len()].copy_from_slice(write.data);
 			}
-		}).await
+		})
+		.await
 	}
 }

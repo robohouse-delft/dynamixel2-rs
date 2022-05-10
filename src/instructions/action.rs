@@ -25,10 +25,9 @@ where
 	pub fn broadcast_action(&mut self) -> Result<(), WriteError> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::ACTION, 0, |_| ())
 	}
-
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -50,7 +49,7 @@ where
 
 	/// Broadcast an action command to all connected motors to trigger a previously registered instruction.
 	pub async fn broadcast_action(&mut self) -> Result<(), WriteError> {
-		self.write_instruction(packet_id::BROADCAST, instruction_id::ACTION, 0, |_| ()).await
+		self.write_instruction(packet_id::BROADCAST, instruction_id::ACTION, 0, |_| ())
+			.await
 	}
-
 }

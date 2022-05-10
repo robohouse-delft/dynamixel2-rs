@@ -44,7 +44,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -62,7 +62,9 @@ where
 		if motor_id == packet_id::BROADCAST {
 			self.broadcast_clear_revolution_counter().await?;
 		} else {
-			let response = self.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters).await?;
+			let response = self
+				.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)
+				.await?;
 			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
 		Ok(())
@@ -79,7 +81,8 @@ where
 			instruction_id::CLEAR,
 			CLEAR_REVOLUTION_COUNT.len(),
 			encode_parameters,
-		).await?;
+		)
+		.await?;
 		Ok(())
 	}
 }

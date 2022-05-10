@@ -49,7 +49,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -57,40 +57,48 @@ where
 {
 	/// Write an arbitrary number of bytes to a specific motor.
 	pub async fn write(&mut self, motor_id: u8, address: u16, data: &[u8]) -> Result<(), TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + data.len(), |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			buffer[2..].copy_from_slice(data)
-		}).await?;
+		let response = self
+			.transfer_single(motor_id, instruction_id::WRITE, 2 + data.len(), |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				buffer[2..].copy_from_slice(data)
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
 	/// Write an 8 bit value to a specific motor.
 	pub async fn write_u8(&mut self, motor_id: u8, address: u16, value: u8) -> Result<(), TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 1, |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			buffer[2] = value;
-		}).await?;
+		let response = self
+			.transfer_single(motor_id, instruction_id::WRITE, 2 + 1, |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				buffer[2] = value;
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
 	/// Write an 16 bit value to a specific motor.
 	pub async fn write_u16(&mut self, motor_id: u8, address: u16, value: u16) -> Result<(), TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 2, |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], value);
-		}).await?;
+		let response = self
+			.transfer_single(motor_id, instruction_id::WRITE, 2 + 2, |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				write_u16_le(&mut buffer[2..], value);
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}
 
 	/// Write an 32 bit value to a specific motor.
 	pub async fn write_u32(&mut self, motor_id: u8, address: u16, value: u32) -> Result<(), TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::WRITE, 2 + 4, |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u32_le(&mut buffer[2..], value);
-		}).await?;
+		let response = self
+			.transfer_single(motor_id, instruction_id::WRITE, 2 + 4, |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				write_u32_le(&mut buffer[2..], value);
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		Ok(())
 	}

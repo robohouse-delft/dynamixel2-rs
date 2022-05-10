@@ -63,7 +63,7 @@ where
 	}
 }
 
-#[cfg(feature = "async_smol")]
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -87,7 +87,9 @@ where
 		if motor_id == packet_id::BROADCAST {
 			self.broadcast_factory_reset(kind).await?;
 		} else {
-			let response = self.transfer_single(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8).await?;
+			let response = self
+				.transfer_single(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)
+				.await?;
 			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
 		}
 		Ok(())
@@ -107,7 +109,8 @@ where
 	pub async fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), crate::WriteError> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| {
 			buffer[0] = kind as u8
-		}).await?;
+		})
+		.await?;
 		Ok(())
 	}
 }
