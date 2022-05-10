@@ -19,9 +19,23 @@ edition = "2018"
 log = { version = "0.4.8", optional = true }
 serial2 = "0.1.3"
 
+mio-serial = {version = "5.0.2", default-features = false, optional = true}
+smol = {version = "1.2", optional = true}
+futures = {version = "0.3", optional = true}
+
 [dev-dependencies]
 assert2 = "0.3.3"
 env_logger = "0.9.0"
 
+
+
+
+[features]
+async_smol = ["mio-serial","smol", "futures"]
+sync = []
+default = ["async_smol"]
+
 [workspace]
 members = ["dynamixel2-cli"]
+
+
