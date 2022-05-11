@@ -105,17 +105,20 @@ where
 		let port = SerialPort::open(path, baud_rate)?;
 
 		#[cfg(feature = "async_smol")]
-		let port = Async::new(
-			mio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
-				.open_native_async()
-				.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?,
-		)
-		.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("Wrap serial into Async: {e}")))?;
-
-		#[cfg(feature = "async_tokio")]
-		let port = tokio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
+		let mut port = mio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
 			.open_native_async()
 			.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?;
+
+		#[cfg(feature = "async_tokio")]
+		let mut port = tokio_serial::new(path.as_ref().to_string_lossy(), baud_rate)
+			.open_native_async()
+			.map_err(|e| std::io::Error::new(std::io::ErrorKind::NotConnected, format!("Unable to open serial: {e}")))?;
+
+		#[cfg(all(unix, any(feature = "async_smol", feature = "async_tokio")))]
+		port.set_exclusive(false)?;
+
+		#[cfg(feature = "async_smol")]
+		let port = Async::new(port).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, format!("Wrap serial into Async: {e}")))?;
 
 		Ok(Self::with_buffers(port, read_timeout, read_buffer, write_buffer))
 	}
