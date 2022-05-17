@@ -1,6 +1,6 @@
 name: tests
 on:
-  push: { branches: ["master", "main"] }
+  push: { branches: ["master", "main", "feat/async-smol"] }
   pull_request: { branches: "*" }
 
 jobs:
