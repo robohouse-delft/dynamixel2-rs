@@ -6,6 +6,12 @@ on:
 jobs:
   build_and_test:
     name: Build and test
+    strategy:
+      matrix:
+        feature:
+          - async_tokio
+          - async_smol
+          - sync
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -22,18 +28,19 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --workspace --all-targets --all-features --color=always
+          args: --all-targets --no-default-features --features ${{matrix.feature}} --color=always
         env:
           RUSTFLAGS: -Dwarnings
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace --all-targets --all-features
+          args: --all-targets --no-default-features --features ${{matrix.feature}}
       - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --workspace --all-targets --all-features --color=always
+          args: --all-targets--no-default-features --features ${{matrix.feature}} --color=always
         env:
           RUSTFLAGS: -Dwarnings
+

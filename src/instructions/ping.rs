@@ -15,6 +15,7 @@ pub struct PingResponse {
 	pub firmware: u8,
 }
 
+#[cfg(feature = "sync")]
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -54,6 +55,63 @@ where
 
 		for _ in 0..253 {
 			let response = self.read_status_response();
+			if let Err(ReadError::Io(e)) = &response {
+				if e.kind() == std::io::ErrorKind::TimedOut {
+					continue;
+				}
+			}
+			let response = response.and_then(|response| {
+				crate::InvalidParameterCount::check(response.parameters().len(), 3)?;
+				Ok(parse_ping_response(response.packet_id(), response.parameters()))
+			});
+			on_response(response);
+		}
+
+		Ok(())
+	}
+}
+
+#[cfg(any(feature = "async_smol", feature = "async_tokio"))]
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Ping a specific motor by ID.
+	///
+	/// This will not work correctly if the motor ID is [`packet_id::BROADCAST`].
+	/// Use [`Self::scan`] or [`Self::scan_cb`] instead.
+	pub async fn ping(&mut self, motor_id: u8) -> Result<PingResponse, TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::PING, 0, |_| ()).await?;
+		Ok(parse_ping_response(response.packet_id(), response.parameters()))
+	}
+
+	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
+	///
+	/// Only timeouts are filtered out since they indicate a lack of response.
+	/// All other responses (including errors) are collected.
+	pub async fn scan(&mut self) -> Result<Vec<Result<PingResponse, ReadError>>, WriteError> {
+		let mut result = Vec::with_capacity(253);
+		self.scan_cb(|x| result.push(x)).await?;
+		Ok(result)
+	}
+
+	/// Scan a bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
+	///
+	/// Only timeouts are filtered out since they indicate a lack of response.
+	/// All other responses (including errors) are passed to the handler.
+	pub async fn scan_cb<F>(&mut self, mut on_response: F) -> Result<(), WriteError>
+	where
+		F: FnMut(Result<PingResponse, ReadError>),
+	{
+		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())
+			.await?;
+
+		// TODO: See if we can terminate quicker.
+		// Peek at the official SDK to see what they do.
+
+		for _ in 0..253 {
+			let response = self.read_status_response().await;
 			if let Err(ReadError::Io(e)) = &response {
 				if e.kind() == std::io::ErrorKind::TimedOut {
 					continue;
