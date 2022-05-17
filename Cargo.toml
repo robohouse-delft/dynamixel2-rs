@@ -5,6 +5,7 @@ license = "BSD-2-Clause"
 authors = [
 	"Maarten de Vries <maarten@de-vri.es>",
 	"RoboHouse <robohouse@robovalley.com>",
+	"gabrik <gabriele@zettascale.tech>"
 ]
 
 description = "dynamixel protocol 2.0"
