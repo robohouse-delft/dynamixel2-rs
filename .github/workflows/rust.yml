@@ -6,11 +6,12 @@ on:
 jobs:
   build_and_test:
     name: Build and test
-    matrix:
-      feature:
-        - async_tokio
-        - async_smol
-        - sync
+    strategy:
+      matrix:
+        feature:
+          - async_tokio
+          - async_smol
+          - sync
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
