@@ -35,7 +35,7 @@ where
 			parameter_count += 5 + data.len();
 		}
 
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_WRITE, parameter_count, |buffer| {
+		self.write_instruction(packet_id::BROADCAST, instruction_id::BULK_WRITE, parameter_count, |buffer| {
 			let mut offset = 0;
 			for write in writes {
 				let write = write.borrow();

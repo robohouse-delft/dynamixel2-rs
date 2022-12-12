@@ -1,3 +1,6 @@
+main:
+  * FIx the instruction ID used by the bulk read/write commands.
+
 v0.4.0 - 2022-12-12:
   * Use `Borrow` trait instead of `AsRef` in `Bus::bulk_write()`.
 

@@ -48,7 +48,7 @@ where
 			}
 		}
 
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 5 * reads.len(), |buffer| {
+		self.write_instruction(packet_id::BROADCAST, instruction_id::BULK_READ, 5 * reads.len(), |buffer| {
 			for (i, read) in reads.iter().enumerate() {
 				let read = read.as_ref();
 				let buffer = &mut buffer[i..][..5];
