@@ -1,5 +1,4 @@
 use serial2::SerialPort;
-use std::io::Write;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
