@@ -23,6 +23,8 @@ where
 	///
 	/// Unlike the sync read instruction, a bulk read can be used to read a different amount of data from a different address for each motor.
 	///
+	/// The data for multi-byte registers is received in little-endian format.
+	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
 	///

@@ -1,3 +1,6 @@
+main:
+  * Use `Borrow` trait instead of `AsRef` in `Bus::bulk_write()`.
+
 v0.3.1:
   * Update documentation.
 
