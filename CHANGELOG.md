@@ -1,4 +1,4 @@
-main:
+v0.4.1 - 2022-12-12:
   * FIx the instruction ID used by the bulk read/write commands.
 
 v0.4.0 - 2022-12-12:
