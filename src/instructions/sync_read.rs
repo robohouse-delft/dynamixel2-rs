@@ -147,7 +147,7 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_cb`].
-	pub fn sync_read<'a, F>(
+	pub fn sync_read<'a>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
@@ -172,7 +172,7 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u8_cb`].
-	pub fn sync_read_u8<'a, F>(
+	pub fn sync_read_u8<'a>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
@@ -193,7 +193,7 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u16_cb`].
-	pub fn sync_read_u16<'a, F>(
+	pub fn sync_read_u16<'a>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
@@ -214,7 +214,7 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u32_cb`].
-	pub fn sync_read_u32<'a, F>(
+	pub fn sync_read_u32<'a>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
