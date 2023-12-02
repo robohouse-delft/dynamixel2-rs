@@ -17,7 +17,7 @@ edition = "2018"
 
 [dependencies]
 log = { version = "0.4.8", optional = true }
-serial2 = "0.1.7"
+serial2 = "0.2.10"
 
 [dev-dependencies]
 assert2 = "0.3.3"

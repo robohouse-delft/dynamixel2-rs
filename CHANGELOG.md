@@ -1,3 +1,6 @@
+main:
+  * Update `serial2` to `v0.2`.
+
 v0.4.2 - 2023-12-02
   * Remove unused generic parameter from `sync_read_*` functions.
 
