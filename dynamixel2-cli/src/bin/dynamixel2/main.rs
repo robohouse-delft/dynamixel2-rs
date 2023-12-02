@@ -1,5 +1,4 @@
 use std::path::Path;
-use structopt::StructOpt;
 
 mod logging;
 mod options;
@@ -7,14 +6,13 @@ mod options;
 use options::{Command, MotorId, Options};
 
 fn main() {
-	let options = Options::from_args();
-	logging::init(env!("CARGO_CRATE_NAME"), options.verbose);
-	if let Err(()) = do_main(options) {
+	if let Err(()) = do_main(clap::Parser::parse()) {
 		std::process::exit(1);
 	}
 }
 
 fn do_main(options: Options) -> Result<(), ()> {
+	logging::init(module_path!(), options.verbose as i8);
 	match &options.command {
 		Command::Ping { motor_id } => {
 			let mut bus = open_bus(&options)?;
@@ -129,11 +127,14 @@ fn log_ping_response(response: &dynamixel2::instructions::PingResponse) {
 	log::info!("Firmware: {}", response.firmware);
 }
 
-fn write_shell_completion(shell: structopt::clap::Shell, path: Option<&Path>) -> Result<(), ()> {
+fn write_shell_completion(shell: clap_complete::Shell, path: Option<&Path>) -> Result<(), ()> {
+	use clap::CommandFactory;
 	use std::io::Write;
+
 	let mut buffer = Vec::with_capacity(4 * 1024);
 
-	Options::clap().gen_completions_to(env!("CARGO_BIN_NAME"), shell, &mut buffer);
+	let mut command = Options::command();
+	clap_complete::generate(shell, &mut command, env!("CARGO_BIN_NAME"), &mut buffer);
 	if !buffer.ends_with(b"\n") {
 		buffer.push(b'\n');
 	}

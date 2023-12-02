@@ -13,11 +13,12 @@ categories = ["science::robotics"]
 repository = "https://github.com/robohouse-delft/dynamixel2-rs"
 readme = "README.md"
 
-edition = "2018"
+edition = "2021"
 
 [dependencies]
+clap = { version = "4.4.10", features = ["derive"] }
+clap_complete = "4.4.4"
 dynamixel2 = { version = "0.4.2", path = "..", features = ["log"] }
 env_logger = "0.10.0"
 log = "0.4.14"
 serial2 = "0.2.10"
-structopt = "0.3.21"
