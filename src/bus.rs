@@ -163,6 +163,8 @@ where
 		let stuffed_message_len = loop {
 			self.remove_garbage();
 
+			// The call to remove_garbage() removes all leading bytes that don't match a status header.
+			// So if there's enough bytes left, it's a status header.
 			if self.read_len > STATUS_HEADER_SIZE {
 				let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
 				let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
