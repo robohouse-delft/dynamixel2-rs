@@ -161,17 +161,15 @@ where
 	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
-			if self.read_len > HEADER_PREFIX.len() {
-				self.remove_garbage();
+			self.remove_garbage();
 
-				if self.read_len > STATUS_HEADER_SIZE && self.read_buffer.as_mut()[..self.read_len].starts_with(&HEADER_PREFIX) {
-					let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
-					let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
-					let body_len = body_len - 2; // Length includes instruction and error fields, which is already included in STATUS_HEADER_SIZE too.
+			if self.read_len > STATUS_HEADER_SIZE {
+				let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
+				let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
+				let body_len = body_len - 2; // Length includes instruction and error fields, which is already included in STATUS_HEADER_SIZE too.
 
-					if self.read_len >= STATUS_HEADER_SIZE + body_len {
-						break STATUS_HEADER_SIZE + body_len;
-					}
+				if self.read_len >= STATUS_HEADER_SIZE + body_len {
+					break STATUS_HEADER_SIZE + body_len;
 				}
 			}
 
