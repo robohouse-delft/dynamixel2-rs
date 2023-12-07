@@ -1,4 +1,4 @@
-main:
+v0.5.1 - 2023-12-07:
   * Parse all status messages when more than on has been read in a single `read()`.
 
 v0.5.0 - 2023-12-02:
