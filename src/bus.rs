@@ -161,6 +161,20 @@ where
 	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
+			self.remove_garbage();
+
+			// The call to remove_garbage() removes all leading bytes that don't match a status header.
+			// So if there's enough bytes left, it's a status header.
+			if self.read_len > STATUS_HEADER_SIZE {
+				let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
+				let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
+				let body_len = body_len - 2; // Length includes instruction and error fields, which is already included in STATUS_HEADER_SIZE too.
+
+				if self.read_len >= STATUS_HEADER_SIZE + body_len {
+					break STATUS_HEADER_SIZE + body_len;
+				}
+			}
+
 			if Instant::now() > deadline {
 				trace!("timeout reading status response, data in buffer: {:02X?}", &self.read_buffer.as_ref()[..self.read_len]);
 				return Err(std::io::ErrorKind::TimedOut.into());
@@ -173,23 +187,6 @@ where
 			}
 
 			self.read_len += new_data;
-			self.remove_garbage();
-
-			let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
-			if !read_buffer.starts_with(&HEADER_PREFIX) {
-				continue;
-			}
-
-			if self.read_len < STATUS_HEADER_SIZE {
-				continue;
-			}
-
-			let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
-			let body_len = body_len - 2; // Length includes instruction and error fields, which is already included in STATUS_HEADER_SIZE too.
-
-			if self.read_len >= STATUS_HEADER_SIZE + body_len {
-				break STATUS_HEADER_SIZE + body_len;
-			}
 		};
 
 		let buffer = self.read_buffer.as_mut();
