@@ -1,10 +1,10 @@
-use crate::instructions::packet_id::BROADCAST;
+use crate::{endian, instructions::packet_id::BROADCAST, Response};
 
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
-pub enum TransferError {
+pub enum TransferError<T> {
 	WriteError(WriteError),
-	ReadError(ReadError),
+	ReadError(ReadError<T>),
 }
 
 /// An error that can occur during a write transfer.
@@ -16,10 +16,10 @@ pub enum WriteError {
 
 /// An error that can occur during a read transfer.
 #[derive(Debug)]
-pub enum ReadError {
+pub enum ReadError<T> {
 	Io(std::io::Error),
 	InvalidMessage(InvalidMessage),
-	MotorError(MotorError),
+	MotorError(MotorError<T>),
 }
 
 /// The received message is not valid.
@@ -34,8 +34,15 @@ pub enum InvalidMessage {
 
 /// An error reported by the motor.
 #[derive(Debug)]
-pub struct MotorError {
-	pub raw: u8,
+pub enum MotorError<T> {
+	/// The motor reported an error status.
+	///
+	/// The raw error status is available in the `raw` field.
+	/// Refer to the online manual of your motor for the meaning of the error status.
+	MotorError {
+		raw: u8,
+	},
+	HardwareError(T),
 }
 
 /// The received message has an invalid header prefix.
@@ -80,12 +87,16 @@ pub struct InvalidParameterCount {
 	pub expected: ExpectedCount,
 }
 
-impl MotorError {
-	pub fn check(raw: u8) -> Result<(), Self> {
-		if raw == 0 {
-			Ok(())
+impl<T> MotorError<T> {
+	pub fn check(raw: u8, data: T) -> Result<T, Self> {
+		if raw & !0x80 != 0 {
+			Err(Self::MotorError {
+				raw: 0, // Replace 0 with the appropriate value
+			})
+		} else if raw & 0x80 != 0 {
+			Err(Self::HardwareError(data))
 		} else {
-			Err(Self { raw })
+			Ok(data)
 		}
 	}
 }
@@ -158,78 +169,138 @@ impl InvalidParameterCount {
 	}
 }
 
-impl std::error::Error for TransferError {}
+impl<T> std::error::Error for TransferError<T> where T: std::fmt::Debug {}
 impl std::error::Error for WriteError {}
-impl std::error::Error for ReadError {}
+impl<T> std::error::Error for ReadError<T> where T: std::fmt::Debug {}
 impl std::error::Error for InvalidMessage {}
-impl std::error::Error for MotorError {}
+impl<T> std::error::Error for MotorError<T> where T: std::fmt::Debug {}
 impl std::error::Error for InvalidHeaderPrefix {}
 impl std::error::Error for InvalidChecksum {}
 impl std::error::Error for InvalidPacketId {}
 impl std::error::Error for InvalidInstruction {}
 impl std::error::Error for InvalidParameterCount {}
 
-impl From<WriteError> for TransferError {
+impl<ReadBuffer, WriteBuffer> From<TransferError<Response<'_, ReadBuffer, WriteBuffer>>> for TransferError<u8>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn from(other: TransferError<Response<ReadBuffer, WriteBuffer>>) -> Self {
+		match other {
+			TransferError::WriteError(e) => Self::WriteError(e),
+			TransferError::ReadError(e) => Self::ReadError(match e {
+				ReadError::Io(e) => ReadError::Io(e),
+				ReadError::InvalidMessage(e) => ReadError::InvalidMessage(e),
+				ReadError::MotorError(e) => ReadError::MotorError(match e {
+					MotorError::MotorError { raw: e } => MotorError::MotorError { raw: e },
+					MotorError::HardwareError(e) => MotorError::HardwareError(endian::read_u8_le(e.data())),
+				}),
+			}),
+		}
+	}
+}
+
+impl<ReadBuffer, WriteBuffer> From<TransferError<Response<'_, ReadBuffer, WriteBuffer>>> for TransferError<u16>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn from(other: TransferError<Response<ReadBuffer, WriteBuffer>>) -> Self {
+		match other {
+			TransferError::WriteError(e) => Self::WriteError(e),
+			TransferError::ReadError(e) => Self::ReadError(match e {
+				ReadError::Io(e) => ReadError::Io(e),
+				ReadError::InvalidMessage(e) => ReadError::InvalidMessage(e),
+				ReadError::MotorError(e) => ReadError::MotorError(match e {
+					MotorError::MotorError { raw: e } => MotorError::MotorError { raw: e },
+					MotorError::HardwareError(e) => MotorError::HardwareError(endian::read_u16_le(e.data())),
+				}),
+			}),
+		}
+	}
+}
+
+impl<ReadBuffer, WriteBuffer> From<TransferError<Response<'_, ReadBuffer, WriteBuffer>>> for TransferError<u32>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn from(other: TransferError<Response<ReadBuffer, WriteBuffer>>) -> Self {
+		match other {
+			TransferError::WriteError(e) => Self::WriteError(e),
+			TransferError::ReadError(e) => Self::ReadError(match e {
+				ReadError::Io(e) => ReadError::Io(e),
+				ReadError::InvalidMessage(e) => ReadError::InvalidMessage(e),
+				ReadError::MotorError(e) => ReadError::MotorError(match e {
+					MotorError::MotorError { raw: e } => MotorError::MotorError { raw: e },
+					MotorError::HardwareError(e) => MotorError::HardwareError(endian::read_u32_le(e.data())),
+				}),
+			}),
+		}
+	}
+}
+
+impl<T> From<WriteError> for TransferError<T> {
 	fn from(other: WriteError) -> Self {
 		Self::WriteError(other)
 	}
 }
 
-impl From<ReadError> for TransferError {
-	fn from(other: ReadError) -> Self {
+impl<T> From<ReadError<T>> for TransferError<T> {
+	fn from(other: ReadError<T>) -> Self {
 		Self::ReadError(other)
 	}
 }
 
-impl From<std::io::Error> for ReadError {
+impl<T> From<std::io::Error> for ReadError<T> {
 	fn from(other: std::io::Error) -> Self {
 		Self::Io(other)
 	}
 }
 
-impl From<std::io::ErrorKind> for ReadError {
+impl<T> From<std::io::ErrorKind> for ReadError<T> {
 	fn from(other: std::io::ErrorKind) -> Self {
 		Self::Io(other.into())
 	}
 }
 
-impl From<InvalidMessage> for ReadError {
+impl<T> From<InvalidMessage> for ReadError<T> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::InvalidMessage(other)
 	}
 }
 
-impl From<MotorError> for ReadError {
-	fn from(other: MotorError) -> Self {
+impl<T> From<MotorError<T>> for ReadError<T> {
+	fn from(other: MotorError<T>) -> Self {
 		Self::MotorError(other)
 	}
 }
 
-impl From<InvalidHeaderPrefix> for ReadError {
+impl<T> From<InvalidHeaderPrefix> for ReadError<T> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidChecksum> for ReadError {
+impl<T> From<InvalidChecksum> for ReadError<T> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidPacketId> for ReadError {
+impl<T> From<InvalidPacketId> for ReadError<T> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidInstruction> for ReadError {
+impl<T> From<InvalidInstruction> for ReadError<T> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidParameterCount> for ReadError {
+impl<T> From<InvalidParameterCount> for ReadError<T> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidMessage(other.into())
 	}
@@ -265,7 +336,7 @@ impl From<InvalidParameterCount> for InvalidMessage {
 	}
 }
 
-impl std::fmt::Display for TransferError {
+impl<T> std::fmt::Display for TransferError<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
 			Self::WriteError(e) => write!(f, "{}", e),
@@ -283,7 +354,7 @@ impl std::fmt::Display for WriteError {
 	}
 }
 
-impl std::fmt::Display for ReadError {
+impl<T> std::fmt::Display for ReadError<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
@@ -305,9 +376,12 @@ impl std::fmt::Display for InvalidMessage {
 	}
 }
 
-impl std::fmt::Display for MotorError {
+impl<T> std::fmt::Display for MotorError<T> {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "motor reported error status: {:#02X}", self.raw,)
+		match self {
+			Self::MotorError { raw } => write!(f, "motor reported error status: {:#02X}", raw),
+			Self::HardwareError(_) => write!(f, "hardware error reported"),
+		}
 	}
 }
 

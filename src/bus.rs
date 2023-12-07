@@ -95,7 +95,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<Response<ReadBuffer, WriteBuffer>, TransferError>
+	) -> Result<Response<ReadBuffer, WriteBuffer>, TransferError<Response<ReadBuffer, WriteBuffer>>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -158,7 +158,7 @@ where
 	}
 
 	/// Read a raw status response from the bus.
-	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError> {
+	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError<Response<ReadBuffer, WriteBuffer>>> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			if Instant::now() > deadline {
@@ -218,7 +218,7 @@ where
 		};
 
 		crate::InvalidInstruction::check(response.instruction_id(), crate::instructions::instruction_id::STATUS)?;
-		crate::MotorError::check(response.error())?;
+		let response = crate::MotorError::check(response.error(), response)?;
 		Ok(response)
 	}
 }
@@ -295,6 +295,18 @@ where
 	/// The parameters of the response.
 	pub fn parameters(&self) -> &[u8] {
 		&self.as_bytes()[STATUS_HEADER_SIZE..][..self.parameter_count]
+	}
+	/// Get the ID of the motor.
+	pub fn motor_id(&self) -> u8 {
+		self.packet_id()
+	}
+
+	/// Get the read data as byte slice.
+	///
+	/// The individual registers of the motor are encoded as little-endian.
+	/// Refer to the online manual of your motor for the addresses and sizes of all registers.
+	pub fn data(&self) -> &[u8] {
+		self.parameters()
 	}
 }
 
