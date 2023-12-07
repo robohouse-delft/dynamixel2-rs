@@ -1,3 +1,6 @@
+main:
+  * Parse all status messages when more than on has been read in a single `read()`.
+
 v0.5.0 - 2023-12-02:
   * Update `serial2` to `v0.2`.
 
