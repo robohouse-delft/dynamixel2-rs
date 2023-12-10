@@ -311,6 +311,7 @@ where
 	}
 }
 
+#[derive(Debug)]
 pub struct Response<T> {
 	pub motor_id: u8,
 	pub alert: bool,
