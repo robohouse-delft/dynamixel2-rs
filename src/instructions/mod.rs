@@ -34,7 +34,6 @@ mod write;
 
 pub use factory_reset::FactoryResetKind;
 pub use ping::PingResponse;
-pub use read::ReadResponse;
 
 /// Data from or for a specific motor.
 ///

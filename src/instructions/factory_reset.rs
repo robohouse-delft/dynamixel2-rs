@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::Bus;
+use crate::{Bus, Response};
 
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -33,14 +33,15 @@ where
 	/// which would cause multiple motors on the bus to have the same ID.
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
-	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<(), crate::TransferError> {
+	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Option<Response<()>>, crate::TransferError> {
 		if motor_id == packet_id::BROADCAST {
 			self.broadcast_factory_reset(kind)?;
+			Ok(None)
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)?;
 			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
+			Ok(Some(response.into()))
 		}
-		Ok(())
 	}
 
 	/// Reset the settings of all connected motors to the factory defaults.

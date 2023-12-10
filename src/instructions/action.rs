@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::{Bus, TransferError, WriteError};
+use crate::{Bus, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
@@ -10,14 +10,15 @@ where
 	///
 	/// The `motor_id` parameter may be set to [`packet_id::BROADCAST`],
 	/// although the [`Self::broadcast_action`] is generally easier to use.
-	pub fn action(&mut self, motor_id: u8) -> Result<(), TransferError> {
+	pub fn action(&mut self, motor_id: u8) -> Result<Option<Response<()>>, TransferError> {
 		if motor_id == packet_id::BROADCAST {
 			self.broadcast_action()?;
+			Ok(None)
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::ACTION, 0, |_| ())?;
 			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
+			Ok(Some(response.into()))
 		}
-		Ok(())
 	}
 
 	/// Broadcast an action command to all connected motors to trigger a previously registered instruction.

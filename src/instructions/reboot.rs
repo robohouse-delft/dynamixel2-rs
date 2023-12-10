@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::{Bus, TransferError, WriteError};
+use crate::{Bus, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
@@ -14,14 +14,15 @@ where
 	///
 	/// The `motor_id` parameter may be set to [`packet_id::BROADCAST`],
 	/// although the [`Self::broadcast_reboot`] is generally easier to use.
-	pub fn reboot(&mut self, motor_id: u8) -> Result<(), TransferError> {
+	pub fn reboot(&mut self, motor_id: u8) -> Result<Option<Response<()>>, TransferError> {
 		if motor_id == packet_id::BROADCAST {
 			self.broadcast_action()?;
+			Ok(None)
 		} else {
 			let response = self.transfer_single(motor_id, instruction_id::REBOOT, 0, |_| ())?;
 			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
+			Ok(Some(response.into()))
 		}
-		Ok(())
 	}
 
 	/// Broadcast an reboot command to all connected motors to trigger a previously registered instruction.

@@ -82,7 +82,7 @@ pub struct InvalidParameterCount {
 
 impl MotorError {
 	pub fn check(raw: u8) -> Result<(), Self> {
-		if raw == 0 {
+		if raw & !0x80 == 0 {
 			Ok(())
 		} else {
 			Err(Self { raw })
