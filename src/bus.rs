@@ -316,7 +316,6 @@ pub struct Response<T> {
 	pub motor_id: u8,
 	pub alert: bool,
 	pub data: T,
-	pub address: Option<u16>,
 }
 
 impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<()>
@@ -329,7 +328,6 @@ where
 			data: (),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-			address: None,
 		}
 	}
 }
@@ -344,7 +342,6 @@ where
 			data: status_packet.parameters().to_owned(),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-			address: None,
 		}
 	}
 }
@@ -359,7 +356,6 @@ where
 			data: read_u8_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-			address: None,
 		}
 	}
 }
@@ -374,7 +370,6 @@ where
 			data: read_u16_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-			address: None,
 		}
 	}
 }
@@ -389,7 +384,6 @@ where
 			data: read_u32_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-			address: None,
 		}
 	}
 }

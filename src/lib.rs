@@ -43,3 +43,4 @@ pub use error::WriteError;
 
 pub use bus::Bus;
 pub use bus::Response;
+pub use instructions::BulkResponse;

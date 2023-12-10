@@ -35,6 +35,8 @@ mod write;
 pub use factory_reset::FactoryResetKind;
 pub use ping::PingResponse;
 
+use crate::Response;
+
 /// Data from or for a specific motor.
 ///
 /// Used by synchronous read and write commands.
@@ -52,7 +54,7 @@ impl<T> AsRef<SyncData<T>> for SyncData<T> {
 	}
 }
 
-/// Bulk data from or for a specific motor.
+/// Bulk data for a specific motor.
 ///
 /// This struct is very comparable to [`SyncData`],
 /// but it supports reads and writes
@@ -74,4 +76,11 @@ impl<T> AsRef<BulkData<T>> for BulkData<T> {
 	fn as_ref(&self) -> &Self {
 		self
 	}
+}
+
+/// The data response giving by a motor in response to a bulk read command.
+#[derive(Debug)]
+pub struct BulkResponse<T> {
+	pub response: Response<T>,
+	pub address: u16,
 }
