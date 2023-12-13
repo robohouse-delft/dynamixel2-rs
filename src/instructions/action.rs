@@ -8,17 +8,12 @@ where
 {
 	/// Send an action command to trigger a previously registered instruction.
 	///
-	/// The `motor_id` parameter may be set to [`packet_id::BROADCAST`],
-	/// although the [`Self::broadcast_action`] is generally easier to use.
-	pub fn action(&mut self, motor_id: u8) -> Result<Option<Response<()>>, TransferError> {
-		if motor_id == packet_id::BROADCAST {
-			self.broadcast_action()?;
-			Ok(None)
-		} else {
-			let response = self.transfer_single(motor_id, instruction_id::ACTION, 0, |_| ())?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-			Ok(Some(response.into()))
-		}
+	/// The `motor_id` parameter must not be set to [`packet_id::BROADCAST`],
+	/// Instead use [`Self::broadcast_action`].
+	pub fn action(&mut self, motor_id: u8) -> Result<Response<()>, TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::ACTION, 0, |_| ())?;
+		crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
+		Ok(response.into())
 	}
 
 	/// Broadcast an action command to all connected motors to trigger a previously registered instruction.
