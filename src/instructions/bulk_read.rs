@@ -1,18 +1,6 @@
-use super::{instruction_id, packet_id};
+use super::{instruction_id, packet_id, BulkReadData};
 use crate::endian::{write_u16_le, write_u8_le};
-use crate::{BulkResponse, Bus, ReadError, TransferError, WriteError};
-
-pub struct BulkRead {
-	pub motor_id: u8,
-	pub address: u16,
-	pub count: u16,
-}
-
-impl AsRef<BulkRead> for BulkRead {
-	fn as_ref(&self) -> &Self {
-		self
-	}
-}
+use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
 where
@@ -33,8 +21,8 @@ where
 	/// This function panics if the same motor ID is used for more than one read.
 	pub fn bulk_read_cb<Read, F>(&mut self, reads: &[Read], mut on_response: F) -> Result<(), WriteError>
 	where
-		Read: AsRef<BulkRead>,
-		F: FnMut(Result<BulkResponse<Vec<u8>>, ReadError>),
+		Read: AsRef<BulkReadData>,
+		F: FnMut(Result<Response<Vec<u8>>, ReadError>),
 	{
 		for i in 0..reads.len() {
 			for j in i + 1..reads.len() {
@@ -67,10 +55,7 @@ where
 			});
 
 			match response {
-				Ok(response) => on_response(Ok(BulkResponse {
-					response: response.into(),
-					address: read.address,
-				})),
+				Ok(response) => on_response(Ok(response.into())),
 				Err(e) => on_response(Err(e)),
 			}
 		}
@@ -87,9 +72,9 @@ where
 	/// # Panics
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
-	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<BulkResponse<Vec<u8>>>, TransferError>
+	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, TransferError>
 	where
-		Read: AsRef<BulkRead>,
+		Read: AsRef<BulkReadData>,
 	{
 		let mut responses = Vec::with_capacity(reads.len());
 		let mut read_error = None;

@@ -35,20 +35,18 @@ mod write;
 pub use factory_reset::FactoryResetKind;
 pub use ping::PingResponse;
 
-use crate::Response;
-
 /// Data from or for a specific motor.
 ///
-/// Used by synchronous read and write commands.
-pub struct SyncData<T> {
+/// Used by synchronous write commands.
+pub struct SyncWriteData<T> {
 	/// The ID of the motor.
 	pub motor_id: u8,
 
-	/// The data read from or to be written to the motor.
+	/// The data to be written to the motor.
 	pub data: T,
 }
 
-impl<T> AsRef<SyncData<T>> for SyncData<T> {
+impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
 	fn as_ref(&self) -> &Self {
 		self
 	}
@@ -60,8 +58,8 @@ impl<T> AsRef<SyncData<T>> for SyncData<T> {
 /// but it supports reads and writes
 /// of different sizes and to different addresses for each motor.
 ///
-/// Used by bulk read and write commands.
-pub struct BulkData<T> {
+/// Used by bulk write commands.
+pub struct BulkWriteData<T> {
 	/// The ID of the motor.
 	pub motor_id: u8,
 
@@ -72,18 +70,25 @@ pub struct BulkData<T> {
 	pub data: T,
 }
 
-impl<T> AsRef<BulkData<T>> for BulkData<T> {
+impl<T> AsRef<BulkWriteData<T>> for BulkWriteData<T> {
 	fn as_ref(&self) -> &Self {
 		self
 	}
 }
 
-/// The data response giving by a motor in response to a bulk read command.
-#[derive(Debug)]
-pub struct BulkResponse<T> {
-	/// The response message.
-	pub response: Response<T>,
-	
-	/// The address of the bulk read/write.
+pub struct BulkReadData {
+	/// The ID of the motor.
+	pub motor_id: u8,
+
+	/// The address for the read or write.
 	pub address: u16,
+
+	// The length of the data to be read.
+	pub count: u16,
+}
+
+impl AsRef<BulkReadData> for BulkReadData {
+	fn as_ref(&self) -> &Self {
+		self
+	}
 }
