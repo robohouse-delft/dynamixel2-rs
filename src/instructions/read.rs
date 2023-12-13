@@ -22,7 +22,7 @@ where
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Vec<u8>>, TransferError> {
-		let response = self._read(motor_id, address, count)?;
+		let response = self.read_raw(motor_id, address, count)?;
 		Ok(response.into())
 	}
 
@@ -31,7 +31,7 @@ where
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<Response<u8>, TransferError> {
-		let response = self._read(motor_id, address, 1)?;
+		let response = self.read_raw(motor_id, address, 1)?;
 		Ok(response.into())
 	}
 
@@ -40,7 +40,7 @@ where
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<Response<u16>, TransferError> {
-		let response = self._read(motor_id, address, 2)?;
+		let response = self.read_raw(motor_id, address, 2)?;
 		Ok(response.into())
 	}
 
@@ -49,7 +49,7 @@ where
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<Response<u32>, TransferError> {
-		let response = self._read(motor_id, address, 4)?;
+		let response = self.read_raw(motor_id, address, 4)?;
 		Ok(response.into())
 	}
 }
