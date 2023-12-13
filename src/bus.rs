@@ -208,7 +208,7 @@ where
 		// Remove byte-stuffing from the parameters.
 		let parameter_count = bytestuff::unstuff_inplace(&mut buffer[STATUS_HEADER_SIZE..parameters_end]);
 
-		// Creating the response struct here means that the data gets purged from the buffer even if we return early using the try operator.
+		// Creating the status packet struct here means that the data gets purged from the buffer even if we return early using the try operator.
 		let response = StatusPacket {
 			bus: self,
 			stuffed_message_len,
@@ -290,7 +290,7 @@ where
 		self.as_bytes()[8]
 	}
 
-	// The alert bit from the error feild of the response.
+	// The alert bit from the error field of the response.
 	pub fn alert(&self) -> bool {
 		self.error() & 0x80 != 0
 	}
@@ -311,10 +311,19 @@ where
 	}
 }
 
+/// A response from a motor.
 #[derive(Debug)]
 pub struct Response<T> {
+	/// The motor that sent the response.
 	pub motor_id: u8,
+
+	/// The alert bit from the response message.
+	///
+	/// If this is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult your motor manual for more details.
 	pub alert: bool,
+
+	/// The data from the motor.
 	pub data: T,
 }
 

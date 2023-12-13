@@ -81,6 +81,9 @@ impl<T> AsRef<BulkData<T>> for BulkData<T> {
 /// The data response giving by a motor in response to a bulk read command.
 #[derive(Debug)]
 pub struct BulkResponse<T> {
+	/// The response message.
 	pub response: Response<T>,
+	
+	/// The address of the bulk read/write.
 	pub address: u16,
 }
