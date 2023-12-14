@@ -28,7 +28,7 @@ where
 			motor_id: status_packet.packet_id(),
 			model: crate::endian::read_u16_le(&parameters[0..]),
 			firmware: crate::endian::read_u8_le(&parameters[2..]),
-			alert: status_packet.error() & 0x80 != 0,
+			alert: status_packet.alert(),
 		}
 	}
 }
