@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::Bus;
+use crate::{Bus, Response};
 
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
@@ -15,16 +15,11 @@ where
 	/// It is not possible to clear the revolution counter of a motor while it is moving.
 	/// Doing so will cause the motor to return an error, and the revolution counter will not be reset.
 	///
-	/// The `motor_id` parameter may be set to [`packet_id::BROADCAST`],
-	/// although the [`Self::broadcast_clear_revolution_counter`] is generally easier to use.
-	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<(), crate::TransferError> {
-		if motor_id == packet_id::BROADCAST {
-			self.broadcast_clear_revolution_counter()?;
-		} else {
-			let response = self.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
-			crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		}
-		Ok(())
+	/// The `motor_id` parameter must not be set to [`packet_id::BROADCAST`],
+	/// Instead use [`Self::broadcast_clear_revolution_counter`].
+	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, crate::TransferError> {
+		let response = self.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
+		Ok(response.try_into()?)
 	}
 
 	/// Clear the revolution counter of all connected motors.

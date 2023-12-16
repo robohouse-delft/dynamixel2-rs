@@ -1,4 +1,4 @@
-use super::{instruction_id, packet_id, SyncData};
+use super::{instruction_id, packet_id, SyncWriteData};
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::{Bus, WriteError};
 
@@ -19,7 +19,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncData<&'a [u8]>>,
+		Data: AsRef<SyncWriteData<&'a [u8]>>,
 	{
 		let data = data.into_iter();
 		let motors = data.len();
@@ -46,7 +46,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncData<u8>>,
+		Data: AsRef<SyncWriteData<u8>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u8>();
@@ -73,7 +73,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncData<u16>>,
+		Data: AsRef<SyncWriteData<u16>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u16>();
@@ -100,7 +100,7 @@ where
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncData<u32>>,
+		Data: AsRef<SyncWriteData<u32>>,
 	{
 		let data = data.into_iter();
 		let count = core::mem::size_of::<u32>();

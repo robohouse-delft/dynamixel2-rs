@@ -1,7 +1,8 @@
 use super::{instruction_id, packet_id};
+use crate::bus::StatusPacket;
 use crate::{Bus, ReadError, TransferError, WriteError};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PingResponse {
 	/// The ID of the motor.
 	pub motor_id: u8,
@@ -13,6 +14,27 @@ pub struct PingResponse {
 
 	/// The firmware version of the motor.
 	pub firmware: u8,
+
+	pub alert: bool,
+}
+
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for PingResponse
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		let parameters = status_packet.parameters();
+		crate::InvalidParameterCount::check(parameters.len(), 3)?;
+		Ok(Self {
+			motor_id: status_packet.packet_id(),
+			model: crate::endian::read_u16_le(&parameters[0..]),
+			firmware: crate::endian::read_u8_le(&parameters[2..]),
+			alert: status_packet.alert(),
+		})
+	}
 }
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
@@ -26,7 +48,7 @@ where
 	/// Use [`Self::scan`] or [`Self::scan_cb`] instead.
 	pub fn ping(&mut self, motor_id: u8) -> Result<PingResponse, TransferError> {
 		let response = self.transfer_single(motor_id, instruction_id::PING, 0, |_| ())?;
-		Ok(parse_ping_response(response.packet_id(), response.parameters()))
+		Ok(response.try_into()?)
 	}
 
 	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
@@ -56,25 +78,14 @@ where
 			let response = self.read_status_response();
 			if let Err(ReadError::Io(e)) = &response {
 				if e.kind() == std::io::ErrorKind::TimedOut {
+					trace!("Response timed out.");
 					continue;
 				}
 			}
-			let response = response.and_then(|response| {
-				crate::InvalidParameterCount::check(response.parameters().len(), 3)?;
-				Ok(parse_ping_response(response.packet_id(), response.parameters()))
-			});
+			let response = response.and_then(|response| Ok(response.try_into()?));
 			on_response(response);
 		}
 
 		Ok(())
-	}
-}
-
-/// Parse a ping response from the motor ID and status response parameters.
-fn parse_ping_response(motor_id: u8, parameters: &[u8]) -> PingResponse {
-	PingResponse {
-		motor_id,
-		model: crate::endian::read_u16_le(&parameters[0..]),
-		firmware: crate::endian::read_u8_le(&parameters[2..]),
 	}
 }

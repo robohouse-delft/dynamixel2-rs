@@ -4,7 +4,7 @@ use std::time::{Duration, Instant};
 
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
-use crate::endian::{read_u16_le, write_u16_le};
+use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
 use crate::{ReadError, TransferError, WriteError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -95,7 +95,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<Response<ReadBuffer, WriteBuffer>, TransferError>
+	) -> Result<StatusPacket<ReadBuffer, WriteBuffer>, TransferError>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -150,15 +150,13 @@ where
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
 		trace!("sending instruction: {:02X?}", stuffed_message);
-		self.serial_port.discard_input_buffer()
-			.map_err(WriteError::DiscardBuffer)?;
-		self.serial_port.write_all(stuffed_message)
-			.map_err(WriteError::Write)?;
+		self.serial_port.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
+		self.serial_port.write_all(stuffed_message).map_err(WriteError::Write)?;
 		Ok(())
 	}
 
 	/// Read a raw status response from the bus.
-	pub fn read_status_response(&mut self) -> Result<Response<ReadBuffer, WriteBuffer>, ReadError> {
+	pub fn read_status_response(&mut self) -> Result<StatusPacket<ReadBuffer, WriteBuffer>, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -176,7 +174,10 @@ where
 			}
 
 			if Instant::now() > deadline {
-				trace!("timeout reading status response, data in buffer: {:02X?}", &self.read_buffer.as_ref()[..self.read_len]);
+				trace!(
+					"timeout reading status response, data in buffer: {:02X?}",
+					&self.read_buffer.as_ref()[..self.read_len]
+				);
 				return Err(std::io::ErrorKind::TimedOut.into());
 			}
 
@@ -207,8 +208,8 @@ where
 		// Remove byte-stuffing from the parameters.
 		let parameter_count = bytestuff::unstuff_inplace(&mut buffer[STATUS_HEADER_SIZE..parameters_end]);
 
-		// Creating the response struct here means that the data gets purged from the buffer even if we return early using the try operator.
-		let response = Response {
+		// Creating the status packet struct here means that the data gets purged from the buffer even if we return early using the try operator.
+		let response = StatusPacket {
 			bus: self,
 			stuffed_message_len,
 			parameter_count,
@@ -246,7 +247,7 @@ where
 /// A status response that is currently in the read buffer of a bus.
 ///
 /// When dropped, the response data is removed from the read buffer.
-pub struct Response<'a, ReadBuffer, WriteBuffer>
+pub struct StatusPacket<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -261,7 +262,7 @@ where
 	parameter_count: usize,
 }
 
-impl<'a, ReadBuffer, WriteBuffer> Response<'a, ReadBuffer, WriteBuffer>
+impl<'a, ReadBuffer, WriteBuffer> StatusPacket<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -289,13 +290,18 @@ where
 		self.as_bytes()[8]
 	}
 
+	// The alert bit from the error field of the response.
+	pub fn alert(&self) -> bool {
+		self.error() & 0x80 != 0
+	}
+
 	/// The parameters of the response.
 	pub fn parameters(&self) -> &[u8] {
 		&self.as_bytes()[STATUS_HEADER_SIZE..][..self.parameter_count]
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> Drop for Response<'a, ReadBuffer, WriteBuffer>
+impl<'a, ReadBuffer, WriteBuffer> Drop for StatusPacket<'a, ReadBuffer, WriteBuffer>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -319,6 +325,104 @@ fn find_header(buffer: &[u8]) -> usize {
 	}
 
 	buffer.len()
+}
+
+/// A response from a motor.
+#[derive(Debug)]
+pub struct Response<T> {
+	/// The motor that sent the response.
+	pub motor_id: u8,
+
+	/// The alert bit from the response message.
+	///
+	/// If this is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult your motor manual for more details.
+	pub alert: bool,
+
+	/// The data from the motor.
+	pub data: T,
+}
+
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<()>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 0)?;
+		Ok(Self {
+			data: (),
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+		})
+	}
+}
+
+impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<Vec<u8>>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
+		Self {
+			data: status_packet.parameters().to_owned(),
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+		}
+	}
+}
+
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u8>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 1)?;
+		Ok(Self {
+			data: read_u8_le(status_packet.parameters()),
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+		})
+	}
+}
+
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u16>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 2)?;
+		Ok(Self {
+			data: read_u16_le(status_packet.parameters()),
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+		})
+	}
+}
+
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u32>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 4)?;
+		Ok(Self {
+			data: read_u32_le(status_packet.parameters()),
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+		})
+	}
 }
 
 #[cfg(test)]

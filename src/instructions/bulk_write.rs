@@ -1,5 +1,5 @@
-use super::{instruction_id, packet_id, BulkData};
-use crate::endian::{write_u8_le, write_u16_le};
+use super::{instruction_id, packet_id, BulkWriteData};
+use crate::endian::{write_u16_le, write_u8_le};
 use crate::{Bus, WriteError};
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
@@ -22,7 +22,7 @@ where
 	/// This function also panics if the data length for a motor exceeds the capacity of a `u16`.
 	pub fn bulk_write<Write, T>(&mut self, writes: &[Write]) -> Result<(), WriteError>
 	where
-		Write: std::borrow::Borrow<BulkData<T>>,
+		Write: std::borrow::Borrow<BulkWriteData<T>>,
 		T: AsRef<[u8]>,
 	{
 		let mut parameter_count = 0;
@@ -30,7 +30,12 @@ where
 			let write = write.borrow();
 			let data = write.data.as_ref();
 			if data.len() > u16::MAX.into() {
-				panic!("bulk_write: data length ({}) for motor {} exceeds maximum size of {}", data.len(), write.motor_id, u16::MAX);
+				panic!(
+					"bulk_write: data length ({}) for motor {} exceeds maximum size of {}",
+					data.len(),
+					write.motor_id,
+					u16::MAX
+				);
 			}
 			parameter_count += 5 + data.len();
 		}

@@ -82,7 +82,9 @@ pub struct InvalidParameterCount {
 
 impl MotorError {
 	pub fn check(raw: u8) -> Result<(), Self> {
-		if raw == 0 {
+		// Ignore the alert bit for this check.
+		// If the alert bit is set, the motor encountered an error, but the instruction was still executed.
+		if raw & !0x80 == 0 {
 			Ok(())
 		} else {
 			Err(Self { raw })
@@ -178,6 +180,42 @@ impl From<WriteError> for TransferError {
 impl From<ReadError> for TransferError {
 	fn from(other: ReadError) -> Self {
 		Self::ReadError(other)
+	}
+}
+
+impl From<InvalidMessage> for TransferError {
+	fn from(other: InvalidMessage) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidHeaderPrefix> for TransferError {
+	fn from(other: InvalidHeaderPrefix) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidChecksum> for TransferError {
+	fn from(other: InvalidChecksum) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidPacketId> for TransferError {
+	fn from(other: InvalidPacketId) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidInstruction> for TransferError {
+	fn from(other: InvalidInstruction) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidParameterCount> for TransferError {
+	fn from(other: InvalidParameterCount) -> Self {
+		Self::ReadError(other.into())
 	}
 }
 
