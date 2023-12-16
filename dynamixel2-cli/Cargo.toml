@@ -1,6 +1,6 @@
 [package]
 name = "dynamixel2-cli"
-version = "0.6.0"
+version = "0.6.1"
 license = "BSD-2-Clause"
 
 description = "dynamixel protocol 2.0 command line utility"
@@ -14,7 +14,7 @@ edition = "2021"
 [dependencies]
 clap = { version = "4.4.10", features = ["derive"] }
 clap_complete = "4.4.4"
-dynamixel2 = { version = "0.6.0", path = "..", features = ["log"] }
+dynamixel2 = { version = "0.6.1", path = "..", features = ["log"] }
 env_logger = "0.10.0"
 log = "0.4.14"
 serial2 = "0.2.10"

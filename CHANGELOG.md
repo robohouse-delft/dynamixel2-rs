@@ -1,4 +1,4 @@
-main:
+v0.6.1 - 2013-12-16:
   * Add `StatusPacket::error_number()`.
   * Add `MotorError::error_number()`.
   * Add `MotorError::alert()`.
