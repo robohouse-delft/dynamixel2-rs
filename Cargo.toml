@@ -1,11 +1,7 @@
 [package]
 name = "dynamixel2"
-version = "0.5.1"
+version = "0.6.0"
 license = "BSD-2-Clause"
-authors = [
-	"Maarten de Vries <maarten@de-vri.es>",
-	"RoboHouse <robohouse@robovalley.com>",
-]
 
 description = "dynamixel protocol 2.0"
 keywords = ["dynamixel", "servo", "motor", "serial"]
