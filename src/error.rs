@@ -183,6 +183,42 @@ impl From<ReadError> for TransferError {
 	}
 }
 
+impl From<InvalidMessage> for TransferError {
+	fn from(other: InvalidMessage) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidHeaderPrefix> for TransferError {
+	fn from(other: InvalidHeaderPrefix) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidChecksum> for TransferError {
+	fn from(other: InvalidChecksum) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidPacketId> for TransferError {
+	fn from(other: InvalidPacketId) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidInstruction> for TransferError {
+	fn from(other: InvalidInstruction) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl From<InvalidParameterCount> for TransferError {
+	fn from(other: InvalidParameterCount) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
 impl From<std::io::Error> for ReadError {
 	fn from(other: std::io::Error) -> Self {
 		Self::Io(other)
