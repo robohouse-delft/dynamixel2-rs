@@ -1,3 +1,6 @@
+main:
+  * Fix amount of data read in `sync_read_u16` and `sync_read_u16_cb`.
+
 v0.5.0 - 2023-12-02:
   * Update `serial2` to `v0.2`.
 

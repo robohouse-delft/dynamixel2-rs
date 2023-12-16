@@ -68,7 +68,7 @@ where
 	where
 		F: FnMut(Result<Response<u16>, ReadError>),
 	{
-		let count = 1;
+		let count = 2;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count as u16);
