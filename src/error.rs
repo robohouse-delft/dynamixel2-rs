@@ -33,9 +33,37 @@ pub enum InvalidMessage {
 }
 
 /// An error reported by the motor.
-#[derive(Debug)]
 pub struct MotorError {
 	pub raw: u8,
+}
+
+impl MotorError {
+	/// The error number reported by the motor.
+	///
+	/// This is the lower 7 bits of the raw error field.
+	pub fn error_number(&self) -> u8 {
+		self.raw & !0x80
+	}
+
+	/// The alert bit from the error field of the response.
+	///
+	/// This is the 8th bit of the raw error field.
+	///
+	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult the manual of your motor for more information.
+	pub fn alert(&self) -> bool {
+		self.raw & 0x80 != 0
+	}
+}
+
+impl std::fmt::Debug for MotorError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.debug_struct("MotorError")
+			.field("error_number", &self.error_number())
+			.field("alert", &self.alert())
+			.finish()
+	}
+
 }
 
 /// The received message has an invalid header prefix.

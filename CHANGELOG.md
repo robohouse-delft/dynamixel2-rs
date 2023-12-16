@@ -1,5 +1,7 @@
 main:
   * Add `StatusPacket::error_number()`.
+  * Add `MotorError::error_number()`.
+  * Add `MotorError::alert()`.
   * Fix documentation fo `StatusPacket::alert()`.
 
 v0.6.0 - 2013-12-16:
