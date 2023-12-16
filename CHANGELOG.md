@@ -1,5 +1,7 @@
 main:
   * Fix amount of data read in `sync_read_u16` and `sync_read_u16_cb`.
+  * Do not return `Err()` when the `alert` bit is set in a status packet from a motor.
+  * Report the `alert` bit in the returned values from commands in a new `Response` struct.
 
 v0.5.1 - 2023-12-07:
   * Parse all status messages when more than on has been read in a single `read()`.
