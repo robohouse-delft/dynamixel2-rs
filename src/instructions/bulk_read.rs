@@ -22,7 +22,7 @@ where
 	pub fn bulk_read_cb<Read, F>(&mut self, reads: &[Read], mut on_response: F) -> Result<(), WriteError>
 	where
 		Read: AsRef<BulkReadData>,
-		F: FnMut(Result<Response<Vec<u8>>, ReadError>),
+		F: FnMut(&BulkReadData, Result<Response<Vec<u8>>, ReadError>),
 	{
 		for i in 0..reads.len() {
 			for j in i + 1..reads.len() {
@@ -55,8 +55,8 @@ where
 			});
 
 			match response {
-				Ok(response) => on_response(Ok(response.into())),
-				Err(e) => on_response(Err(e)),
+				Ok(response) => on_response(read, Ok(response.into())),
+				Err(e) => on_response(read, Err(e)),
 			}
 		}
 		Ok(())
@@ -79,7 +79,7 @@ where
 		let mut responses = Vec::with_capacity(reads.len());
 		let mut read_error = None;
 
-		self.bulk_read_cb(reads, |data| {
+		self.bulk_read_cb(reads, |_read, data| {
 			if read_error.is_none() {
 				match data {
 					Err(e) => read_error = Some(e),
