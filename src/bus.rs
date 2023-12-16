@@ -290,7 +290,19 @@ where
 		self.as_bytes()[8]
 	}
 
-	// The alert bit from the error field of the response.
+	/// The error number of the status packet.
+	///
+	/// This is the lower 7 bits of the error field.
+	pub fn error_number(&self) -> u8 {
+		self.error() & !0x80
+	}
+
+	/// The alert bit from the error field of the response.
+	///
+	/// This is the 8th bit of the error field.
+	///
+	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult the manual of your motor for more information.
 	pub fn alert(&self) -> bool {
 		self.error() & 0x80 != 0
 	}
@@ -335,8 +347,8 @@ pub struct Response<T> {
 
 	/// The alert bit from the response message.
 	///
-	/// If this is set, you can normally check the "Hardware Error" register for more details.
-	/// Consult your motor manual for more details.
+	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult the manual of your motor for more information.
 	pub alert: bool,
 
 	/// The data from the motor.

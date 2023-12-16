@@ -1,3 +1,7 @@
+main:
+  * Add `StatusPacket::error_number()`.
+  * Fix documentation fo `StatusPacket::alert()`.
+
 v0.6.0 - 2013-12-16:
   * Fix amount of data read in `sync_read_u16` and `sync_read_u16_cb`.
   * Do not return `Err()` when the `alert` bit is set in a status packet from a motor.
