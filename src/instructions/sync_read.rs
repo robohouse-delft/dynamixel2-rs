@@ -52,8 +52,7 @@ where
 		for &motor_id in motor_ids {
 			let data = self.read_status_response().and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				crate::InvalidParameterCount::check(response.parameters().len(), count)?;
-				Ok(response.into())
+				Ok(response.try_into()?)
 			});
 			on_response(data);
 		}
@@ -77,8 +76,7 @@ where
 		for &motor_id in motor_ids {
 			let data = self.read_status_response().and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				crate::InvalidParameterCount::check(response.parameters().len(), count)?;
-				Ok(response.into())
+				Ok(response.try_into()?)
 			});
 			on_response(data);
 		}
@@ -103,7 +101,7 @@ where
 			let data = self.read_status_response().and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 				crate::InvalidParameterCount::check(response.parameters().len(), count)?;
-				Ok(response.into())
+				Ok(response.try_into()?)
 			});
 			on_response(data);
 		}

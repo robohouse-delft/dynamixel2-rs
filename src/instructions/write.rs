@@ -13,8 +13,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			buffer[2..].copy_from_slice(data)
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Write an 8 bit value to a specific motor.
@@ -23,8 +22,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			buffer[2] = value;
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Write an 16 bit value to a specific motor.
@@ -33,8 +31,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], value);
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Write an 32 bit value to a specific motor.
@@ -43,7 +40,6 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u32_le(&mut buffer[2..], value);
 		})?;
-		crate::error::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 }

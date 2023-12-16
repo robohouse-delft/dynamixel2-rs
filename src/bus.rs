@@ -311,6 +311,22 @@ where
 	}
 }
 
+/// Find the potential starting position of a header.
+///
+/// This will return the first possible position of the header prefix.
+/// Note that if the buffer ends with a partial header prefix,
+/// the start position of the partial header prefix is returned.
+fn find_header(buffer: &[u8]) -> usize {
+	for i in 0..buffer.len() {
+		let possible_prefix = HEADER_PREFIX.len().min(buffer.len() - i);
+		if buffer[i..].starts_with(&HEADER_PREFIX[..possible_prefix]) {
+			return i;
+		}
+	}
+
+	buffer.len()
+}
+
 /// A response from a motor.
 #[derive(Debug)]
 pub struct Response<T> {
@@ -327,17 +343,20 @@ pub struct Response<T> {
 	pub data: T,
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<()>
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<()>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
-		Self {
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 0)?;
+		Ok(Self {
 			data: (),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-		}
+		})
 	}
 }
 
@@ -355,62 +374,55 @@ where
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u8>
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u8>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
-		Self {
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 1)?;
+		Ok(Self {
 			data: read_u8_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-		}
+		})
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u16>
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u16>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
-		Self {
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 2)?;
+		Ok(Self {
 			data: read_u16_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-		}
+		})
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u32>
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u32>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
-		Self {
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameter_count, 4)?;
+		Ok(Self {
 			data: read_u32_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
-		}
+		})
 	}
-}
-
-/// Find the potential starting position of a header.
-///
-/// This will return the first possible position of the header prefix.
-/// Note that if the buffer ends with a partial header prefix,
-/// the start position of the partial header prefix is returned.
-fn find_header(buffer: &[u8]) -> usize {
-	for i in 0..buffer.len() {
-		let possible_prefix = HEADER_PREFIX.len().min(buffer.len() - i);
-		if buffer[i..].starts_with(&HEADER_PREFIX[..possible_prefix]) {
-			return i;
-		}
-	}
-
-	buffer.len()
 }
 
 #[cfg(test)]

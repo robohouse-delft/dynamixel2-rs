@@ -16,8 +16,7 @@ where
 	/// Instead use [`Self::broadcast_reboot`].
 	pub fn reboot(&mut self, motor_id: u8) -> Result<Response<()>, TransferError> {
 		let response = self.transfer_single(motor_id, instruction_id::REBOOT, 0, |_| ())?;
-		crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Broadcast an reboot command to all connected motors to trigger a previously registered instruction.

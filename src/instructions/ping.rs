@@ -1,5 +1,6 @@
 use super::{instruction_id, packet_id};
-use crate::{bus::StatusPacket, Bus, ReadError, TransferError, WriteError};
+use crate::bus::StatusPacket;
+use crate::{Bus, ReadError, TransferError, WriteError};
 
 #[derive(Debug)]
 pub struct PingResponse {
@@ -17,19 +18,22 @@ pub struct PingResponse {
 	pub alert: bool,
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for PingResponse
+impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for PingResponse
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
+	type Error = crate::InvalidParameterCount;
+
+	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
 		let parameters = status_packet.parameters();
-		Self {
+		crate::InvalidParameterCount::check(parameters.len(), 3)?;
+		Ok(Self {
 			motor_id: status_packet.packet_id(),
 			model: crate::endian::read_u16_le(&parameters[0..]),
 			firmware: crate::endian::read_u8_le(&parameters[2..]),
 			alert: status_packet.alert(),
-		}
+		})
 	}
 }
 
@@ -44,7 +48,7 @@ where
 	/// Use [`Self::scan`] or [`Self::scan_cb`] instead.
 	pub fn ping(&mut self, motor_id: u8) -> Result<PingResponse, TransferError> {
 		let response = self.transfer_single(motor_id, instruction_id::PING, 0, |_| ())?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
@@ -78,10 +82,7 @@ where
 					continue;
 				}
 			}
-			let response = response.and_then(|response| {
-				crate::InvalidParameterCount::check(response.parameters().len(), 3)?;
-				Ok(response.into())
-			});
+			let response = response.and_then(|response| Ok(response.try_into()?));
 			on_response(response);
 		}
 

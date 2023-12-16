@@ -19,8 +19,7 @@ where
 	/// Instead use [`Self::broadcast_clear_revolution_counter`].
 	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, crate::TransferError> {
 		let response = self.transfer_single(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
-		crate::InvalidParameterCount::check(response.parameters().len(), 0).map_err(crate::ReadError::from)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Clear the revolution counter of all connected motors.

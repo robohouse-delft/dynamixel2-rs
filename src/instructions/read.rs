@@ -32,7 +32,7 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<Response<u8>, TransferError> {
 		let response = self.read_raw(motor_id, address, 1)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Read 16 bit register from a specific motor.
@@ -41,7 +41,7 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<Response<u16>, TransferError> {
 		let response = self.read_raw(motor_id, address, 2)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 
 	/// Read 32 bit register from a specific motor.
@@ -50,6 +50,6 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<Response<u32>, TransferError> {
 		let response = self.read_raw(motor_id, address, 4)?;
-		Ok(response.into())
+		Ok(response.try_into()?)
 	}
 }
