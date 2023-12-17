@@ -365,10 +365,24 @@ where
 	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
 		crate::InvalidParameterCount::check(status_packet.parameter_count, 0)?;
 		Ok(Self {
-			data: (),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
+			data: (),
 		})
+	}
+}
+
+impl<'a, 'b, ReadBuffer, WriteBuffer> From<&'b StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<&'b [u8]>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn from(status_packet: &'b StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
+		Self {
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+			data: status_packet.parameters(),
+		}
 	}
 }
 
@@ -379,9 +393,9 @@ where
 {
 	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
 		Self {
-			data: status_packet.parameters().to_owned(),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
+			data: status_packet.parameters().to_owned(),
 		}
 	}
 }
@@ -396,9 +410,9 @@ where
 	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
 		crate::InvalidParameterCount::check(status_packet.parameter_count, 1)?;
 		Ok(Self {
-			data: read_u8_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
+			data: read_u8_le(status_packet.parameters()),
 		})
 	}
 }
@@ -413,9 +427,9 @@ where
 	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
 		crate::InvalidParameterCount::check(status_packet.parameter_count, 2)?;
 		Ok(Self {
-			data: read_u16_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
+			data: read_u16_le(status_packet.parameters()),
 		})
 	}
 }
@@ -430,9 +444,9 @@ where
 	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
 		crate::InvalidParameterCount::check(status_packet.parameter_count, 4)?;
 		Ok(Self {
-			data: read_u32_le(status_packet.parameters()),
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
+			data: read_u32_le(status_packet.parameters()),
 		})
 	}
 }

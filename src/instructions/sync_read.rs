@@ -13,7 +13,7 @@ where
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
 	pub fn sync_read_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16, mut on_response: F) -> Result<(), WriteError>
 	where
-		F: FnMut(Result<Response<Vec<u8>>, ReadError>),
+		F: FnMut(Result<Response<&[u8]>, ReadError>),
 	{
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
@@ -28,7 +28,7 @@ where
 			});
 
 			match response {
-				Ok(response) => on_response(Ok(response.into())),
+				Ok(response) => on_response(Ok((&response).into())),
 				Err(e) => on_response(Err(e)),
 			}
 		}
@@ -118,7 +118,11 @@ where
 		self.sync_read_cb(motor_ids, address, count, |data| match data {
 			Err(e) if read_error.is_none() => read_error = Some(e),
 			Err(_) => (),
-			Ok(response) => result.push(response),
+			Ok(response) => result.push(Response {
+				motor_id: response.motor_id,
+				alert: response.alert,
+				data: response.data.to_owned(),
+			}),
 		})?;
 		Ok(result)
 	}
