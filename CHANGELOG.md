@@ -1,13 +1,13 @@
 main:
   * Pass `Response<&[u8]>` to read callbacks instead of `Response<Vec<u8>>`.
 
-v0.6.1 - 2013-12-16:
+v0.6.1 - 2023-12-16:
   * Add `StatusPacket::error_number()`.
   * Add `MotorError::error_number()`.
   * Add `MotorError::alert()`.
   * Fix documentation fo `StatusPacket::alert()`.
 
-v0.6.0 - 2013-12-16:
+v0.6.0 - 2023-12-16:
   * Fix amount of data read in `sync_read_u16` and `sync_read_u16_cb`.
   * Do not return `Err()` when the `alert` bit is set in a status packet from a motor.
   * Report the `alert` bit in the returned values from commands in a new `Response` struct.
