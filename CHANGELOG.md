@@ -1,4 +1,4 @@
-main:
+v0.7.0 - 2023-12-17:
   * Pass `Response<&[u8]>` to read callbacks instead of `Response<Vec<u8>>`.
 
 v0.6.1 - 2023-12-16:
