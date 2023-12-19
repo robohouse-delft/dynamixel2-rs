@@ -79,30 +79,20 @@ where
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<T::Error>>
+	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Result<Response<Vec<u8>>, ReadError<T::Error>>>, crate::TransferError<T::Error>>
 	where
 		Read: AsRef<BulkReadData>,
 	{
 		let mut responses = Vec::with_capacity(reads.len());
-		let mut read_error = None;
 
-		self.bulk_read_cb(reads, |_read, response| {
-			if read_error.is_none() {
-				match response {
-					Err(e) => read_error = Some(e),
-					Ok(response) => responses.push(Response {
-						motor_id: response.motor_id,
-						alert: response.alert,
-						data: response.data.to_owned(),
-					}),
-				}
-			}
+		self.bulk_read_cb(reads, |_read, response| match response {
+			Err(e) => responses.push(Err(e)),
+			Ok(response) => responses.push(Ok(Response {
+				motor_id: response.motor_id,
+				alert: response.alert,
+				data: response.data.to_owned(),
+			})),
 		})?;
-
-		if let Some(e) = read_error {
-			Err(e.into())
-		} else {
-			Ok(responses)
-		}
+		Ok(responses)
 	}
 }
