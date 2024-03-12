@@ -2,7 +2,7 @@ use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
 use crate::{Bus, ReadError, TransferError, WriteError};
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Default)]
 pub struct PingResponse {
 	/// The ID of the motor.
 	pub motor_id: u8,

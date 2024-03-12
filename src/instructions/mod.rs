@@ -38,6 +38,7 @@ pub use ping::PingResponse;
 /// Data from or for a specific motor.
 ///
 /// Used by synchronous write commands.
+#[derive(Clone, Copy, Eq, PartialEq, Debug, Default)]
 pub struct SyncWriteData<T> {
 	/// The ID of the motor.
 	pub motor_id: u8,
