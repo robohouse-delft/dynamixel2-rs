@@ -33,7 +33,7 @@ pub enum InvalidMessage {
 }
 
 /// An error reported by the motor.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct MotorError {
 	pub raw: u8,
 }
