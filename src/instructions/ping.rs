@@ -2,6 +2,7 @@ use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
 use crate::{Bus, ReadError, TransferError, WriteError};
 
+/// A response from a motor to a ping instruction.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct PingResponse {
 	/// The ID of the motor.

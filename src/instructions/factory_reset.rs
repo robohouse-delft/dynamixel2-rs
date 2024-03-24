@@ -1,6 +1,7 @@
 use super::{instruction_id, packet_id};
 use crate::{Bus, Response};
 
+/// The kind of factory reset to perform.
 #[repr(u8)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum FactoryResetKind {

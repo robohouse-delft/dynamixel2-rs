@@ -19,6 +19,8 @@
 //!
 //! You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
 
+#![warn(missing_docs)]
+
 #[macro_use]
 mod log;
 
@@ -30,6 +32,7 @@ mod bytestuff;
 mod endian;
 mod error;
 
+pub use error::ExpectedCount;
 pub use error::InvalidChecksum;
 pub use error::InvalidHeaderPrefix;
 pub use error::InvalidInstruction;

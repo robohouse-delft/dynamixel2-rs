@@ -3,38 +3,64 @@ use crate::instructions::packet_id::BROADCAST;
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
 pub enum TransferError {
+	/// The write of failed.
 	WriteError(WriteError),
+
+	/// The read failed.
 	ReadError(ReadError),
 }
 
 /// An error that can occur during a write transfer.
 #[derive(Debug)]
 pub enum WriteError {
+	/// Failed to discard the input buffer before writing the instruction.
 	DiscardBuffer(std::io::Error),
+
+	/// Failed to write the instruction.
 	Write(std::io::Error),
 }
 
 /// An error that can occur during a read transfer.
 #[derive(Debug)]
 pub enum ReadError {
+	/// Failed to read from the serial port.
 	Io(std::io::Error),
+
+	/// The received message is invalid.
 	InvalidMessage(InvalidMessage),
+
+	/// The motor reported an error instead of a valid response.
+	///
+	/// This error is not returned when a motor signals a hardware error,
+	/// since the instruction has still been exectuted.
+	///
+	/// Instead, the `alert` bit in the response will be set.
 	MotorError(MotorError),
 }
 
 /// The received message is not valid.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum InvalidMessage {
+	/// The header does not start with the proper prefix.
 	InvalidHeaderPrefix(InvalidHeaderPrefix),
+
+	/// The message checksum is invalid.
 	InvalidChecksum(InvalidChecksum),
+
+	/// The message has an invalid packet ID.
 	InvalidPacketId(InvalidPacketId),
+
+	/// The message has an invalid instruction.
 	InvalidInstruction(InvalidInstruction),
+
+	/// The message has an invalid parameter count.
 	InvalidParameterCount(InvalidParameterCount),
 }
 
 /// An error reported by the motor.
 #[derive(Clone, Eq, PartialEq)]
 pub struct MotorError {
+	/// The raw error as returned by the motor.
 	pub raw: u8,
 }
 
@@ -69,46 +95,68 @@ impl std::fmt::Debug for MotorError {
 /// The received message has an invalid header prefix.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidHeaderPrefix {
+	/// The actual prefix.
 	pub actual: [u8; 4],
+
+	/// The expected prefix.
 	pub expected: [u8; 4],
 }
 
 /// The received message has an invalid checksum value.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidChecksum {
+	/// The checksum from the messsage.
 	pub message: u16,
+
+	/// The actual checksum.
 	pub computed: u16,
 }
 
 /// The received message has an invalid or unexpected packet ID.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidPacketId {
+	/// The actual packet ID.
 	pub actual: u8,
+
+	/// The expected packet ID (if a specific ID was expected).
 	pub expected: Option<u8>,
 }
 
 /// The received message has an invalid or unexpected instruction value.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidInstruction {
+	/// The actual instruction ID.
 	pub actual: u8,
+
+	/// The expected instruction id.
 	pub expected: u8,
 }
 
 /// The expected number of parameters.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ExpectedCount {
+	/// The exact number of expected parameters.
 	Exact(usize),
+
+	/// An upper limit on the expected number of parameters.
 	Max(usize),
 }
 
 /// The received message has an invalid or unexpected parameter count.
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidParameterCount {
+	/// The actual parameter count.
 	pub actual: usize,
+
+	/// The expected parameter count.
 	pub expected: ExpectedCount,
 }
 
 impl MotorError {
+	/// Check for a motor error in the response.
+	///
+	/// This ignores the `alert` bit,
+	/// since it indicates a hardware error and not a failed instruction.
 	pub fn check(raw: u8) -> Result<(), Self> {
 		// Ignore the alert bit for this check.
 		// If the alert bit is set, the motor encountered an error, but the instruction was still executed.
@@ -121,6 +169,7 @@ impl MotorError {
 }
 
 impl InvalidHeaderPrefix {
+	/// Check if the header prefix matches the expected value.
 	pub fn check(actual: &[u8], expected: [u8; 4]) -> Result<(), Self> {
 		if actual == expected {
 			Ok(())
@@ -134,6 +183,7 @@ impl InvalidHeaderPrefix {
 }
 
 impl InvalidPacketId {
+	/// Check if the packet ID matches the expected value.
 	pub fn check(actual: u8, expected: u8) -> Result<(), Self> {
 		if actual == expected {
 			Ok(())
@@ -145,6 +195,7 @@ impl InvalidPacketId {
 		}
 	}
 
+	/// Check if the packet ID matches the expected value, but don't report an error if the ID is the broadcast ID.
 	pub fn check_ignore_broadcast(actual: u8, expected: u8) -> Result<(), Self> {
 		if expected == BROADCAST {
 			Ok(())
@@ -155,6 +206,7 @@ impl InvalidPacketId {
 }
 
 impl InvalidInstruction {
+	/// Check if the instruction ID is the expected value.
 	pub fn check(actual: u8, expected: u8) -> Result<(), Self> {
 		if actual == expected {
 			Ok(())
@@ -165,6 +217,7 @@ impl InvalidInstruction {
 }
 
 impl InvalidParameterCount {
+	/// Check if the parameter count matches the expected count.
 	pub fn check(actual: usize, expected: usize) -> Result<(), Self> {
 		if actual == expected {
 			Ok(())
@@ -176,6 +229,7 @@ impl InvalidParameterCount {
 		}
 	}
 
+	/// Check if the parameter count is at or below the max count.
 	pub fn check_max(actual: usize, max: usize) -> Result<(), Self> {
 		if actual <= max {
 			Ok(())

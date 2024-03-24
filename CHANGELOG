@@ -1,3 +1,7 @@
+# Unreleased
+- [patch][doc] Add missing doc comments.
+- [minor][add] Expose `ExpectedCount` publically.
+
 # Version 0.7.1 - 2024-03-24
 - [minor][add] Re-export the `serial2` crate to allow easier serial port configuration.
 - [minor][add] Derive `Debug`, `Clone`, `Eq` and `PartialEq` for many response types.
