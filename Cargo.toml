@@ -1,6 +1,6 @@
 [package]
 name = "dynamixel2"
-version = "0.7.1"
+version = "0.7.2"
 license = "BSD-2-Clause"
 
 description = "dynamixel protocol 2.0"
