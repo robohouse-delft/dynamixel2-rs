@@ -20,6 +20,7 @@
 //! You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
 
 #![warn(missing_docs)]
+#![warn(missing_debug_implementations)]
 
 #[macro_use]
 mod log;

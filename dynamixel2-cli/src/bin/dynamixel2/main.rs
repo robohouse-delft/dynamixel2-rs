@@ -126,6 +126,7 @@ fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> 
 		options.serial_port.display(),
 		options.baud_rate
 	);
+	log::trace!("{:#?}", bus);
 	Ok(bus)
 }
 
