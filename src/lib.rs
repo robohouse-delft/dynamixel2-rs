@@ -44,4 +44,5 @@ pub use error::WriteError;
 pub use bus::Bus;
 pub use bus::Response;
 
-pub use serial2::SerialPort;
+/// Re-exported `serial2` crate in case you need to modify serial port settings.
+pub use serial2;

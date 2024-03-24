@@ -1,3 +1,6 @@
+main:
+  * Re-export the `serial2` crate to allow easier serial port configuration.
+
 v0.7.0 - 2023-12-17:
   * Pass `Response<&[u8]>` to read callbacks instead of `Response<Vec<u8>>`.
 
