@@ -15,6 +15,10 @@ pub struct PingResponse {
 	/// The firmware version of the motor.
 	pub firmware: u8,
 
+	/// The alert bit from the response message.
+	///
+	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
+	/// Consult the manual of your motor for more information.
 	pub alert: bool,
 }
 
