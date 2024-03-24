@@ -43,3 +43,5 @@ pub use error::WriteError;
 
 pub use bus::Bus;
 pub use bus::Response;
+
+pub use serial2::SerialPort;

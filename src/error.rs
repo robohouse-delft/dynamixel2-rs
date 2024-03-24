@@ -23,7 +23,7 @@ pub enum ReadError {
 }
 
 /// The received message is not valid.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum InvalidMessage {
 	InvalidHeaderPrefix(InvalidHeaderPrefix),
 	InvalidChecksum(InvalidChecksum),
@@ -33,6 +33,7 @@ pub enum InvalidMessage {
 }
 
 /// An error reported by the motor.
+#[derive(Clone, Eq, PartialEq)]
 pub struct MotorError {
 	pub raw: u8,
 }
@@ -63,46 +64,45 @@ impl std::fmt::Debug for MotorError {
 			.field("alert", &self.alert())
 			.finish()
 	}
-
 }
 
 /// The received message has an invalid header prefix.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidHeaderPrefix {
 	pub actual: [u8; 4],
 	pub expected: [u8; 4],
 }
 
 /// The received message has an invalid checksum value.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidChecksum {
 	pub message: u16,
 	pub computed: u16,
 }
 
 /// The received message has an invalid or unexpected packet ID.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidPacketId {
 	pub actual: u8,
 	pub expected: Option<u8>,
 }
 
 /// The received message has an invalid or unexpected instruction value.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidInstruction {
 	pub actual: u8,
 	pub expected: u8,
 }
 
 /// The expected number of parameters.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum ExpectedCount {
 	Exact(usize),
 	Max(usize),
 }
 
 /// The received message has an invalid or unexpected parameter count.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct InvalidParameterCount {
 	pub actual: usize,
 	pub expected: ExpectedCount,
