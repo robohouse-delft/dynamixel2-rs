@@ -10,6 +10,7 @@ repository = "https://github.com/robohouse-delft/dynamixel2-rs"
 readme = "README.md"
 
 edition = "2021"
+publish = ["crates-io"]
 
 [dependencies]
 log = { version = "0.4.8", optional = true }
