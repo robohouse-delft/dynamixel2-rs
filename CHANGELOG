@@ -1,0 +1,81 @@
+# Unreleased
+- [minor][add] Re-export the `serial2` crate to allow easier serial port configuration.
+- [minor][add] Derive `Debug`, `Clone`, `Eq` and `PartialEq` for many response types.
+
+# Version 0.7.0 - 2023-12-17
+- [major][change] Pass `Response<&[u8]>` to read callbacks instead of `Response<Vec<u8>>`.
+
+# Version 0.6.1 - 2023-12-16
+- [minor][add] Add `StatusPacket::error_number()`.
+- [minor][add] Add `MotorError::error_number()`.
+- [minor][add] Add `MotorError::alert()`.
+- [patch][change] Fix documentation fo `StatusPacket::alert()`.
+
+# Version 0.6.0 - 2023-12-16
+- [major][change] Do not return `Err()` when the `alert` bit is set in a status packet from a motor.
+- [major][change] Report the `alert` bit in the returned values from commands in a new `Response` struct.
+- [major][change] Pass original `BulkReadData` command to user callback in `bulk_read_cb()`.
+- [minor][fix] Fix amount of data read in `sync_read_u16` and `sync_read_u16_cb`.
+
+# Version 0.5.1 - 2023-12-07
+- [minor][fix] Parse all status messages when more than on has been read in a single `read()`.
+
+# Version 0.5.0 - 2023-12-02
+- [major][change] Update `serial2` to `v0.2`.
+
+# Version 0.4.2 - 2023-12-02
+- [minor][fix] Remove unused generic parameter from `sync_read_*` functions.
+
+# Version 0.4.1 - 2022-12-12
+- [minor][fix] Fix the instruction ID used by the bulk read/write commands.
+
+# Version 0.4.0 - 2022-12-12
+- [major][change] Use `Borrow` trait instead of `AsRef` in `Bus::bulk_write()`.
+
+# Version 0.3.1 - 2021-11-14
+- [patch][change] Update documentation.
+
+# Version 0.3.0 - 2021-11-13
+- [major][change] Switch to `serial2` for serial communication.
+- [major][remove] Remove `Bus::with_buffer_sizes()` constructor.
+- [minor][change] Discard input buffer right before writing instructions.
+
+# Version 0.2.3 - 2021-06-30
+- [minor][change] Clear the read buffer when sending an instruction.
+- [minor][add] Add trace log for discarded partial messages after a timeout.
+
+# Version 0.2.2 - 2021-06-30
+- [minor][add] Add debug and trace logs for skipped noise bytes.
+
+# Version 0.2.1 - 2021-05-08
+- [minor][change] Change error type of sync write functions to reflect lack of read phase.
+- [minor][add] Add support for the bulk read and write instructions.
+
+# Version 0.2.0 - 2021-05-06
+- [major][change] Rewrite API to a `Bus` struct with functions for the instructions.
+- [minor][change] Ignore noise before message headers.
+
+# Version 0.1.4 - 2021-04-22
+- [minor][add] Fix visibility of `WriteData` struct for `SyncWrite` intstructions.
+
+# Version 0.1.3 - 2020-10-16
+- [minor][add] Add support for the `reg_write` and `action` instructions.
+- [minor][add] Add support for the `factory_reset` instruction.
+- [minor][add] Add support for the `clear` instruction.
+- [minor][add] Add support for the `sync_read` and `sync_write` instructions.
+- [minor][add] Add support for custom raw instructions.
+- [patch][change] Include correct license file.
+
+# Version 0.1.2 - 2020-06-18
+- [minor][fix] Fix `write_u32_le()` to actually write in little endian.
+
+# Version 0.1.1 - 2020-06-18
+- [minor][fix] Fix encoding of `WriteU8` instruction parameters.
+
+# Version 0.1.0 - 2020-06-18
+- [minor][add] Initial release.
+- [minor][add] Implemented instructions: `ping`, `read`, `write`, `reboot`.
+- [minor][add] Add function to write a single instruction.
+- [minor][add] Add function to read a single response.
+- [minor][add] Add function to execute unicast intstructions.
+- [minor][add] Add function to scan a bus for motors.
