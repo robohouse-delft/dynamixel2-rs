@@ -340,7 +340,10 @@ fn find_header(buffer: &[u8]) -> usize {
 }
 
 /// A response from a motor.
-#[derive(Debug)]
+///
+/// Note that the `Eq` and `PartialEq` compare all fields of the struct,
+/// including the `motor_id` and `alert`.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Response<T> {
 	/// The motor that sent the response.
 	pub motor_id: u8,

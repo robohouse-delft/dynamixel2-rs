@@ -60,6 +60,7 @@ impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
 /// of different sizes and to different addresses for each motor.
 ///
 /// Used by bulk write commands.
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BulkWriteData<T> {
 	/// The ID of the motor.
 	pub motor_id: u8,
@@ -77,6 +78,7 @@ impl<T> AsRef<BulkWriteData<T>> for BulkWriteData<T> {
 	}
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BulkReadData {
 	/// The ID of the motor.
 	pub motor_id: u8,
