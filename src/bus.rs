@@ -150,10 +150,9 @@ where
 		F: FnOnce(&mut [u8]),
 	{
 		let buffer = self.write_buffer.as_mut();
-		if buffer.len() < HEADER_SIZE + parameter_count + 2 {
-			// TODO: return proper error.
-			panic!("write buffer not large enough for outgoing mesage");
-		}
+
+		// Check if the buffer can hold the unstuffed message.
+		crate::error::BufferFullError::check(HEADER_SIZE + parameter_count + 2, buffer.len())?;
 
 		// Add the header, with a placeholder for the length field.
 		buffer[4] = packet_id;
@@ -164,8 +163,7 @@ where
 
 		// Perform bitstuffing on the body.
 		// The header never needs stuffing.
-		// TODO: properly propagate error.
-		let stuffed_body_len = bytestuff::stuff_inplace(&mut buffer[HEADER_SIZE..], parameter_count).unwrap();
+		let stuffed_body_len = bytestuff::stuff_inplace(&mut buffer[HEADER_SIZE..], parameter_count)?;
 
 		write_u16_le(&mut buffer[5..], stuffed_body_len as u16 + 3);
 
@@ -189,6 +187,9 @@ where
 
 	/// Read a raw status response from the bus.
 	pub fn read_status_response(&mut self) -> Result<StatusPacket, ReadError> {
+		// Check that the read buffer is large enough to hold atleast a status packet header.
+		crate::error::BufferFullError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
+
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -199,6 +200,10 @@ where
 				let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
 				let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
 				let body_len = body_len - 2; // Length includes instruction and error fields, which is already included in STATUS_HEADER_SIZE too.
+
+				// Check if the read buffer is large enough for the entire message.
+				// We don't have to remove the read bytes, because `write_instruction()` already clears the read buffer.
+				crate::error::BufferFullError::check(STATUS_HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
 
 				if self.read_len >= STATUS_HEADER_SIZE + body_len {
 					break STATUS_HEADER_SIZE + body_len;

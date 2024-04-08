@@ -13,6 +13,9 @@ pub enum TransferError {
 /// An error that can occur during a write transfer.
 #[derive(Debug)]
 pub enum WriteError {
+	/// The write buffer is too small to contain the whole stuffed message.
+	BufferFull(BufferFullError),
+
 	/// Failed to discard the input buffer before writing the instruction.
 	DiscardBuffer(std::io::Error),
 
@@ -20,9 +23,25 @@ pub enum WriteError {
 	Write(std::io::Error),
 }
 
+/// The buffer is too small to hold the entire message.
+///
+/// Consider increasing the size of the buffer.
+/// Keep in mind that the write buffer needs to be large enough to account for byte stuffing.
+#[derive(Debug)]
+pub struct BufferFullError {
+	/// The required size of the buffer.
+	pub required_size: usize,
+
+	/// The total size of the buffer.
+	pub total_size: usize,
+}
+
 /// An error that can occur during a read transfer.
 #[derive(Debug)]
 pub enum ReadError {
+	/// The read buffer is too small to contain the whole stuffed message.
+	BufferFull(BufferFullError),
+
 	/// Failed to read from the serial port.
 	Io(std::io::Error),
 
@@ -150,6 +169,19 @@ pub struct InvalidParameterCount {
 
 	/// The expected parameter count.
 	pub expected: ExpectedCount,
+}
+
+impl BufferFullError {
+	pub fn check(required_size: usize, total_size: usize) -> Result<(), Self> {
+		if required_size <= total_size {
+			Ok(())
+		} else {
+			Err(Self {
+				required_size,
+				total_size,
+			})
+		}
+	}
 }
 
 impl MotorError {
@@ -301,6 +333,18 @@ impl From<InvalidParameterCount> for TransferError {
 	}
 }
 
+impl From<BufferFullError> for WriteError {
+	fn from(other: BufferFullError) -> Self {
+		Self::BufferFull(other)
+	}
+}
+
+impl From<BufferFullError> for ReadError {
+	fn from(other: BufferFullError) -> Self {
+		Self::BufferFull(other)
+	}
+}
+
 impl From<std::io::Error> for ReadError {
 	fn from(other: std::io::Error) -> Self {
 		Self::Io(other)
@@ -397,15 +441,23 @@ impl std::fmt::Display for TransferError {
 impl std::fmt::Display for WriteError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
+			Self::BufferFull(e) => write!(f, "write buffer is too small: need {} bytes, but the size is {}", e.required_size, e.total_size),
 			Self::DiscardBuffer(e) => write!(f, "failed to discard input buffer: {}", e),
 			Self::Write(e) => write!(f, "failed to write to serial port: {}", e),
 		}
 	}
 }
 
+impl std::fmt::Display for BufferFullError {
+	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+		write!(f, "buffer is too small: need {} bytes, but the size is {}", self.required_size, self.total_size)
+	}
+}
+
 impl std::fmt::Display for ReadError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
+			Self::BufferFull(e) => write!(f, "read buffer is too small: need {} bytes, but the size is {}", e.required_size, e.total_size),
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),

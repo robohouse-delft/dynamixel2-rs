@@ -1,5 +1,7 @@
 # Unreleased
 - [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.
+- [major][add] Add `WriteError::BufferFull` and `ReadError::BufferFull` variants.
+- [minor][change] Report full buffers as `BufferFullError` instead of panicking.
 - [minor][add] Allow using the broadcast ID with the `write()`, `write_u8()`, `write_u16` and `write_u32` functions.
 - [minor][add] Allow using the broadcast ID with the `reg_write()`, `reg_write_u8()`, `reg_write_u16` and `reg_write_u32` functions.
 - [minor][add] Allow using the broadcast ID with the `action()` function.
