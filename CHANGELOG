@@ -1,5 +1,11 @@
 # Unreleased
 - [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.
+- [minor][add] Allow using the broadcast ID with the `write()`, `write_u8()`, `write_u16` and `write_u32` functions.
+- [minor][add] Allow using the broadcast ID with the `reg_write()`, `reg_write_u8()`, `reg_write_u16` and `reg_write_u32` functions.
+- [minor][add] Allow using the broadcast ID with the `action()` function.
+- [minor][add] Allow using the broadcast ID with the `clear_revolution_counter()` function.
+- [minor][add] Allow using the broadcast ID with the `factory_reset()` function.
+- [minor][add] Allow using the broadcast ID with the `reboot()` function.
 
 # Version 0.7.2 - 2024-03-24
 - [minor][add] Expose `ExpectedCount` publically.
