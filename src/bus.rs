@@ -25,6 +25,9 @@ pub struct Bus<ReadBuffer, WriteBuffer> {
 	/// The total number of valid bytes in the read buffer.
 	read_len: usize,
 
+	/// The number of leading bytes in the read buffer that have already been used.
+	used_bytes: usize,
+
 	/// The buffer for outgoing messages.
 	write_buffer: WriteBuffer,
 }
@@ -32,6 +35,7 @@ pub struct Bus<ReadBuffer, WriteBuffer> {
 impl<ReadBuffer, WriteBuffer> std::fmt::Debug for Bus<ReadBuffer, WriteBuffer> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		#[derive(Debug)]
+		#[allow(dead_code)] // Dead code analisys ignores derive debug impls, but thats the whole point of this struct.
 		enum Raw {
 			#[cfg(unix)]
 			Fd(std::os::unix::io::RawFd),
@@ -106,6 +110,7 @@ where
 			read_timeout,
 			read_buffer,
 			read_len: 0,
+			used_bytes: 0,
 			write_buffer,
 		}
 	}
@@ -123,7 +128,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<StatusPacket<ReadBuffer, WriteBuffer>, TransferError>
+	) -> Result<StatusPacket<'_>, TransferError>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -184,7 +189,7 @@ where
 	}
 
 	/// Read a raw status response from the bus.
-	pub fn read_status_response(&mut self) -> Result<StatusPacket<ReadBuffer, WriteBuffer>, ReadError> {
+	pub fn read_status_response(&mut self) -> Result<StatusPacket, ReadError> {
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -233,14 +238,15 @@ where
 			.into());
 		}
 
+		// Mark the whole message as "used_bytes", so that the next call to `remove_garbage()` removes it.
+		self.used_bytes += stuffed_message_len;
+
 		// Remove byte-stuffing from the parameters.
 		let parameter_count = bytestuff::unstuff_inplace(&mut buffer[STATUS_HEADER_SIZE..parameters_end]);
 
-		// Creating the status packet struct here means that the data gets purged from the buffer even if we return early using the try operator.
+		// Wrap the data in a `StatusPacket`.
 		let response = StatusPacket {
-			bus: self,
-			stuffed_message_len,
-			parameter_count,
+			data: &self.read_buffer.as_ref()[..STATUS_HEADER_SIZE + parameter_count],
 		};
 
 		crate::InvalidInstruction::check(response.instruction_id(), crate::instructions::instruction_id::STATUS)?;
@@ -257,17 +263,22 @@ where
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {
 		let read_buffer = self.read_buffer.as_mut();
-		let garbage_len = find_header(&read_buffer[..self.read_len]);
+		let garbage_len = find_header(&read_buffer[..self.read_len][self.used_bytes..]);
 		if garbage_len > 0 {
 			debug!("skipping {} bytes of leading garbage.", garbage_len);
 			trace!("skipped garbage: {:02X?}", &read_buffer[..garbage_len]);
 		}
-		self.consume_read_bytes(garbage_len);
+		self.consume_read_bytes(self.used_bytes + garbage_len);
+		debug_assert_eq!(self.used_bytes, 0);
 	}
 
 	fn consume_read_bytes(&mut self, len: usize) {
 		debug_assert!(len <= self.read_len);
 		self.read_buffer.as_mut().copy_within(len..self.read_len, 0);
+		// Decrease both used_bytes and read_len together.
+		// Some consumed bytes may be garbage instead of used bytes though.
+		// So we use `saturating_sub` for `used_bytes` to cap the result at 0.
+		self.used_bytes = self.used_bytes.saturating_sub(len);
 		self.read_len -= len;
 	}
 }
@@ -276,32 +287,18 @@ where
 ///
 /// When dropped, the response data is removed from the read buffer.
 #[derive(Debug)]
-pub struct StatusPacket<'a, ReadBuffer, WriteBuffer>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	/// The bus that read the message.
-	bus: &'a mut Bus<ReadBuffer, WriteBuffer>,
-
-	/// The total length of the stuffed message.
-	stuffed_message_len: usize,
-
-	/// The number of parameters after removing byte-stuffing.
-	parameter_count: usize,
+pub struct StatusPacket<'a> {
+	/// Message data (with byte-stuffing already undone).
+	data: &'a [u8],
 }
 
-impl<'a, ReadBuffer, WriteBuffer> StatusPacket<'a, ReadBuffer, WriteBuffer>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> StatusPacket<'a> {
 	/// Get the raw bytes of the message.
 	///
 	/// This includes the message header and the parameters.
 	/// It does not include the CRC or byte-stuffing.
 	pub fn as_bytes(&self) -> &[u8] {
-		&self.bus.read_buffer.as_ref()[..STATUS_HEADER_SIZE + self.parameter_count]
+		self.data
 	}
 
 	/// The packet ID of the response.
@@ -338,17 +335,7 @@ where
 
 	/// The parameters of the response.
 	pub fn parameters(&self) -> &[u8] {
-		&self.as_bytes()[STATUS_HEADER_SIZE..][..self.parameter_count]
-	}
-}
-
-impl<'a, ReadBuffer, WriteBuffer> Drop for StatusPacket<'a, ReadBuffer, WriteBuffer>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	fn drop(&mut self) {
-		self.bus.consume_read_bytes(self.stuffed_message_len);
+		&self.data[STATUS_HEADER_SIZE..]
 	}
 }
 
@@ -387,15 +374,11 @@ pub struct Response<T> {
 	pub data: T,
 }
 
-impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<()>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> TryFrom<StatusPacket<'a>> for Response<()> {
 	type Error = crate::InvalidParameterCount;
 
-	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameter_count, 0)?;
+	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameters().len(), 0)?;
 		Ok(Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -404,12 +387,8 @@ where
 	}
 }
 
-impl<'a, 'b, ReadBuffer, WriteBuffer> From<&'b StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<&'b [u8]>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	fn from(status_packet: &'b StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
+impl<'a, 'b> From<&'b StatusPacket<'a>> for Response<&'b [u8]> {
+	fn from(status_packet: &'b StatusPacket<'a>) -> Self {
 		Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -418,12 +397,8 @@ where
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> From<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<Vec<u8>>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	fn from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Self {
+impl<'a> From<StatusPacket<'a>> for Response<Vec<u8>> {
+	fn from(status_packet: StatusPacket<'a>) -> Self {
 		Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -432,15 +407,11 @@ where
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u8>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> TryFrom<StatusPacket<'a>> for Response<u8> {
 	type Error = crate::InvalidParameterCount;
 
-	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameter_count, 1)?;
+	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameters().len(), 1)?;
 		Ok(Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -449,15 +420,11 @@ where
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u16>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> TryFrom<StatusPacket<'a>> for Response<u16> {
 	type Error = crate::InvalidParameterCount;
 
-	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameter_count, 2)?;
+	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameters().len(), 2)?;
 		Ok(Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -466,15 +433,11 @@ where
 	}
 }
 
-impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for Response<u32>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> TryFrom<StatusPacket<'a>> for Response<u32> {
 	type Error = crate::InvalidParameterCount;
 
-	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameter_count, 4)?;
+	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
+		crate::InvalidParameterCount::check(status_packet.parameters().len(), 4)?;
 		Ok(Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),

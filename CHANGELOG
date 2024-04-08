@@ -1,3 +1,6 @@
+# Unreleased
+- [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.
+
 # Version 0.7.2 - 2024-03-24
 - [minor][add] Expose `ExpectedCount` publically.
 - [minor][add] Implement `Debug` for `Bus`.
