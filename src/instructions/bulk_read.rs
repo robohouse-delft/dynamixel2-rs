@@ -86,7 +86,7 @@ where
 					Ok(response) => responses.push(Response {
 						motor_id: response.motor_id,
 						alert: response.alert,
-						data: response.data.to_owned()
+						data: response.data.to_owned(),
 					}),
 				}
 			}

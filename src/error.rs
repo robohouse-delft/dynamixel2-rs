@@ -176,10 +176,7 @@ impl BufferFullError {
 		if required_size <= total_size {
 			Ok(())
 		} else {
-			Err(Self {
-				required_size,
-				total_size,
-			})
+			Err(Self { required_size, total_size })
 		}
 	}
 }
@@ -441,7 +438,11 @@ impl std::fmt::Display for TransferError {
 impl std::fmt::Display for WriteError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::BufferFull(e) => write!(f, "write buffer is too small: need {} bytes, but the size is {}", e.required_size, e.total_size),
+			Self::BufferFull(e) => write!(
+				f,
+				"write buffer is too small: need {} bytes, but the size is {}",
+				e.required_size, e.total_size
+			),
 			Self::DiscardBuffer(e) => write!(f, "failed to discard input buffer: {}", e),
 			Self::Write(e) => write!(f, "failed to write to serial port: {}", e),
 		}
@@ -450,14 +451,22 @@ impl std::fmt::Display for WriteError {
 
 impl std::fmt::Display for BufferFullError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-		write!(f, "buffer is too small: need {} bytes, but the size is {}", self.required_size, self.total_size)
+		write!(
+			f,
+			"buffer is too small: need {} bytes, but the size is {}",
+			self.required_size, self.total_size
+		)
 	}
 }
 
 impl std::fmt::Display for ReadError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::BufferFull(e) => write!(f, "read buffer is too small: need {} bytes, but the size is {}", e.required_size, e.total_size),
+			Self::BufferFull(e) => write!(
+				f,
+				"read buffer is too small: need {} bytes, but the size is {}",
+				e.required_size, e.total_size
+			),
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),
