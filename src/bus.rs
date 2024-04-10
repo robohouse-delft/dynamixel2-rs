@@ -176,6 +176,7 @@ where
 		// We don't do this when reading a reply, because we might multiple replies for one instruction,
 		// and read() can potentially read more than one reply per syscall.
 		self.read_len = 0;
+		self.used_bytes = 0;
 		self.serial_port.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
 
 		// Send message.
