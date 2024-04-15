@@ -23,14 +23,10 @@ pub struct PingResponse {
 	pub alert: bool,
 }
 
-impl<'a, ReadBuffer, WriteBuffer> TryFrom<StatusPacket<'a, ReadBuffer, WriteBuffer>> for PingResponse
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-{
+impl<'a> TryFrom<StatusPacket<'a>> for PingResponse {
 	type Error = crate::InvalidParameterCount;
 
-	fn try_from(status_packet: StatusPacket<'a, ReadBuffer, WriteBuffer>) -> Result<Self, Self::Error> {
+	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
 		let parameters = status_packet.parameters();
 		crate::InvalidParameterCount::check(parameters.len(), 3)?;
 		Ok(Self {
