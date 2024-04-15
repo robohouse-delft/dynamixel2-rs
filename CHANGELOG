@@ -1,4 +1,4 @@
-# Unreleased
+# Version 0.8.0 - 2024-04-15
 - [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.
 - [major][add] Add `WriteError::BufferTooSmall` and `ReadError::BufferTooSmall` variants.
 - [minor][change] Report too small buffers as `BufferTooSmall` instead of panicking.
