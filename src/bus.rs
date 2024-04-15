@@ -152,7 +152,7 @@ where
 		let buffer = self.write_buffer.as_mut();
 
 		// Check if the buffer can hold the unstuffed message.
-		crate::error::BufferFullError::check(HEADER_SIZE + parameter_count + 2, buffer.len())?;
+		crate::error::BufferTooSmallError::check(HEADER_SIZE + parameter_count + 2, buffer.len())?;
 
 		// Add the header, with a placeholder for the length field.
 		buffer[4] = packet_id;
@@ -189,7 +189,7 @@ where
 	/// Read a raw status response from the bus.
 	pub fn read_status_response(&mut self) -> Result<StatusPacket, ReadError> {
 		// Check that the read buffer is large enough to hold atleast a status packet header.
-		crate::error::BufferFullError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
+		crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
 
 		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
@@ -204,7 +204,7 @@ where
 
 				// Check if the read buffer is large enough for the entire message.
 				// We don't have to remove the read bytes, because `write_instruction()` already clears the read buffer.
-				crate::error::BufferFullError::check(STATUS_HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
+				crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
 
 				if self.read_len >= STATUS_HEADER_SIZE + body_len {
 					break STATUS_HEADER_SIZE + body_len;

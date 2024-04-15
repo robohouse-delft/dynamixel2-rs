@@ -14,7 +14,7 @@ pub enum TransferError {
 #[derive(Debug)]
 pub enum WriteError {
 	/// The write buffer is too small to contain the whole stuffed message.
-	BufferFull(BufferFullError),
+	BufferTooSmall(BufferTooSmallError),
 
 	/// Failed to discard the input buffer before writing the instruction.
 	DiscardBuffer(std::io::Error),
@@ -28,7 +28,7 @@ pub enum WriteError {
 /// Consider increasing the size of the buffer.
 /// Keep in mind that the write buffer needs to be large enough to account for byte stuffing.
 #[derive(Debug)]
-pub struct BufferFullError {
+pub struct BufferTooSmallError {
 	/// The required size of the buffer.
 	pub required_size: usize,
 
@@ -40,7 +40,7 @@ pub struct BufferFullError {
 #[derive(Debug)]
 pub enum ReadError {
 	/// The read buffer is too small to contain the whole stuffed message.
-	BufferFull(BufferFullError),
+	BufferFull(BufferTooSmallError),
 
 	/// Failed to read from the serial port.
 	Io(std::io::Error),
@@ -171,7 +171,7 @@ pub struct InvalidParameterCount {
 	pub expected: ExpectedCount,
 }
 
-impl BufferFullError {
+impl BufferTooSmallError {
 	pub fn check(required_size: usize, total_size: usize) -> Result<(), Self> {
 		if required_size <= total_size {
 			Ok(())
@@ -330,14 +330,14 @@ impl From<InvalidParameterCount> for TransferError {
 	}
 }
 
-impl From<BufferFullError> for WriteError {
-	fn from(other: BufferFullError) -> Self {
-		Self::BufferFull(other)
+impl From<BufferTooSmallError> for WriteError {
+	fn from(other: BufferTooSmallError) -> Self {
+		Self::BufferTooSmall(other)
 	}
 }
 
-impl From<BufferFullError> for ReadError {
-	fn from(other: BufferFullError) -> Self {
+impl From<BufferTooSmallError> for ReadError {
+	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferFull(other)
 	}
 }
@@ -438,7 +438,7 @@ impl std::fmt::Display for TransferError {
 impl std::fmt::Display for WriteError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		match self {
-			Self::BufferFull(e) => write!(
+			Self::BufferTooSmall(e) => write!(
 				f,
 				"write buffer is too small: need {} bytes, but the size is {}",
 				e.required_size, e.total_size
@@ -449,7 +449,7 @@ impl std::fmt::Display for WriteError {
 	}
 }
 
-impl std::fmt::Display for BufferFullError {
+impl std::fmt::Display for BufferTooSmallError {
 	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
 		write!(
 			f,

@@ -1,6 +1,6 @@
 //! Byte-stuffing and de-stuffing.
 
-use crate::error::BufferFullError;
+use crate::error::BufferTooSmallError;
 
 pub const PATTERN: [u8; 4] = [0xFF, 0xFF, 0xFD, 0xFD];
 
@@ -54,7 +54,7 @@ pub fn stuffing_required(data: &[u8]) -> usize {
 ///
 /// The full buffer must be large enough to hold the stuffed data,
 /// or an error is returned.
-pub fn stuff_inplace(buffer: &mut [u8], len: usize) -> Result<usize, BufferFullError> {
+pub fn stuff_inplace(buffer: &mut [u8], len: usize) -> Result<usize, BufferTooSmallError> {
 	let stuffing_required = stuffing_required(&buffer[..len]);
 	if stuffing_required == 0 {
 		return Ok(len);
@@ -63,7 +63,7 @@ pub fn stuff_inplace(buffer: &mut [u8], len: usize) -> Result<usize, BufferFullE
 	let mut read = 0;
 	let mut stuffing_applied = 0;
 
-	BufferFullError::check(len + stuffing_required, buffer.len())?;
+	BufferTooSmallError::check(len + stuffing_required, buffer.len())?;
 
 	while read < len && stuffing_applied < stuffing_required {
 		let read_pos = len - read - 1;
@@ -98,7 +98,7 @@ mod test {
 		unstuffed_length / 3 * 4 + unstuffed_length % 3
 	}
 
-	fn stuff(mut data: Vec<u8>) -> Result<Vec<u8>, BufferFullError> {
+	fn stuff(mut data: Vec<u8>) -> Result<Vec<u8>, BufferTooSmallError> {
 		let used = data.len();
 		data.resize(maximum_stuffed_len(used), 0);
 		let new_size = stuff_inplace(&mut data, used)?;
