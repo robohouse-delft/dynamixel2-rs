@@ -35,7 +35,7 @@ pub struct Bus<ReadBuffer, WriteBuffer> {
 impl<ReadBuffer, WriteBuffer> std::fmt::Debug for Bus<ReadBuffer, WriteBuffer> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		#[derive(Debug)]
-		#[allow(dead_code)] // Dead code analisys ignores derive debug impls, but thats the whole point of this struct.
+		#[allow(dead_code)] // Dead code analysis ignores derive debug impls, but that is the whole point of this struct.
 		enum Raw {
 			#[cfg(unix)]
 			Fd(std::os::unix::io::RawFd),
@@ -173,7 +173,7 @@ where
 		write_u16_le(&mut buffer[checksum_index..], checksum);
 
 		// Throw away old data in the read buffer and the kernel read buffer.
-		// We don't do this when reading a reply, because we might multiple replies for one instruction,
+		// We don't do this when reading a reply, because we might receive multiple replies for one instruction,
 		// and read() can potentially read more than one reply per syscall.
 		self.read_len = 0;
 		self.used_bytes = 0;
