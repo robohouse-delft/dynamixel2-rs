@@ -22,7 +22,7 @@ pub struct Options {
 	/// The baud rate for the serial port.
 	#[clap(long, short)]
 	#[clap(global = true)]
-	#[clap(default_value = "9600")]
+	#[clap(default_value = "57600")]
 	pub baud_rate: u32,
 
 	#[clap(subcommand)]

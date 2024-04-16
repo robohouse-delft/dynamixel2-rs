@@ -39,7 +39,7 @@ mod sync_write;
 mod write;
 
 pub use factory_reset::FactoryResetKind;
-pub use ping::PingResponse;
+pub use ping::Ping;
 
 /// Data from or for a specific motor.
 ///
@@ -120,6 +120,6 @@ where
 			data: (),
 		})
 	} else {
-		Ok(bus.read_status_response()?.try_into()?)
+		Ok(bus.read_status_response(0)?.try_into()?)
 	}
 }

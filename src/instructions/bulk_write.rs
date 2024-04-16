@@ -28,7 +28,7 @@ where
 	/// use dynamixel2::instructions::BulkWriteData;
 	/// use std::time::Duration;
 	///
-	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600, Duration::from_millis(20))?;
+	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600)?;
 	/// bus.bulk_write(&[
 	///   // Write a u32 value of 2000 to register 116 of motor 1.
 	///   BulkWriteData {

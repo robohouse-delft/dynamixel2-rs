@@ -21,7 +21,7 @@ where
 			buffer[4..].copy_from_slice(motor_ids);
 		})?;
 		for &motor_id in motor_ids {
-			let response = self.read_status_response().and_then(|response| {
+			let response = self.read_status_response(count).and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 				crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
 				Ok(response)
@@ -46,11 +46,11 @@ where
 		let count = 1;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count as u16);
+			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
 		})?;
 		for &motor_id in motor_ids {
-			let data = self.read_status_response().and_then(|response| {
+			let data = self.read_status_response(count).and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 				Ok(response.try_into()?)
 			});
@@ -70,11 +70,11 @@ where
 		let count = 2;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count as u16);
+			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
 		})?;
 		for &motor_id in motor_ids {
-			let data = self.read_status_response().and_then(|response| {
+			let data = self.read_status_response(count).and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 				Ok(response.try_into()?)
 			});
@@ -94,13 +94,13 @@ where
 		let count = 4;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count as u16);
+			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
 		})?;
 		for &motor_id in motor_ids {
-			let data = self.read_status_response().and_then(|response| {
+			let data = self.read_status_response(count).and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				crate::InvalidParameterCount::check(response.parameters().len(), count)?;
+				crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
 				Ok(response.try_into()?)
 			});
 			on_response(data);

@@ -48,7 +48,7 @@ where
 		})?;
 		for read in reads {
 			let read = read.as_ref();
-			let response = self.read_status_response().and_then(|response| {
+			let response = self.read_status_response(read.count).and_then(|response| {
 				crate::InvalidPacketId::check(response.packet_id(), read.motor_id)?;
 				crate::InvalidParameterCount::check(response.parameters().len(), read.count.into())?;
 				Ok(response)

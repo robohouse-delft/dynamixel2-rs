@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::{Duration, Instant};
 
 mod logging;
 mod options;
@@ -19,14 +20,17 @@ fn do_main(options: Options) -> Result<(), ()> {
 			match motor_id {
 				&MotorId::Id(motor_id) => {
 					log::debug!("Sending ping command to motor {}", motor_id);
+					let start = Instant::now();
 					let response = bus.ping(motor_id).map_err(|e| log::error!("Command failed: {}", e))?;
-					log_ping_response(&response);
+					if response.alert {
+						log::warn!("Alert bit set in response from motor!")
+					}
+					log::info!("{:?}: {:?}", start.elapsed(), response.data);
 				},
 				MotorId::Broadcast => {
-					log::debug!("Scanning bus for connected motors");
-					bus.scan_cb(|response| match response {
-						Ok(response) => log::info!("{:?}", response),
-						Err(e) => log::warn!("Communication error: {}", e),
+					let start = Instant::now();
+					bus.scan_cb(|response| {
+						log_ping_response(&response, start.elapsed());
 					})
 					.map_err(|e| log::error!("Command failed: {}", e))?;
 				},
@@ -35,34 +39,51 @@ fn do_main(options: Options) -> Result<(), ()> {
 		Command::Reboot { motor_id } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Sending reboot command with motor ID {}", motor_id.raw());
-			bus.reboot(motor_id.raw()).map_err(|e| log::error!("Command failed: {}", e))?;
-			log::info!("Ok");
+			let start = Instant::now();
+			let response = bus.reboot(motor_id.raw()).map_err(|e| log::error!("Command failed: {}", e))?;
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Read8 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading an 8-bit value from motor {} at address {}", motor_id.raw(), address);
+			let start = Instant::now();
 			let response = bus
 				.read_u8(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
-			log::info!("{:?} (0x{:02X})", response, response.data);
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: {:?} (0x{:02X})", start.elapsed(), response.data, response.data);
 		},
 		Command::Read16 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading a 16-bit value from motor {} at address {}", motor_id.raw(), address);
+			let start = Instant::now();
 			let response = bus
 				.read_u16(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
-			log::info!("{:?} (0x{:04X})", response, response.data);
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: {:?} (0x{:04X})", start.elapsed(), response.data, response.data);
 		},
 		Command::Read32 { motor_id, address } => {
 			let mut bus = open_bus(&options)?;
 			log::debug!("Reading a 32-bit value from motor {} at address {}", motor_id.raw(), address);
+			let start = Instant::now();
 			let response = bus
 				.read_u32(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
 			log::info!(
-				"{:?} (0x{:04X} {:04X})",
-				response,
+				"{:?}: {:?} (0x{:04X} {:04X})",
+				start.elapsed(),
+				response.data,
 				(response.data >> 16) & 0xFFFF,
 				response.data & 0xFFFF
 			);
@@ -76,10 +97,14 @@ fn do_main(options: Options) -> Result<(), ()> {
 				motor_id.raw(),
 				address
 			);
+			let start = Instant::now();
 			let response = bus
 				.write_u8(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Write failed: {}", e))?;
-			log::info!("Ok (Hardware error: {})", response.alert);
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Write16 { motor_id, address, value } => {
 			let mut bus = open_bus(&options)?;
@@ -90,10 +115,14 @@ fn do_main(options: Options) -> Result<(), ()> {
 				motor_id.raw(),
 				address
 			);
+			let start = Instant::now();
 			let response = bus
 				.write_u16(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
-			log::info!("Ok (Hardware error: {})", response.alert);
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Write32 { motor_id, address, value } => {
 			let mut bus = open_bus(&options)?;
@@ -105,10 +134,14 @@ fn do_main(options: Options) -> Result<(), ()> {
 				motor_id.raw(),
 				address
 			);
+			let start = Instant::now();
 			let response = bus
 				.write_u32(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
-			log::info!("Ok (Hardware error: {})", response.alert);
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::ShellCompletion { shell, output } => {
 			write_shell_completion(*shell, output.as_deref())?;
@@ -119,7 +152,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 }
 
 fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> {
-	let bus = dynamixel2::Bus::open(&options.serial_port, options.baud_rate, std::time::Duration::from_millis(50))
+	let bus = dynamixel2::Bus::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
 		"Using serial port {} with baud rate {}",
@@ -130,10 +163,14 @@ fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> 
 	Ok(bus)
 }
 
-fn log_ping_response(response: &dynamixel2::instructions::PingResponse) {
+fn log_ping_response(response: &dynamixel2::Response<dynamixel2::instructions::Ping>, elapsed: Duration) {
 	log::info!("Motor ID: {}", response.motor_id);
-	log::info!("Model: {}", response.model);
-	log::info!("Firmware: {}", response.firmware);
+	log::info!(" ├─ Response time: {:?}", elapsed);
+	if response.alert {
+		log::info!(" ├─ Alert: true")
+	}
+	log::info!(" ├─ Model: {}", response.data.model);
+	log::info!(" └─ Firmware: {}", response.data.firmware);
 }
 
 fn write_shell_completion(shell: clap_complete::Shell, path: Option<&Path>) -> Result<(), ()> {
