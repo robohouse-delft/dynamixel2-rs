@@ -15,11 +15,12 @@ where
 	/// # Panics
 	/// The amount of data to write for each motor must be exactly `count` bytes.
 	/// This function panics if that is not the case.
-	pub fn sync_write<'a, Iter, Data>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
+	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<&'a [u8]>>,
+		Data: AsRef<SyncWriteData<Buf>>,
+		Buf: AsRef<[u8]> + 'a,
 	{
 		let data = data.into_iter();
 		let motors = data.len();
@@ -30,10 +31,10 @@ where
 			write_u16_le(&mut buffer[2..], count);
 			for (i, command) in data.enumerate() {
 				let command = command.as_ref();
-				assert!(command.data.len() == count as usize);
+				assert_eq!(command.data.as_ref().len(), count as usize);
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
-				buffer[1..].copy_from_slice(command.data);
+				buffer[1..].copy_from_slice(command.data.as_ref());
 			}
 		})
 	}
