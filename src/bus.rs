@@ -115,19 +115,31 @@ where
 		}
 	}
 
-	/// Write a raw instruction to a stream, and read a single raw response.
-	///
-	/// This function also checks that the packet ID of the status response matches the one from the instruction.
-	///
-	/// This is not suitable for broadcast instructions.
-	/// For broadcast instructions, each motor sends an individual response or no response is send at all.
-	/// Instead, use [`Self::write_instruction`] and [`Self::read_status_response`].
-	pub fn transfer_single<F>(
-		&mut self,
-		packet_id: u8,
-		instruction_id: u8,
-		parameter_count: usize,
-		encode_parameters: F,
+    /// Get a reference to the underlying [`SerialPort`].
+    pub fn stream(&self) -> &SerialPort {
+        &self.serial_port
+    }
+
+    /// Get a mutable reference to the underlying [`SerialPort`].
+    ///
+    /// Useful if you want to use or configure the serial port directly
+    pub fn stream_mut(&mut self) -> &mut SerialPort {
+        &mut self.serial_port
+    }
+
+    /// Write a raw instruction to a stream, and read a single raw response.
+    ///
+    /// This function also checks that the packet ID of the status response matches the one from the instruction.
+    ///
+    /// This is not suitable for broadcast instructions.
+    /// For broadcast instructions, each motor sends an individual response or no response is send at all.
+    /// Instead, use [`Self::write_instruction`] and [`Self::read_status_response`].
+    pub fn transfer_single<F>(
+        &mut self,
+        packet_id: u8,
+        instruction_id: u8,
+        parameter_count: usize,
+        encode_parameters: F,
 	) -> Result<StatusPacket<'_>, TransferError>
 	where
 		F: FnOnce(&mut [u8]),
