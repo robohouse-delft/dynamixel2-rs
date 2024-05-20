@@ -116,14 +116,14 @@ where
 	}
 
     /// Get a reference to the underlying [`SerialPort`].
-    pub fn stream(&self) -> &SerialPort {
+    pub fn serial_port(&self) -> &SerialPort {
         &self.serial_port
     }
 
     /// Get a mutable reference to the underlying [`SerialPort`].
     ///
     /// Useful if you want to use or configure the serial port directly
-    pub fn stream_mut(&mut self) -> &mut SerialPort {
+    pub fn serial_port_mut(&mut self) -> &mut SerialPort {
         &mut self.serial_port
     }
 
