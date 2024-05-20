@@ -127,6 +127,14 @@ where
 		&mut self.serial_port
 	}
 
+	/// Consume this bus object to get the serial port.
+	///
+	/// This discards any data in internal the read buffer of this bus object.
+	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
+	pub fn into_serial_port(self) -> SerialPort {
+		self.serial_port
+	}
+
 	/// Write a raw instruction to a stream, and read a single raw response.
 	///
 	/// This function also checks that the packet ID of the status response matches the one from the instruction.
