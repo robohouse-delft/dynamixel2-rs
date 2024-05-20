@@ -15,11 +15,35 @@ where
 	/// # Panics
 	/// The amount of data to write for each motor must be exactly `count` bytes.
 	/// This function panics if that is not the case.
-	pub fn sync_write<'a, Iter, Data>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
+	///
+	/// # Example
+	/// ```no_run
+	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+	/// use dynamixel2::Bus;
+	/// use dynamixel2::instructions::SyncWriteData;
+	/// use std::time::Duration;
+	///
+	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600, Duration::from_millis(20))?;
+	/// // Write to register 116 of motor 1 and and 2 at the same time.
+	/// bus.sync_write(116, 4, &[
+	///   SyncWriteData {
+	///     motor_id: 1,
+	///     data: 2000u32.to_le_bytes(),
+	///   },
+	///   SyncWriteData {
+	///     motor_id: 2,
+	///     data: 1600u32.to_le_bytes(),
+	///   },
+	/// ])?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
-		Data: AsRef<SyncWriteData<&'a [u8]>>,
+		Data: AsRef<SyncWriteData<Buf>>,
+		Buf: AsRef<[u8]> + 'a,
 	{
 		let data = data.into_iter();
 		let motors = data.len();
@@ -30,10 +54,10 @@ where
 			write_u16_le(&mut buffer[2..], count);
 			for (i, command) in data.enumerate() {
 				let command = command.as_ref();
-				assert!(command.data.len() == count as usize);
+				assert_eq!(command.data.as_ref().len(), count as usize);
 				let buffer = &mut buffer[4 + i * stride..][..stride];
 				buffer[0] = command.motor_id;
-				buffer[1..].copy_from_slice(command.data);
+				buffer[1..].copy_from_slice(command.data.as_ref());
 			}
 		})
 	}

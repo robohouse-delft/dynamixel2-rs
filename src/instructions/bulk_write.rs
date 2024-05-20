@@ -20,13 +20,44 @@ where
 	/// This function panics if the same motor ID is used for more than one write.
 	///
 	/// This function also panics if the data length for a motor exceeds the capacity of a `u16`.
-	pub fn bulk_write<Write, T>(&mut self, writes: &[Write]) -> Result<(), WriteError>
+	///
+	/// # Example
+	/// ```no_run
+	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+	/// use dynamixel2::Bus;
+	/// use dynamixel2::instructions::BulkWriteData;
+	/// use std::time::Duration;
+	///
+	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600, Duration::from_millis(20))?;
+	/// bus.bulk_write(&[
+	///   // Write a u32 value of 2000 to register 116 of motor 1.
+	///   BulkWriteData {
+	///     motor_id: 1,
+	///     address: 116,
+	///     data: 2000u32.to_le_bytes().as_slice(),
+	///   },
+	///   // Write a u16 value of 300 to register 102 of motor 2.
+	///   BulkWriteData {
+	///     motor_id: 2,
+	///     address: 102,
+	///     data: 300u16.to_le_bytes().as_slice(),
+	///   },
+	/// ])?;
+	/// # Ok(())
+	/// # }
+	/// ```
+	pub fn bulk_write<'a, I, T>(&mut self, writes: &'a I) -> Result<(), WriteError>
 	where
-		Write: std::borrow::Borrow<BulkWriteData<T>>,
+		&'a I: IntoIterator,
+		<&'a I as IntoIterator>::IntoIter: Clone,
+		<&'a I as IntoIterator>::Item: std::borrow::Borrow<BulkWriteData<T>>,
 		T: AsRef<[u8]>,
 	{
+		use std::borrow::Borrow;
+
+		let writes = writes.into_iter();
 		let mut parameter_count = 0;
-		for write in writes {
+		for write in writes.clone() {
 			let write = write.borrow();
 			let data = write.data.as_ref();
 			if data.len() > u16::MAX.into() {
@@ -53,5 +84,89 @@ where
 				buffer[5..][..data.len()].copy_from_slice(data);
 			}
 		})
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
+	///
+	/// This is a compile test. It only tests that the test code compiles.
+	#[allow(dead_code)]
+	fn bulk_write_accepts_slice(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+		bus.bulk_write(&[
+			BulkWriteData {
+				motor_id: 1,
+				address: 116,
+				data: 2000u32.to_le_bytes().as_slice(),
+			},
+			BulkWriteData {
+				motor_id: 2,
+				address: 102,
+				data: 300u16.to_le_bytes().as_slice(),
+			},
+		])?;
+		Ok(())
+	}
+
+	/// Ensure that `bulk_write` accepts a reference to a Vec of `BulkWriteData`.
+	///
+	/// This is a compile test. It only tests that the test code compiles.
+	#[allow(dead_code)]
+	fn bulk_write_accepts_vec_ref(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+		bus.bulk_write(&vec![
+			BulkWriteData {
+				motor_id: 1,
+				address: 116,
+				data: 2000u32.to_le_bytes().as_slice(),
+			},
+			BulkWriteData {
+				motor_id: 2,
+				address: 102,
+				data: 300u16.to_le_bytes().as_slice(),
+			},
+		])?;
+		Ok(())
+	}
+
+	/// Ensure that `bulk_write` accepts a reference to a Vec and doesn't clone the data in the vector.
+	///
+	/// This is a compile test. It only tests that the test code compiles.
+	#[allow(dead_code)]
+	fn bulk_write_accepts_vec_ref_no_clone(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+		/// Non-clonable wrapper around `&[u8]` to ensure `bulk_write` doesn't clone data from vec references.
+		struct Data<'a> {
+			data: &'a [u8],
+		}
+
+		impl AsRef<[u8]> for Data<'_> {
+			fn as_ref(&self) -> &[u8] {
+				self.data
+			}
+		}
+
+		impl<'a> Data<'a> {
+			fn new<const N: usize>(data: &'a [u8; N]) -> Self {
+				Self {
+					data: data.as_slice(),
+				}
+			}
+		}
+
+		bus.bulk_write(&vec![
+			BulkWriteData {
+				motor_id: 1,
+				address: 116,
+				data: Data::new(&2000u32.to_le_bytes()),
+			},
+			BulkWriteData {
+				motor_id: 2,
+				address: 102,
+				data: Data::new(&300u16.to_le_bytes()),
+			},
+		])?;
+		Ok(())
 	}
 }
