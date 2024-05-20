@@ -15,6 +15,29 @@ where
 	/// # Panics
 	/// The amount of data to write for each motor must be exactly `count` bytes.
 	/// This function panics if that is not the case.
+	///
+	/// # Example
+	/// ```no_run
+	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+	/// use dynamixel2::Bus;
+	/// use dynamixel2::instructions::SyncWriteData;
+	/// use std::time::Duration;
+	///
+	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600, Duration::from_millis(20))?;
+	/// // Write to register 116 of motor 1 and and 2 at the same time.
+	/// bus.sync_write(116, 4, &[
+	///   SyncWriteData {
+	///     motor_id: 1,
+	///     data: 2000u32.to_le_bytes(),
+	///   },
+	///   SyncWriteData {
+	///     motor_id: 2,
+	///     data: 1600u32.to_le_bytes(),
+	///   },
+	/// ])?;
+	/// # Ok(())
+	/// # }
+	/// ```
 	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
 	where
 		Iter: IntoIterator<Item = Data>,
