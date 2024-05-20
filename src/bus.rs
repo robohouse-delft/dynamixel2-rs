@@ -116,6 +116,11 @@ where
 	}
 
 	/// Get a reference to the underlying [`SerialPort`].
+	///
+	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
+	/// and may disrupt the communication with the motors.
+	/// In general, it should be safe to read and write to the bus manually in between instructions,
+	/// if the response from the motors has already been received.
 	pub fn serial_port(&self) -> &SerialPort {
 		&self.serial_port
 	}
@@ -123,13 +128,18 @@ where
 	/// Get a mutable reference to the underlying [`SerialPort`].
 	///
 	/// Useful if you want to use or configure the serial port directly
+	///
+	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
+	/// and may disrupt the communication with the motors.
+	/// In general, it should be safe to read and write to the bus manually in between instructions,
+	/// if the response from the motors has already been received.
 	pub fn serial_port_mut(&mut self) -> &mut SerialPort {
 		&mut self.serial_port
 	}
 
-	/// Consume this bus object to get the serial port.
+	/// Consume this bus object to get ownership of the serial port.
 	///
-	/// This discards any data in internal the read buffer of this bus object.
+	/// This discards any data in internal the read buffer of the bus object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_serial_port(self) -> SerialPort {
 		self.serial_port
