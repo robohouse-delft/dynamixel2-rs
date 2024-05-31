@@ -5,6 +5,10 @@ use crate::{Bus, Response, TransferError, WriteError};
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
 
+/// The parameters for the CLEAR command to clear the error state.
+/// This is only supported on some motors.
+const CLEAR_ERROR: [u8; 5] = [0x01, 0x45, 0x52, 0x43, 0x4C];
+
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -22,7 +26,7 @@ where
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_clear_revolution_counter()`] instead.
 	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<T::Error>> {
-		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), encode_parameters)?;
+		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), clear_revolution_count_parameters)?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 	}
 
@@ -36,12 +40,42 @@ where
 			packet_id::BROADCAST,
 			instruction_id::CLEAR,
 			CLEAR_REVOLUTION_COUNT.len(),
-			encode_parameters,
+			clear_revolution_count_parameters,
+		)?;
+		Ok(())
+	}
+
+	/// Clear the error of a motor.
+	///
+	/// This will reset the "error code" register to 0 if the error can be cleared.
+	/// If the error cannot be cleared, the status packet error will be 0x01.
+	/// This is currently only implemented on the Dynamixel Y series.
+	pub fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<T::Error>> {
+		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)?;
+		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
+
+	}
+
+	/// Clear the error of a motor.
+	///
+	/// This will reset the "error code" register to 0 if the error can be cleared.
+	/// If the error cannot be cleared, the status packet error will be 0x01.
+	/// This is currently only implemented on the Dynamixel Y series.
+
+	pub fn broadcast_clear_error(&mut self) -> Result<(), WriteError<T::Error>> {
+		self.write_instruction(
+			packet_id::BROADCAST,
+			instruction_id::CLEAR,
+			CLEAR_ERROR.len(),
+			clear_error_parameters,
 		)?;
 		Ok(())
 	}
 }
 
-fn encode_parameters(buffer: &mut [u8]) {
+fn clear_revolution_count_parameters(buffer: &mut [u8]) {
+	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT)
+}
+fn clear_error_parameters(buffer: &mut [u8]) {
 	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT)
 }
