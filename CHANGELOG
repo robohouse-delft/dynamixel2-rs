@@ -2,6 +2,8 @@
 - [minor][add] Allow direct access to the underlying serial port.
 - [major][change] Change `bulk_write()` to take an iterator instead of a slice.
 - [major][change] Change `sync_read()` to accept any buffer type that implements `AsRef<[u8]>`.
+- [minor][change] Update `serial2` to `v0.2.24`.
+- [minor][add] Add feature rs4xx to enable rs4xx support in the `serial2` crate
 
 # Version 0.8.0 - 2024-04-15
 - [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.
