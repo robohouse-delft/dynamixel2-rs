@@ -14,11 +14,14 @@ publish = ["crates-io"]
 
 [dependencies]
 log = { version = "0.4.8", optional = true }
-serial2 = "0.2.10"
+serial2 = "0.2.24"
 
 [dev-dependencies]
 assert2 = "0.3.3"
 env_logger = "0.10.0"
+
+[features]
+rs4xx = ["serial2/rs4xx"]
 
 [workspace]
 members = ["dynamixel2-cli"]
