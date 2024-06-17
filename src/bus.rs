@@ -578,6 +578,17 @@ mod test {
 		assert!(message_transfer_time(4_000_000_000, 10) == Duration::from_secs(4_000_000_000));
 		assert!(message_transfer_time(4_000_000_000, 1) == Duration::from_secs(40_000_000_000));
 
+		assert!(message_transfer_time(43, 1) == Duration::from_secs(430));
+		assert!(message_transfer_time(43, 10) == Duration::from_secs(43));
+		assert!(message_transfer_time(43, 2) == Duration::from_secs(215));
+		assert!(message_transfer_time(43, 20) == Duration::from_millis(21_500));
+		assert!(message_transfer_time(43, 200) == Duration::from_millis(2_150));
+		assert!(message_transfer_time(43, 2_000_000) == Duration::from_micros(215));
+		assert!(message_transfer_time(43, 2_000_000_000) == Duration::from_nanos(215));
+		assert!(message_transfer_time(43, 4_000_000_000) == Duration::from_nanos(108)); // rounded up
+		assert!(message_transfer_time(3, 4_000_000_000) == Duration::from_nanos(8)); // rounded up
+		assert!(message_transfer_time(5, 4_000_000_000) == Duration::from_nanos(13)); // rounded up
+
 		let lots = u32::MAX - 1; // Use MAX - 1 because MAX is not cleanly divisible by 2.
 		assert!(message_transfer_time(lots, 1) == Duration::from_secs(u64::from(lots) * 10));
 		assert!(message_transfer_time(lots, lots) == Duration::from_secs(10));
