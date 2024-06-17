@@ -1,5 +1,15 @@
 use crate::instructions::packet_id::BROADCAST;
 
+/// An error that can occur while initializing a bus.
+#[derive(Debug)]
+pub enum InitializeError {
+	/// Failed to get the configuration of the serial port.
+	GetConfiguration(std::io::Error),
+
+	/// Failed to get the baud rate from the configuration of the serial port.
+	GetBaudRate(std::io::Error),
+}
+
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
 pub enum TransferError {
@@ -172,6 +182,7 @@ pub struct InvalidParameterCount {
 }
 
 impl BufferTooSmallError {
+	/// Check if a buffer is large enough for the required total size.
 	pub fn check(required_size: usize, total_size: usize) -> Result<(), Self> {
 		if required_size <= total_size {
 			Ok(())
@@ -423,6 +434,15 @@ impl From<InvalidInstruction> for InvalidMessage {
 impl From<InvalidParameterCount> for InvalidMessage {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidParameterCount(other)
+	}
+}
+
+impl std::fmt::Display for InitializeError {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		match self {
+			Self::GetConfiguration(e) => write!(f, "failed to get configuration of serial port: {e}"),
+			Self::GetBaudRate(e) => write!(f, "failed to get baud rate of serial port: {e}"),
+		}
 	}
 }
 

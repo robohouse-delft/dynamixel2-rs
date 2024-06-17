@@ -1,8 +1,15 @@
 # Unreleased
 - [minor][add] Allow direct access to the underlying serial port.
+- [minor][add] Allow changing the baud rate of the underlying serial port.
+- [minor][add] Automatically calculate the correct read timeout for instructions.
 - [minor][add] Add a `rs4xx` feature that enables the `rs4xx` support in the `serial2` crate.
+- [minor][fix] Set the read timeout of the underlying serial port to avoid blocking longer than intended.
 - [major][change] Change `bulk_write()` to take an iterator instead of a slice.
 - [major][change] Change `sync_read()` to accept any buffer type that implements `AsRef<[u8]>`.
+- [major][change] Remove the `read_timeout` parameter from `Bus` constructors.
+- [major][change] `Bus::new()` and `Buf::with_buffers()` can now return a `InitializeError` if it fails to determine the baud rate of the serial port.
+- [major][change] `Bus::read_status_response()` now takes the expected number of parameters to automatically calculate the read timeout.
+- [major][change] Replace the `PingResponse` struct with `Response<Ping>`.
 
 # Version 0.8.0 - 2024-04-15
 - [major][change] Remove `ReadBuffer` and `WriteBuffer` generic arguments from `StatusPacket`.

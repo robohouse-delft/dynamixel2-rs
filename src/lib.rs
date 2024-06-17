@@ -28,25 +28,15 @@ mod log;
 pub mod checksum;
 pub mod instructions;
 
-mod bus;
 mod bytestuff;
 mod endian;
+
+mod bus;
+pub use bus::*;
+
 mod error;
+pub use error::*;
 
-pub use error::ExpectedCount;
-pub use error::InvalidChecksum;
-pub use error::InvalidHeaderPrefix;
-pub use error::InvalidInstruction;
-pub use error::InvalidMessage;
-pub use error::InvalidPacketId;
-pub use error::InvalidParameterCount;
-pub use error::MotorError;
-pub use error::ReadError;
-pub use error::TransferError;
-pub use error::WriteError;
-
-pub use bus::Bus;
-pub use bus::Response;
 
 /// Re-exported `serial2` crate in case you need to modify serial port settings.
 pub use serial2;

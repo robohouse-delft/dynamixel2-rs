@@ -23,7 +23,7 @@ where
 	/// use dynamixel2::instructions::SyncWriteData;
 	/// use std::time::Duration;
 	///
-	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600, Duration::from_millis(20))?;
+	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600)?;
 	/// // Write to register 116 of motor 1 and and 2 at the same time.
 	/// bus.sync_write(116, 4, &[
 	///   SyncWriteData {

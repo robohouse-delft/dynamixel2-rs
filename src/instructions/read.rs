@@ -9,7 +9,7 @@ where
 {
 	/// Read an arbitrary number of bytes from multiple motors.
 	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError> {
-		let response = self.transfer_single(motor_id, instruction_id::READ, 4, |buffer| {
+		let response = self.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 		})?;

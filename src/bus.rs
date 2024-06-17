@@ -16,8 +16,8 @@ pub struct Bus<ReadBuffer, WriteBuffer> {
 	/// The underlying stream (normally a serial port).
 	serial_port: SerialPort,
 
-	/// The timeout for reading a single response.
-	read_timeout: Duration,
+	/// The baud rate of the serial port, if known.
+	baud_rate: u32,
 
 	/// The buffer for reading incoming messages.
 	read_buffer: ReadBuffer,
@@ -56,7 +56,7 @@ impl<ReadBuffer, WriteBuffer> std::fmt::Debug for Bus<ReadBuffer, WriteBuffer> {
 
 		f.debug_struct("Bus")
 			.field("serial_port", &raw)
-			.field("read_timeout", &self.read_timeout)
+			.field("baud_rate", &self.baud_rate)
 			.finish_non_exhaustive()
 	}
 }
@@ -66,17 +66,20 @@ impl Bus<Vec<u8>, Vec<u8>> {
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
-	pub fn open(path: impl AsRef<Path>, baud_rate: u32, read_timeout: Duration) -> std::io::Result<Self> {
+	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let port = SerialPort::open(path, baud_rate)?;
-		Ok(Self::new(port, read_timeout))
+		Ok(Self::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate))
 	}
 
 	/// Create a new bus for an open serial port.
 	///
+	/// The serial port must already be configured in raw mode with the correct baud rate,
+	/// character size (8), parity (disabled) and stop bits (1).
+	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
-	pub fn new(stream: SerialPort, read_timeout: Duration) -> Self {
-		Self::with_buffers(stream, read_timeout, vec![0; 128], vec![0; 128])
+	pub fn new(serial_port: SerialPort) -> Result<Self, crate::InitializeError> {
+		Self::with_buffers(serial_port, vec![0; 128], vec![0; 128])
 	}
 }
 
@@ -91,23 +94,36 @@ where
 	pub fn open_with_buffers(
 		path: impl AsRef<Path>,
 		baud_rate: u32,
-		read_timeout: Duration,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> std::io::Result<Self> {
 		let port = SerialPort::open(path, baud_rate)?;
-		Ok(Self::with_buffers(port, read_timeout, read_buffer, write_buffer))
+		Ok(Self::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate))
 	}
 
 	/// Create a new bus using pre-allocated buffers.
-	pub fn with_buffers(serial_port: SerialPort, read_timeout: Duration, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer) -> Self {
+	///
+	/// The serial port must already be configured in raw mode with the correct baud rate,
+	/// character size (8), parity (disabled) and stop bits (1).
+	pub fn with_buffers(serial_port: SerialPort, read_buffer: ReadBuffer, write_buffer: WriteBuffer) -> Result<Self, crate::InitializeError> {
+		let baud_rate = serial_port.get_configuration()
+			.map_err(crate::InitializeError::GetConfiguration)?
+			.get_baud_rate()
+			.map_err(crate::InitializeError::GetBaudRate)?;
+
+		Ok(Self::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate))
+	}
+
+	/// Create a new bus using pre-allocated buffers.
+	fn with_buffers_and_baud_rate(serial_port: SerialPort, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
 		// Pre-fill write buffer with the header prefix.
+		// TODO: return Err instead of panicing.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 2);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
 			serial_port,
-			read_timeout,
+			baud_rate,
 			read_buffer,
 			read_len: 0,
 			used_bytes: 0,
@@ -125,24 +141,26 @@ where
 		&self.serial_port
 	}
 
-	/// Get a mutable reference to the underlying [`SerialPort`].
-	///
-	/// Useful if you want to use or configure the serial port directly
-	///
-	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
-	/// and may disrupt the communication with the motors.
-	/// In general, it should be safe to read and write to the bus manually in between instructions,
-	/// if the response from the motors has already been received.
-	pub fn serial_port_mut(&mut self) -> &mut SerialPort {
-		&mut self.serial_port
-	}
-
 	/// Consume this bus object to get ownership of the serial port.
 	///
 	/// This discards any data in internal the read buffer of the bus object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_serial_port(self) -> SerialPort {
 		self.serial_port
+	}
+
+	/// Get the baud rate of the bus.
+	pub fn baud_rate(&self) -> u32 {
+		self.baud_rate
+	}
+
+	/// Set the baud rate of the underlying serial port.
+	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), std::io::Error> {
+		let mut settings = self.serial_port.get_configuration()?;
+		settings.set_baud_rate(baud_rate)?;
+		self.serial_port.set_configuration(&settings)?;
+		self.baud_rate = baud_rate;
+		Ok(())
 	}
 
 	/// Write a raw instruction to a stream, and read a single raw response.
@@ -157,13 +175,14 @@ where
 		packet_id: u8,
 		instruction_id: u8,
 		parameter_count: usize,
+		expected_response_parameters: u16,
 		encode_parameters: F,
 	) -> Result<StatusPacket<'_>, TransferError>
 	where
 		F: FnOnce(&mut [u8]),
 	{
 		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)?;
-		let response = self.read_status_response()?;
+		let response = self.read_status_response(expected_response_parameters)?;
 		crate::error::InvalidPacketId::check(response.packet_id(), packet_id).map_err(crate::ReadError::from)?;
 		Ok(response)
 	}
@@ -216,12 +235,11 @@ where
 		Ok(())
 	}
 
-	/// Read a raw status response from the bus.
-	pub fn read_status_response(&mut self) -> Result<StatusPacket, ReadError> {
+	/// Read a raw status response from the bus with the given deadline.
+	pub fn read_status_response_deadline(&mut self, deadline: Instant) -> Result<StatusPacket, ReadError> {
 		// Check that the read buffer is large enough to hold atleast a status packet header.
 		crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
 
-		let deadline = Instant::now() + self.read_timeout;
 		let stuffed_message_len = loop {
 			self.remove_garbage();
 
@@ -241,15 +259,19 @@ where
 				}
 			}
 
-			if Instant::now() > deadline {
-				trace!(
-					"timeout reading status response, data in buffer: {:02X?}",
-					&self.read_buffer.as_ref()[..self.read_len]
-				);
-				return Err(std::io::ErrorKind::TimedOut.into());
-			}
+			let timeout = match deadline.checked_duration_since(Instant::now()) {
+				Some(x) => x,
+				None => {
+					trace!(
+						"timeout reading status response, data in buffer: {:02X?}",
+						&self.read_buffer.as_ref()[..self.read_len]
+					);
+					return Err(std::io::ErrorKind::TimedOut.into());
+				},
+			};
 
 			// Try to read more data into the buffer.
+			self.serial_port.set_read_timeout(timeout).ok();
 			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
 			if new_data == 0 {
 				continue;
@@ -288,6 +310,28 @@ where
 		crate::MotorError::check(response.error())?;
 		Ok(response)
 	}
+
+	/// Read a raw status response with an automatically calculated timeout.
+	///
+	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
+	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError> {
+		// Offical SDK adds a flat 34 milliseconds, so lets just mimick that.
+		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
+		let timeout = message_transfer_time(message_size, self.baud_rate) + Duration::from_millis(34);
+		self.read_status_response_deadline(Instant::now() + timeout)
+	}
+}
+
+/// Calculate the required time to transfer a message of a given size.
+///
+/// The size must include any headers and footers of the message.
+pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Duration {
+	let baud_rate = u64::from(baud_rate);
+	let bits = u64::from(message_size) * 10; // each byte is 1 start bit, 8 data bits and 1 stop bit.
+	let secs = bits / baud_rate;
+	let subsec_bits = bits % baud_rate;
+	let nanos = (subsec_bits * 1_000_000_000).div_ceil(baud_rate);
+	Duration::new(secs, nanos as u32)
 }
 
 impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
@@ -502,5 +546,53 @@ mod test {
 
 		assert!(find_header(&[0xFF, 1]) == 2);
 		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
+	}
+
+	#[test]
+	fn test_message_transfer_time() {
+		// Try a bunch of values to ensure we dealt with overflow correctly.
+		assert!(message_transfer_time(100, 1_000) == Duration::from_secs(1));
+		assert!(message_transfer_time(1_000, 10_000) == Duration::from_secs(1));
+		assert!(message_transfer_time(1_000, 1_000_000) == Duration::from_millis(10));
+		assert!(message_transfer_time(1_000, 10_000_000) == Duration::from_millis(1));
+		assert!(message_transfer_time(1_000, 100_000_000) == Duration::from_micros(100));
+		assert!(message_transfer_time(1_000, 1_000_000_000) == Duration::from_micros(10));
+		assert!(message_transfer_time(1_000, 2_000_000_000) == Duration::from_micros(5));
+		assert!(message_transfer_time(1_000, 4_000_000_000) == Duration::from_nanos(2500));
+		assert!(message_transfer_time(10_000, 4_000_000_000) == Duration::from_micros(25));
+		assert!(message_transfer_time(1_000_000, 4_000_000_000) == Duration::from_micros(2500));
+		assert!(message_transfer_time(10_000_000, 4_000_000_000) == Duration::from_millis(25));
+		assert!(message_transfer_time(100_000_000, 4_000_000_000) == Duration::from_millis(250));
+		assert!(message_transfer_time(1_000_000_000, 4_000_000_000) == Duration::from_millis(2500));
+		assert!(message_transfer_time(2_000_000_000, 4_000_000_000) == Duration::from_secs(5));
+		assert!(message_transfer_time(4_000_000_000, 4_000_000_000) == Duration::from_secs(10));
+		assert!(message_transfer_time(4_000_000_000, 2_000_000_000) == Duration::from_secs(20));
+		assert!(message_transfer_time(4_000_000_000, 1_000_000_000) == Duration::from_secs(40));
+		assert!(message_transfer_time(4_000_000_000, 100_000_000) == Duration::from_secs(400));
+		assert!(message_transfer_time(4_000_000_000, 10_000_000) == Duration::from_secs(4_000));
+		assert!(message_transfer_time(4_000_000_000, 1_000_000) == Duration::from_secs(40_000));
+		assert!(message_transfer_time(4_000_000_000, 100_000) == Duration::from_secs(400_000));
+		assert!(message_transfer_time(4_000_000_000, 10_000) == Duration::from_secs(4_000_000));
+		assert!(message_transfer_time(4_000_000_000, 1_000) == Duration::from_secs(40_000_000));
+		assert!(message_transfer_time(4_000_000_000, 100) == Duration::from_secs(400_000_000));
+		assert!(message_transfer_time(4_000_000_000, 10) == Duration::from_secs(4_000_000_000));
+		assert!(message_transfer_time(4_000_000_000, 1) == Duration::from_secs(40_000_000_000));
+
+		assert!(message_transfer_time(43, 1) == Duration::from_secs(430));
+		assert!(message_transfer_time(43, 10) == Duration::from_secs(43));
+		assert!(message_transfer_time(43, 2) == Duration::from_secs(215));
+		assert!(message_transfer_time(43, 20) == Duration::from_millis(21_500));
+		assert!(message_transfer_time(43, 200) == Duration::from_millis(2_150));
+		assert!(message_transfer_time(43, 2_000_000) == Duration::from_micros(215));
+		assert!(message_transfer_time(43, 2_000_000_000) == Duration::from_nanos(215));
+		assert!(message_transfer_time(43, 4_000_000_000) == Duration::from_nanos(108)); // rounded up
+		assert!(message_transfer_time(3, 4_000_000_000) == Duration::from_nanos(8)); // rounded up
+		assert!(message_transfer_time(5, 4_000_000_000) == Duration::from_nanos(13)); // rounded up
+
+		let lots = u32::MAX - 1; // Use MAX - 1 because MAX is not cleanly divisible by 2.
+		assert!(message_transfer_time(lots, 1) == Duration::from_secs(u64::from(lots) * 10));
+		assert!(message_transfer_time(lots, lots) == Duration::from_secs(10));
+		assert!(message_transfer_time(lots / 2, lots) == Duration::from_secs(5));
+		assert!(message_transfer_time(lots, lots / 2) == Duration::from_secs(20));
 	}
 }
