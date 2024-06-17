@@ -1,4 +1,4 @@
-# Unreleased
+# Version 0.9.0 - 2024-06-17
 - [minor][add] Allow direct access to the underlying serial port.
 - [minor][add] Allow changing the baud rate of the underlying serial port.
 - [minor][add] Automatically calculate the correct read timeout for instructions.
