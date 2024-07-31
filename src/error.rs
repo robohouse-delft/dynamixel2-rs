@@ -282,6 +282,7 @@ impl InvalidParameterCount {
 	}
 }
 
+impl std::error::Error for InitializeError {}
 impl std::error::Error for TransferError {}
 impl std::error::Error for WriteError {}
 impl std::error::Error for ReadError {}
