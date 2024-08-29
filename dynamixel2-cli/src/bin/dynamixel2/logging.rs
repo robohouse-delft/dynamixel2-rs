@@ -9,9 +9,9 @@ pub fn init(root_module: &str, verbosity: i8) {
 
 	env_logger::Builder::new()
 		.format(|buffer, record: &log::Record| {
-			use env_logger::fmt::Color;
+			use env_logger::fmt::style;
 
-			let mut prefix_style = buffer.style();
+			let mut prefix_style = style::Style::new();
 			let prefix;
 
 			match record.level() {
@@ -26,15 +26,15 @@ pub fn init(root_module: &str, verbosity: i8) {
 				},
 				log::Level::Warn => {
 					prefix = "Warning: ";
-					prefix_style.set_color(Color::Yellow).set_bold(true);
+					prefix_style = prefix_style.fg_color(Some(style::AnsiColor::Yellow.into())).bold();
 				},
 				log::Level::Error => {
 					prefix = "Error: ";
-					prefix_style.set_color(Color::Red).set_bold(true);
+					prefix_style = prefix_style.fg_color(Some(style::AnsiColor::Red.into())).bold();
 				},
 			};
 
-			writeln!(buffer, "{}{}", prefix_style.value(prefix), record.args(),)
+			writeln!(buffer, "{prefix_style}{prefix}{prefix_style:#} {}", record.args(),)
 		})
 		.filter_level(log::LevelFilter::Warn)
 		.filter_module(root_module, log_level)
