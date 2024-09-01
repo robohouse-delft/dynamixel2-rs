@@ -1,3 +1,11 @@
+# Unreleased
+- [major][add] Added `System` and `Transport` traits.
+- [major][add] Added `StdSystem` & `SerialPort` structs.
+- [major][add] Added `std` and `serial2` as default features
+- [major][change] Changed `bus` to be generic over `System/Transport`
+- [major][change] Changed errors types to be generic over `Transport::Error`
+- [major][change] Moved `crate::serial2` re-export to `crate::system::serial_port::serial2`.
+
 # Version 0.9.1 - 2024-07-31
 - [minor][add] Add missing `Error` impl for `InitializeError`.
 

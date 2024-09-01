@@ -92,9 +92,9 @@ where
 
 #[cfg(test)]
 mod tests {
+	use super::*;
 	use crate::systems::serial_port::SerialPort;
 	use crate::systems::std::StdSystem;
-	use super::*;
 
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///
@@ -140,7 +140,9 @@ mod tests {
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_vec_ref_no_clone(bus: &mut Bus<Vec<u8>, Vec<u8>, StdSystem<SerialPort>>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_vec_ref_no_clone(
+		bus: &mut Bus<Vec<u8>, Vec<u8>, StdSystem<SerialPort>>,
+	) -> Result<(), Box<dyn std::error::Error>> {
 		/// Non-clonable wrapper around `&[u8]` to ensure `bulk_write` doesn't clone data from vec references.
 		struct Data<'a> {
 			data: &'a [u8],

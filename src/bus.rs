@@ -1,13 +1,17 @@
-use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
-use crate::systems::serial_port::SerialPort;
-use crate::systems::std::StdSystem;
 use crate::systems::{System, Transport};
 use crate::{ReadError, TransferError, WriteError};
+
+#[cfg(feature = "serial2")]
+use crate::systems::serial_port::SerialPort;
+#[cfg(feature = "std")]
+use crate::systems::std::StdSystem;
+#[cfg(feature = "serial2")]
+use std::path::Path;
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
@@ -34,7 +38,11 @@ pub struct Bus<ReadBuffer, WriteBuffer, S: System> {
 	write_buffer: WriteBuffer,
 }
 //
-impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, S> where S: System<Transport = T>, T: Transport + core::fmt::Debug {
+impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, S>
+where
+	S: System<Transport = T>,
+	T: Transport + core::fmt::Debug,
+{
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Bus")
 			.field("transport", &self.transport)
@@ -43,7 +51,8 @@ impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBu
 	}
 }
 
-impl Bus<Vec<u8>, Vec<u8>, StdSystem> {
+#[cfg(feature = "serial2")]
+impl Bus<Vec<u8>, Vec<u8>, StdSystem<SerialPort>> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
@@ -67,7 +76,8 @@ impl Bus<Vec<u8>, Vec<u8>, StdSystem> {
 	}
 }
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, StdSystem>
+#[cfg(feature = "serial2")]
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, StdSystem<SerialPort>>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,

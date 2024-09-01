@@ -1,12 +1,19 @@
+//! Serial port transport implementation using the `serial2` crate.
+
 use crate::ReadError;
 use std::fmt::Formatter;
 use std::time::Duration;
 
+/// Re-exported `serial2` crate in case you need to modify serial port settings.
+pub use serial2;
+
+/// A wrapper around a `serial2::SerialPort` that implements the `Transport` trait.
 pub struct SerialPort {
 	port: serial2::SerialPort,
 }
 
 impl SerialPort {
+	/// Create a new `SerialPort` from a `serial2::SerialPort`.
 	pub fn new(port: serial2::SerialPort) -> Self {
 		Self { port }
 	}

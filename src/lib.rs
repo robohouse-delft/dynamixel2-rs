@@ -35,11 +35,8 @@ mod bus;
 pub use bus::*;
 
 mod error;
-mod systems;
+pub mod systems;
 pub use systems::System;
 pub use systems::Transport;
 
 pub use error::*;
-
-/// Re-exported `serial2` crate in case you need to modify serial port settings.
-pub use serial2;

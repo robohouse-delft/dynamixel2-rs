@@ -1,4 +1,11 @@
+//! Traits to support different systems and transports.
+//!
+//! Use the [`System`] trait to define the system-specific types
+//! and the [`Transport`] trait to define the serial interface used to communicate with the hardware.
+
+#[cfg(feature = "serial2")]
 pub mod serial_port;
+#[cfg(feature = "std")]
 pub mod std;
 
 use crate::ReadError;
