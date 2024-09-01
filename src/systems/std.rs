@@ -1,8 +1,7 @@
-use crate::systems::serial_port::SerialPort;
 use crate::Transport;
 
 #[derive(Debug)]
-pub struct StdSystem<T = SerialPort> {
+pub struct StdSystem<T> {
 	_transport: T,
 }
 
