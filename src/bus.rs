@@ -14,7 +14,7 @@ const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer, S: System = StdSystem<SerialPort>> {
+pub struct Bus<ReadBuffer, WriteBuffer, S: System> {
 	/// The underlying stream (normally a serial port).
 	transport: S::Transport,
 
@@ -34,8 +34,8 @@ pub struct Bus<ReadBuffer, WriteBuffer, S: System = StdSystem<SerialPort>> {
 	write_buffer: WriteBuffer,
 }
 //
-impl<ReadBuffer, WriteBuffer> std::fmt::Debug for Bus<ReadBuffer, WriteBuffer> {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, S> where S: System<Transport = T>, T: Transport + core::fmt::Debug {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Bus")
 			.field("transport", &self.transport)
 			.field("baud_rate", &self.baud_rate)

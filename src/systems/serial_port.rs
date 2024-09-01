@@ -2,7 +2,6 @@ use crate::ReadError;
 use std::fmt::Formatter;
 use std::time::Duration;
 
-pub struct SerialPortTransport {
 pub struct SerialPort {
 	port: serial2::SerialPort,
 }
