@@ -1,11 +1,14 @@
 use super::{instruction_id, packet_id, SyncWriteData};
 use crate::endian::{write_u16_le, write_u32_le};
+use crate::systems::{System, Transport};
 use crate::{Bus, WriteError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System<Transport = T>,
+	T: Transport,
 {
 	/// Synchronously write an arbitrary number of bytes to multiple motors.
 	///
@@ -38,7 +41,7 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError>
+	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -66,7 +69,7 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
+	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -93,7 +96,7 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
+	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,
@@ -120,7 +123,7 @@ where
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError>
+	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: std::iter::ExactSizeIterator,

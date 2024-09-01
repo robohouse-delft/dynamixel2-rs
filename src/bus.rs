@@ -1,10 +1,12 @@
-use serial2::SerialPort;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
+use crate::systems::serial_port::SerialPort;
+use crate::systems::std::StdSystem;
+use crate::systems::{System, Transport};
 use crate::{ReadError, TransferError, WriteError};
 
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -12,9 +14,9 @@ const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer> {
+pub struct Bus<ReadBuffer, WriteBuffer, S: System = StdSystem<SerialPort>> {
 	/// The underlying stream (normally a serial port).
-	serial_port: SerialPort,
+	transport: S::Transport,
 
 	/// The baud rate of the serial port, if known.
 	baud_rate: u32,
@@ -31,43 +33,24 @@ pub struct Bus<ReadBuffer, WriteBuffer> {
 	/// The buffer for outgoing messages.
 	write_buffer: WriteBuffer,
 }
-
+//
 impl<ReadBuffer, WriteBuffer> std::fmt::Debug for Bus<ReadBuffer, WriteBuffer> {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		#[derive(Debug)]
-		#[allow(dead_code)] // Dead code analysis ignores derive debug impls, but that is the whole point of this struct.
-		enum Raw {
-			#[cfg(unix)]
-			Fd(std::os::unix::io::RawFd),
-			#[cfg(windows)]
-			Handle(std::os::windows::io::RawHandle),
-		}
-
-		#[cfg(unix)]
-		let raw = {
-			use std::os::unix::io::AsRawFd;
-			Raw::Fd(self.serial_port.as_raw_fd())
-		};
-		#[cfg(windows)]
-		let raw = {
-			use std::os::windows::io::AsRawHandle;
-			Raw::Handle(self.serial_port.as_raw_handle())
-		};
-
 		f.debug_struct("Bus")
-			.field("serial_port", &raw)
+			.field("transport", &self.transport)
 			.field("baud_rate", &self.baud_rate)
 			.finish_non_exhaustive()
 	}
 }
 
-impl Bus<Vec<u8>, Vec<u8>> {
+impl Bus<Vec<u8>, Vec<u8>, StdSystem> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
-		let port = SerialPort::open(path, baud_rate)?;
+		let port = SerialPort::new(serial2::SerialPort::open(path, baud_rate)?);
+
 		Ok(Self::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate))
 	}
 
@@ -78,12 +61,13 @@ impl Bus<Vec<u8>, Vec<u8>> {
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
-	pub fn new(serial_port: SerialPort) -> Result<Self, crate::InitializeError> {
-		Self::with_buffers(serial_port, vec![0; 128], vec![0; 128])
+	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError> {
+		let port = SerialPort::new(serial_port);
+		Self::with_buffers(port, vec![0; 128], vec![0; 128])
 	}
 }
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, StdSystem>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -97,32 +81,38 @@ where
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> std::io::Result<Self> {
-		let port = SerialPort::open(path, baud_rate)?;
+		let port = SerialPort::new(serial2::SerialPort::open(path, baud_rate)?);
+
 		Ok(Self::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate))
 	}
+}
 
+impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System<Transport = T>,
+	T: Transport,
+{
 	/// Create a new bus using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
-	pub fn with_buffers(serial_port: SerialPort, read_buffer: ReadBuffer, write_buffer: WriteBuffer) -> Result<Self, crate::InitializeError> {
-		let baud_rate = serial_port.get_configuration()
-			.map_err(crate::InitializeError::GetConfiguration)?
-			.get_baud_rate()
-			.map_err(crate::InitializeError::GetBaudRate)?;
+	pub fn with_buffers(transport: T, read_buffer: ReadBuffer, write_buffer: WriteBuffer) -> Result<Self, crate::InitializeError> {
+		let baud_rate = transport.baud_rate()?;
 
-		Ok(Self::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate))
+		Ok(Self::with_buffers_and_baud_rate(transport, read_buffer, write_buffer, baud_rate))
 	}
 
 	/// Create a new bus using pre-allocated buffers.
-	fn with_buffers_and_baud_rate(serial_port: SerialPort, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
+	fn with_buffers_and_baud_rate(transport: T, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
 		// Pre-fill write buffer with the header prefix.
 		// TODO: return Err instead of panicing.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 2);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
-			serial_port,
+			transport,
 			baud_rate,
 			read_buffer,
 			read_len: 0,
@@ -137,16 +127,16 @@ where
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.
-	pub fn serial_port(&self) -> &SerialPort {
-		&self.serial_port
+	pub fn transport(&self) -> &T {
+		&self.transport
 	}
 
 	/// Consume this bus object to get ownership of the serial port.
 	///
 	/// This discards any data in internal the read buffer of the bus object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
-	pub fn into_serial_port(self) -> SerialPort {
-		self.serial_port
+	pub fn into_transport(self) -> T {
+		self.transport
 	}
 
 	/// Get the baud rate of the bus.
@@ -155,10 +145,8 @@ where
 	}
 
 	/// Set the baud rate of the underlying serial port.
-	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), std::io::Error> {
-		let mut settings = self.serial_port.get_configuration()?;
-		settings.set_baud_rate(baud_rate)?;
-		self.serial_port.set_configuration(&settings)?;
+	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), T::Error> {
+		self.transport.set_baud_rate(baud_rate)?;
 		self.baud_rate = baud_rate;
 		Ok(())
 	}
@@ -177,7 +165,7 @@ where
 		parameter_count: usize,
 		expected_response_parameters: u16,
 		encode_parameters: F,
-	) -> Result<StatusPacket<'_>, TransferError>
+	) -> Result<StatusPacket<'_>, TransferError<T::Error>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -194,7 +182,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<(), WriteError>
+	) -> Result<(), WriteError<T::Error>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -226,17 +214,17 @@ where
 		// and read() can potentially read more than one reply per syscall.
 		self.read_len = 0;
 		self.used_bytes = 0;
-		self.serial_port.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
+		self.transport.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
 
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
 		trace!("sending instruction: {:02X?}", stuffed_message);
-		self.serial_port.write_all(stuffed_message).map_err(WriteError::Write)?;
+		self.transport.write_all(stuffed_message).map_err(WriteError::Write)?;
 		Ok(())
 	}
 
 	/// Read a raw status response from the bus with the given deadline.
-	pub fn read_status_response_deadline(&mut self, deadline: Instant) -> Result<StatusPacket, ReadError> {
+	pub fn read_status_response_deadline(&mut self, deadline: Instant) -> Result<StatusPacket, ReadError<T::Error>> {
 		// Check that the read buffer is large enough to hold atleast a status packet header.
 		crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
 
@@ -266,13 +254,12 @@ where
 						"timeout reading status response, data in buffer: {:02X?}",
 						&self.read_buffer.as_ref()[..self.read_len]
 					);
-					return Err(std::io::ErrorKind::TimedOut.into());
+					return Err(ReadError::Timeout);
 				},
 			};
 
 			// Try to read more data into the buffer.
-			self.serial_port.set_read_timeout(timeout).ok();
-			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
+			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], timeout)?;
 			if new_data == 0 {
 				continue;
 			}
@@ -314,8 +301,8 @@ where
 	/// Read a raw status response with an automatically calculated timeout.
 	///
 	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
-	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError> {
-		// Offical SDK adds a flat 34 milliseconds, so lets just mimick that.
+	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<T::Error>> {
+		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
 		let timeout = message_transfer_time(message_size, self.baud_rate) + Duration::from_millis(34);
 		self.read_status_response_deadline(Instant::now() + timeout)
@@ -334,10 +321,11 @@ pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Durati
 	Duration::new(secs, nanos as u32)
 }
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer, S> Bus<ReadBuffer, WriteBuffer, S>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System,
 {
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {

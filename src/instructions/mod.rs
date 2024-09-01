@@ -38,6 +38,7 @@ mod sync_read;
 mod sync_write;
 mod write;
 
+use crate::{System, Transport};
 pub use factory_reset::FactoryResetKind;
 pub use ping::Ping;
 
@@ -105,13 +106,15 @@ impl AsRef<BulkReadData> for BulkReadData {
 /// Read an empty response from the bus if the motor ID is not the broadcast ID.
 ///
 /// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.
-fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer>(
-	bus: &mut crate::Bus<ReadBuffer, WriteBuffer>,
+fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer, S, T>(
+	bus: &mut crate::Bus<ReadBuffer, WriteBuffer, S>,
 	motor_id: u8,
-) -> Result<crate::Response<()>, crate::error::ReadError>
+) -> Result<crate::Response<()>, crate::error::ReadError<T::Error>>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System<Transport = T>,
+	T: Transport,
 {
 	if motor_id == packet_id::BROADCAST {
 		Ok(crate::Response {

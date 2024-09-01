@@ -1,10 +1,13 @@
 use super::{instruction_id, packet_id};
+use crate::systems::{System, Transport};
 use crate::{Bus, Response, TransferError, WriteError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System<Transport = T>,
+	T: Transport,
 {
 	/// Send a reboot command to a specific motor.
 	///
@@ -16,13 +19,13 @@ where
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_reboot()`] instead.
-	pub fn reboot(&mut self, motor_id: u8) -> Result<Response<()>, TransferError> {
+	pub fn reboot(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<T::Error>> {
 		self.write_instruction(motor_id, instruction_id::REBOOT, 0, |_| ())?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 	}
 
 	/// Broadcast an reboot command to all connected motors to trigger a previously registered instruction.
-	pub fn broadcast_reboot(&mut self) -> Result<(), WriteError> {
+	pub fn broadcast_reboot(&mut self) -> Result<(), WriteError<T::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::REBOOT, 0, |_| ())
 	}
 }

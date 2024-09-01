@@ -1,11 +1,14 @@
 use super::{instruction_id, packet_id, BulkWriteData};
 use crate::endian::{write_u16_le, write_u8_le};
+use crate::systems::{System, Transport};
 use crate::{Bus, WriteError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	S: System<Transport = T>,
+	T: Transport,
 {
 	/// Synchronously write arbitrary data ranges to multiple motors.
 	///
@@ -46,12 +49,12 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn bulk_write<'a, I, T>(&mut self, writes: &'a I) -> Result<(), WriteError>
+	pub fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<T::Error>>
 	where
 		&'a I: IntoIterator,
 		<&'a I as IntoIterator>::IntoIter: Clone,
-		<&'a I as IntoIterator>::Item: std::borrow::Borrow<BulkWriteData<T>>,
-		T: AsRef<[u8]>,
+		<&'a I as IntoIterator>::Item: std::borrow::Borrow<BulkWriteData<D>>,
+		D: AsRef<[u8]>,
 	{
 		use std::borrow::Borrow;
 
@@ -149,9 +152,7 @@ mod tests {
 
 		impl<'a> Data<'a> {
 			fn new<const N: usize>(data: &'a [u8; N]) -> Self {
-				Self {
-					data: data.as_slice(),
-				}
+				Self { data: data.as_slice() }
 			}
 		}
 
