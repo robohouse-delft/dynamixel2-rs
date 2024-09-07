@@ -22,7 +22,7 @@ pub trait Transport {
 	/// The error type returned by the transport when reading, writing or setting the baud rate.
 	type Error: core::fmt::Debug + core::fmt::Display;
 	/// Get the current baud rate of the transport.
-	fn baud_rate(&self) -> Result<u32, crate::InitializeError>;
+	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>>;
 	/// Set the baud rate of the transport.
 	fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Self::Error>;
 	/// Discard the input buffer of the transport. Maybe a no-op on some platforms.

@@ -3,12 +3,12 @@ use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 /// An error that can occur while initializing a bus.
 #[derive(Debug)]
-pub enum InitializeError {
+pub enum InitializeError<E> {
 	/// Failed to get the configuration of the serial port.
-	GetConfiguration(std::io::Error),
+	GetConfiguration(E),
 
 	/// Failed to get the baud rate from the configuration of the serial port.
-	GetBaudRate(std::io::Error),
+	GetBaudRate(E),
 }
 
 /// An error that can occur during a read/write transfer.
@@ -286,7 +286,7 @@ impl InvalidParameterCount {
 	}
 }
 
-impl std::error::Error for InitializeError {}
+impl<E: Debug + Display> std::error::Error for InitializeError<E> {}
 impl<E: Debug + Display> std::error::Error for TransferError<E> {}
 impl<E: Debug + Display> std::error::Error for WriteError<E> {}
 impl<E: Debug + Display> std::error::Error for ReadError<E> {}
@@ -300,7 +300,7 @@ impl std::error::Error for InvalidParameterCount {}
 
 impl<E> From<WriteError<E>> for TransferError<E>
 where
-	E: Debug + Display,
+	E: Debug,
 {
 	fn from(other: WriteError<E>) -> Self {
 		Self::WriteError(other)
@@ -309,98 +309,98 @@ where
 
 impl<E> From<ReadError<E>> for TransferError<E>
 where
-	E: Debug + Display,
+	E: Debug,
 {
 	fn from(other: ReadError<E>) -> Self {
 		Self::ReadError(other)
 	}
 }
 
-impl<E: Debug + Display> From<InvalidMessage> for TransferError<E> {
+impl<E: Debug> From<InvalidMessage> for TransferError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidHeaderPrefix> for TransferError<E> {
+impl<E: Debug> From<InvalidHeaderPrefix> for TransferError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidChecksum> for TransferError<E> {
+impl<E: Debug> From<InvalidChecksum> for TransferError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidPacketId> for TransferError<E> {
+impl<E: Debug> From<InvalidPacketId> for TransferError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidInstruction> for TransferError<E> {
+impl<E: Debug> From<InvalidInstruction> for TransferError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidParameterCount> for TransferError<E> {
+impl<E: Debug> From<InvalidParameterCount> for TransferError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<BufferTooSmallError> for WriteError<E> {
+impl<E: Debug> From<BufferTooSmallError> for WriteError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferTooSmall(other)
 	}
 }
 
-impl<E: Debug + Display> From<BufferTooSmallError> for ReadError<E> {
+impl<E: Debug> From<BufferTooSmallError> for ReadError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferFull(other)
 	}
 }
 
-impl<E: Debug + Display> From<InvalidMessage> for ReadError<E> {
+impl<E: Debug> From<InvalidMessage> for ReadError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::InvalidMessage(other)
 	}
 }
 
-impl<E: Debug + Display> From<MotorError> for ReadError<E> {
+impl<E: Debug> From<MotorError> for ReadError<E> {
 	fn from(other: MotorError) -> Self {
 		Self::MotorError(other)
 	}
 }
 
-impl<E: Debug + Display> From<InvalidHeaderPrefix> for ReadError<E> {
+impl<E: Debug> From<InvalidHeaderPrefix> for ReadError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidChecksum> for ReadError<E> {
+impl<E: Debug> From<InvalidChecksum> for ReadError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidPacketId> for ReadError<E> {
+impl<E: Debug> From<InvalidPacketId> for ReadError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidInstruction> for ReadError<E> {
+impl<E: Debug> From<InvalidInstruction> for ReadError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug + Display> From<InvalidParameterCount> for ReadError<E> {
+impl<E: Debug> From<InvalidParameterCount> for ReadError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidMessage(other.into())
 	}
@@ -436,7 +436,10 @@ impl From<InvalidParameterCount> for InvalidMessage {
 	}
 }
 
-impl Display for InitializeError {
+impl<E> Display for InitializeError<E>
+where
+	E: Display,
+{
 	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 		match self {
 			Self::GetConfiguration(e) => write!(f, "failed to get configuration of serial port: {e}"),
