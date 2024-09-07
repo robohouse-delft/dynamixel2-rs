@@ -44,7 +44,7 @@ where
 	pub fn sync_write<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
-		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Iter::IntoIter: ExactSizeIterator,
 		Data: AsRef<SyncWriteData<Buf>>,
 		Buf: AsRef<[u8]> + 'a,
 	{
@@ -72,7 +72,7 @@ where
 	pub fn sync_write_u8<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
-		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Iter::IntoIter: ExactSizeIterator,
 		Data: AsRef<SyncWriteData<u8>>,
 	{
 		let data = data.into_iter();
@@ -99,7 +99,7 @@ where
 	pub fn sync_write_u16<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
-		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Iter::IntoIter: ExactSizeIterator,
 		Data: AsRef<SyncWriteData<u16>>,
 	{
 		let data = data.into_iter();
@@ -126,7 +126,7 @@ where
 	pub fn sync_write_u32<Iter, Data>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<T::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
-		Iter::IntoIter: std::iter::ExactSizeIterator,
+		Iter::IntoIter: ExactSizeIterator,
 		Data: AsRef<SyncWriteData<u32>>,
 	{
 		let data = data.into_iter();
