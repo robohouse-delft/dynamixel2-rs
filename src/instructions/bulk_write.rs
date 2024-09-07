@@ -52,10 +52,10 @@ where
 	where
 		&'a I: IntoIterator,
 		<&'a I as IntoIterator>::IntoIter: Clone,
-		<&'a I as IntoIterator>::Item: std::borrow::Borrow<BulkWriteData<D>>,
+		<&'a I as IntoIterator>::Item: core::borrow::Borrow<BulkWriteData<D>>,
 		D: AsRef<[u8]>,
 	{
-		use std::borrow::Borrow;
+		use core::borrow::Borrow;
 
 		let writes = writes.into_iter();
 		let mut parameter_count = 0;
