@@ -2,7 +2,7 @@ use super::{instruction_id, read_response_if_not_broadcast};
 use crate::{Bus, Response, TransferError};
 
 use crate::endian::{write_u16_le, write_u32_le};
-use crate::systems::SerialPort;
+use crate::serial_port::SerialPort;
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where

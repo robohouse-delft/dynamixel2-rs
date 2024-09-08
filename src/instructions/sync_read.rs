@@ -1,6 +1,6 @@
 use super::{instruction_id, packet_id};
 use crate::endian::write_u16_le;
-use crate::systems::SerialPort;
+use crate::serial_port::SerialPort;
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>

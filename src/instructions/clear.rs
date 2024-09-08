@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::systems::SerialPort;
+use crate::serial_port::SerialPort;
 use crate::{Bus, Response, TransferError, WriteError};
 
 /// The parameters for the CLEAR command to clear the revolution counter.

@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
-use crate::systems::SerialPort;
+use crate::serial_port::SerialPort;
 use crate::{ReadError, TransferError, WriteError};
 
 #[cfg(feature = "serial2")]

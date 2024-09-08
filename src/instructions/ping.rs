@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
-use crate::systems::SerialPort;
+use crate::serial_port::SerialPort;
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
 /// A response from a motor to a ping instruction.
