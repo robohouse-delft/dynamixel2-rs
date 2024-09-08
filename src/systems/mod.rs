@@ -1,21 +1,10 @@
-//! Traits to support different systems and transports.
-//!
-//! Use the [`System`] trait to define the system-specific types
-//! and the [`SerialPort`] trait to define the serial interface used to communicate with the hardware.
+//! The [`SerialPort`] trait is used to implementing the Dynamixel Protocol 2.0 communication interface.
 
 #[cfg(feature = "serial2")]
 pub mod serial_port;
-#[cfg(feature = "std")]
-pub mod std;
 
 use crate::ReadError;
 use ::std::time::Duration;
-
-/// As platforms and systems differ, the [`System`] trait is used to define the system-specific types.
-pub trait System {
-	/// The transport type used by the system.
-	type Transport: SerialPort;
-}
 
 /// [`SerialPort`]s are used to communicate with the hardware via reading and writing data.
 /// The Dynamixel Protocol 2.0 uses 8 bits char size, 1 stop bit, no parity.

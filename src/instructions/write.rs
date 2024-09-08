@@ -1,13 +1,13 @@
 use super::{instruction_id, read_response_if_not_broadcast};
 use crate::endian::{write_u16_le, write_u32_le};
-use crate::systems::{System, SerialPort};
+use crate::systems::SerialPort;
 use crate::{Bus, Response, TransferError};
 
-impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	S: System<Transport = T>,
+
 	T: SerialPort,
 {
 	/// Write an arbitrary number of bytes to a specific motor.

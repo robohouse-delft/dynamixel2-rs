@@ -36,7 +36,7 @@ pub use bus::*;
 
 mod error;
 pub mod systems;
-pub use systems::System;
+
 pub use systems::SerialPort;
 
 pub use error::*;

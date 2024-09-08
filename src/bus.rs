@@ -3,13 +3,9 @@ use std::time::{Duration, Instant};
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
-use crate::systems::{System, SerialPort};
+use crate::systems::SerialPort;
 use crate::{ReadError, TransferError, WriteError};
 
-#[cfg(feature = "serial2")]
-use crate::systems::serial_port::SerialPort;
-#[cfg(feature = "std")]
-use crate::systems::std::StdSystem;
 #[cfg(feature = "serial2")]
 use std::path::Path;
 
@@ -18,9 +14,9 @@ const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer, S: System> {
+pub struct Bus<ReadBuffer, WriteBuffer, T: SerialPort> {
 	/// The underlying stream (normally a serial port).
-	transport: S::Transport,
+	transport: T,
 
 	/// The baud rate of the serial port, if known.
 	baud_rate: u32,
@@ -38,9 +34,8 @@ pub struct Bus<ReadBuffer, WriteBuffer, S: System> {
 	write_buffer: WriteBuffer,
 }
 //
-impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, S>
+impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, T>
 where
-	S: System<Transport = T>,
 	T: SerialPort + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -52,13 +47,13 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Bus<Vec<u8>, Vec<u8>, StdSystem<SerialPort>> {
+impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
-		let port = SerialPort::new(serial2::SerialPort::open(path, baud_rate)?);
+		let port = serial2::SerialPort::open(path, baud_rate)?;
 
 		Ok(Self::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate))
 	}
@@ -70,14 +65,13 @@ impl Bus<Vec<u8>, Vec<u8>, StdSystem<SerialPort>> {
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
-	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError> {
-		let port = SerialPort::new(serial_port);
-		Self::with_buffers(port, vec![0; 128], vec![0; 128])
+	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError<std::io::Error>> {
+		Self::with_buffers(serial_port, vec![0; 128], vec![0; 128])
 	}
 }
 
 #[cfg(feature = "serial2")]
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, StdSystem<SerialPort>>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, serial2::SerialPort>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -91,24 +85,28 @@ where
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> std::io::Result<Self> {
-		let port = SerialPort::new(serial2::SerialPort::open(path, baud_rate)?);
+		let port = serial2::SerialPort::open(path, baud_rate)?;
 
 		Ok(Self::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate))
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	S: System<Transport = T>,
+
 	T: SerialPort,
 {
 	/// Create a new bus using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
-	pub fn with_buffers(transport: T, read_buffer: ReadBuffer, write_buffer: WriteBuffer) -> Result<Self, crate::InitializeError> {
+	pub fn with_buffers(
+		transport: T,
+		read_buffer: ReadBuffer,
+		write_buffer: WriteBuffer,
+	) -> Result<Self, crate::InitializeError<T::Error>> {
 		let baud_rate = transport.baud_rate()?;
 
 		Ok(Self::with_buffers_and_baud_rate(transport, read_buffer, write_buffer, baud_rate))
@@ -117,7 +115,7 @@ where
 	/// Create a new bus using pre-allocated buffers.
 	fn with_buffers_and_baud_rate(transport: T, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
 		// Pre-fill write buffer with the header prefix.
-		// TODO: return Err instead of panicing.
+		// TODO: return Err instead of panicking.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 2);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
@@ -331,11 +329,11 @@ pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Durati
 	Duration::new(secs, nanos as u32)
 }
 
-impl<ReadBuffer, WriteBuffer, S> Bus<ReadBuffer, WriteBuffer, S>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	S: System,
+	T: SerialPort,
 {
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {

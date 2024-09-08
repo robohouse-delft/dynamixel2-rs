@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::systems::{System, SerialPort};
+use crate::systems::SerialPort;
 use crate::{Bus, Response, TransferError, WriteError};
 
 /// The kind of factory reset to perform.
@@ -16,11 +16,11 @@ pub enum FactoryResetKind {
 	KeepIdAndBaudRate = 0x02,
 }
 
-impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	S: System<Transport = T>,
+
 	T: SerialPort,
 {
 	/// Reset the settings of a motor to the factory defaults.
