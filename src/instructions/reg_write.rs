@@ -8,7 +8,6 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-
 	T: SerialPort,
 {
 	/// Register a write of an arbitrary number of bytes, to be triggered later by an `action` command.

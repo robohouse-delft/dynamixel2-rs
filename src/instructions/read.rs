@@ -7,7 +7,6 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-
 	T: SerialPort,
 {
 	/// Read an arbitrary number of bytes from multiple motors.

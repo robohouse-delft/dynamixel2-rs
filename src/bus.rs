@@ -95,7 +95,6 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-
 	T: SerialPort,
 {
 	/// Create a new bus using pre-allocated buffers.

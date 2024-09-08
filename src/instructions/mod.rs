@@ -113,7 +113,6 @@ fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer, T>(
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-
 	T: SerialPort,
 {
 	if motor_id == packet_id::BROADCAST {
