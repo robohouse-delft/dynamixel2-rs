@@ -1,7 +1,7 @@
 //! The [`SerialPort`] trait is used to implementing the Dynamixel Protocol 2.0 communication interface.
 
 #[cfg(feature = "serial2")]
-pub mod serial_port;
+pub mod serial2;
 
 use crate::ReadError;
 use ::std::time::Duration;
