@@ -1,6 +1,6 @@
 use super::{instruction_id, packet_id};
 use crate::endian::write_u16_le;
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
@@ -8,7 +8,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Synchronously read an arbitrary number of bytes from multiple motors in one command.
 	///

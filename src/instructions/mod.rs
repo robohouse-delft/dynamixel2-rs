@@ -38,7 +38,7 @@ mod sync_read;
 mod sync_write;
 mod write;
 
-use crate::{System, Transport};
+use crate::{System, SerialPort};
 pub use factory_reset::FactoryResetKind;
 pub use ping::Ping;
 
@@ -114,7 +114,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	if motor_id == packet_id::BROADCAST {
 		Ok(crate::Response {

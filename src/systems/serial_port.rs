@@ -44,7 +44,7 @@ impl core::fmt::Debug for SerialPort {
 	}
 }
 
-impl crate::Transport for SerialPort {
+impl crate::SerialPort for SerialPort {
 	type Error = std::io::Error;
 
 	fn baud_rate(&self) -> Result<u32, crate::InitializeError> {

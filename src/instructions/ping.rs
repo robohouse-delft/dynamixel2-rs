@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
 /// A response from a motor to a ping instruction.
@@ -39,7 +39,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Ping a specific motor by ID.
 	///

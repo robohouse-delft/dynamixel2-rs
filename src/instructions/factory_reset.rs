@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 use crate::{Bus, Response, TransferError, WriteError};
 
 /// The kind of factory reset to perform.
@@ -21,7 +21,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Reset the settings of a motor to the factory defaults.
 	///

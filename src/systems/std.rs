@@ -1,6 +1,6 @@
 //! The system implementation used by default when the `std` feature is enabled.
 
-use crate::Transport;
+use crate::SerialPort;
 
 /// System implementation using the standard library.
 #[derive(Debug)]
@@ -10,7 +10,7 @@ pub struct StdSystem<T> {
 
 impl<T> crate::System for StdSystem<T>
 where
-	T: Transport,
+	T: SerialPort,
 {
 	type Transport = T;
 }

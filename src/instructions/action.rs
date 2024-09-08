@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id};
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 use crate::{Bus, Response, TransferError, WriteError};
 
 impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
@@ -7,7 +7,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Send an action command to trigger a previously registered instruction.
 	///

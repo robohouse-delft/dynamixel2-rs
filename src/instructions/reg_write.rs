@@ -2,14 +2,14 @@ use super::{instruction_id, read_response_if_not_broadcast};
 use crate::{Bus, Response, TransferError};
 
 use crate::endian::{write_u16_le, write_u32_le};
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 
 impl<ReadBuffer, WriteBuffer, S, T> Bus<ReadBuffer, WriteBuffer, S>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Register a write of an arbitrary number of bytes, to be triggered later by an `action` command.
 	///

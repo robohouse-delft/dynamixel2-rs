@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
-use crate::systems::{System, Transport};
+use crate::systems::{System, SerialPort};
 use crate::{ReadError, TransferError, WriteError};
 
 #[cfg(feature = "serial2")]
@@ -41,7 +41,7 @@ pub struct Bus<ReadBuffer, WriteBuffer, S: System> {
 impl<ReadBuffer, WriteBuffer, S, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, S>
 where
 	S: System<Transport = T>,
-	T: Transport + core::fmt::Debug,
+	T: SerialPort + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Bus")
@@ -102,7 +102,7 @@ where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	S: System<Transport = T>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Create a new bus using pre-allocated buffers.
 	///
