@@ -1,9 +1,12 @@
-use std::time::{Duration, Instant};
+use core::time::{Duration};
 
 use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
 use crate::transport::Transport;
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 /// A response from a motor to a ping instruction.
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -53,7 +56,9 @@ where
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are collected.
-	pub fn scan(&mut self) -> Result<Vec<Result<Response<Ping>, ReadError<T::Error>>>, WriteError<T::Error>> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn scan(&mut self) -> Result<Vec<Result<Response<Ping>, ReadError<T::Error>>>, crate::WriteError<T::Error>> {
+
 		let mut result = Vec::with_capacity(253);
 		match self.scan_cb(|x| result.push(Ok(x))) {
 			Ok(()) => (),

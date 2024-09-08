@@ -3,6 +3,9 @@ use crate::endian::{write_u16_le, write_u8_le};
 use crate::transport::Transport;
 use crate::{Bus, ReadError, Response, TransferError, WriteError};
 
+#[cfg(feature = "alloc")]
+use alloc::{vec::Vec, borrow::ToOwned};
+
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -74,7 +77,8 @@ where
 	/// # Panics
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
-	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, TransferError<T::Error>>
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<T::Error>>
 	where
 		Read: AsRef<BulkReadData>,
 	{

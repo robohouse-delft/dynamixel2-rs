@@ -4,13 +4,13 @@
 pub mod serial2;
 
 use crate::ReadError;
-use ::std::time::Duration;
+use core::time::Duration;
 
 /// [`Transport`]s are used to communicate with the hardware via reading and writing data.
 /// The Dynamixel Protocol 2.0 uses 8 bits char size, 1 stop bit, no parity.
 pub trait Transport {
 	/// The error type returned by the transport when reading, writing or setting the baud rate.
-	type Error: core::fmt::Debug + core::fmt::Display;
+	type Error;
 	/// Get the current baud rate of the transport.
 	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>>;
 	/// Set the baud rate of the transport.

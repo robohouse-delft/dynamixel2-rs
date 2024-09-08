@@ -9,6 +9,9 @@ use crate::{ReadError, TransferError, WriteError};
 #[cfg(feature = "serial2")]
 use std::path::Path;
 
+#[cfg(feature = "alloc")]
+use alloc::{vec::Vec, borrow::ToOwned};
+
 const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
@@ -38,7 +41,7 @@ impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffe
 where
 	T: Transport + core::fmt::Debug,
 {
-	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Bus")
 			.field("transport", &self.transport)
 			.field("baud_rate", &self.baud_rate)
@@ -471,6 +474,7 @@ impl<'a, 'b> From<&'b StatusPacket<'a>> for Response<&'b [u8]> {
 	}
 }
 
+#[cfg(any(feature = "alloc", feature = "std"))]
 impl<'a> From<StatusPacket<'a>> for Response<Vec<u8>> {
 	fn from(status_packet: StatusPacket<'a>) -> Self {
 		Self {

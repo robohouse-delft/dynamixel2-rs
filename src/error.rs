@@ -286,21 +286,30 @@ impl InvalidParameterCount {
 	}
 }
 
+#[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for InitializeError<E> {}
+#[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for TransferError<E> {}
+#[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for WriteError<E> {}
+#[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for ReadError<E> {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidMessage {}
+#[cfg(feature = "std")]
 impl std::error::Error for MotorError {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidHeaderPrefix {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidChecksum {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidPacketId {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidInstruction {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidParameterCount {}
 
 impl<E> From<WriteError<E>> for TransferError<E>
-where
-	E: Debug,
 {
 	fn from(other: WriteError<E>) -> Self {
 		Self::WriteError(other)
@@ -308,99 +317,97 @@ where
 }
 
 impl<E> From<ReadError<E>> for TransferError<E>
-where
-	E: Debug,
 {
 	fn from(other: ReadError<E>) -> Self {
 		Self::ReadError(other)
 	}
 }
 
-impl<E: Debug> From<InvalidMessage> for TransferError<E> {
+impl<E> From<InvalidMessage> for TransferError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidHeaderPrefix> for TransferError<E> {
+impl<E> From<InvalidHeaderPrefix> for TransferError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidChecksum> for TransferError<E> {
+impl<E> From<InvalidChecksum> for TransferError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidPacketId> for TransferError<E> {
+impl<E> From<InvalidPacketId> for TransferError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidInstruction> for TransferError<E> {
+impl<E> From<InvalidInstruction> for TransferError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidParameterCount> for TransferError<E> {
+impl<E> From<InvalidParameterCount> for TransferError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl<E: Debug> From<BufferTooSmallError> for WriteError<E> {
+impl<E> From<BufferTooSmallError> for WriteError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferTooSmall(other)
 	}
 }
 
-impl<E: Debug> From<BufferTooSmallError> for ReadError<E> {
+impl<E> From<BufferTooSmallError> for ReadError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferFull(other)
 	}
 }
 
-impl<E: Debug> From<InvalidMessage> for ReadError<E> {
+impl<E> From<InvalidMessage> for ReadError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::InvalidMessage(other)
 	}
 }
 
-impl<E: Debug> From<MotorError> for ReadError<E> {
+impl<E> From<MotorError> for ReadError<E> {
 	fn from(other: MotorError) -> Self {
 		Self::MotorError(other)
 	}
 }
 
-impl<E: Debug> From<InvalidHeaderPrefix> for ReadError<E> {
+impl<E> From<InvalidHeaderPrefix> for ReadError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidChecksum> for ReadError<E> {
+impl<E> From<InvalidChecksum> for ReadError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidPacketId> for ReadError<E> {
+impl<E> From<InvalidPacketId> for ReadError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidInstruction> for ReadError<E> {
+impl<E> From<InvalidInstruction> for ReadError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl<E: Debug> From<InvalidParameterCount> for ReadError<E> {
+impl<E> From<InvalidParameterCount> for ReadError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidMessage(other.into())
 	}
