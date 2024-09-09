@@ -35,8 +35,8 @@ mod bus;
 pub use bus::*;
 
 mod error;
-pub mod serial_port;
+pub mod transport;
 
-pub use serial_port::SerialPort;
+pub use transport::Transport;
 
 pub use error::*;

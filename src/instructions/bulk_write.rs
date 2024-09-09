@@ -1,13 +1,13 @@
 use super::{instruction_id, packet_id, BulkWriteData};
 use crate::endian::{write_u16_le, write_u8_le};
-use crate::serial_port::SerialPort;
+use crate::transport::Transport;
 use crate::{Bus, WriteError};
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	T: Transport,
 {
 	/// Synchronously write arbitrary data ranges to multiple motors.
 	///

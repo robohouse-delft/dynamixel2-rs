@@ -1,4 +1,4 @@
-//! The [`SerialPort`] trait is used to implementing the Dynamixel Protocol 2.0 communication interface.
+//! The [`Transport`] trait is used to implementing the Dynamixel Protocol 2.0 communication interface.
 
 #[cfg(feature = "serial2")]
 pub mod serial2;
@@ -6,9 +6,9 @@ pub mod serial2;
 use crate::ReadError;
 use ::std::time::Duration;
 
-/// [`SerialPort`]s are used to communicate with the hardware via reading and writing data.
+/// [`Transport`]s are used to communicate with the hardware via reading and writing data.
 /// The Dynamixel Protocol 2.0 uses 8 bits char size, 1 stop bit, no parity.
-pub trait SerialPort {
+pub trait Transport {
 	/// The error type returned by the transport when reading, writing or setting the baud rate.
 	type Error: core::fmt::Debug + core::fmt::Display;
 	/// Get the current baud rate of the transport.

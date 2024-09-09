@@ -3,7 +3,7 @@ use std::time::{Duration, Instant};
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
-use crate::serial_port::SerialPort;
+use crate::transport::Transport;
 use crate::{ReadError, TransferError, WriteError};
 
 #[cfg(feature = "serial2")]
@@ -14,7 +14,7 @@ const HEADER_SIZE: usize = 8;
 const STATUS_HEADER_SIZE: usize = 9;
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer, T: SerialPort> {
+pub struct Bus<ReadBuffer, WriteBuffer, T: Transport> {
 	/// The underlying stream (normally a serial port).
 	transport: T,
 
@@ -36,7 +36,7 @@ pub struct Bus<ReadBuffer, WriteBuffer, T: SerialPort> {
 //
 impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, T>
 where
-	T: SerialPort + core::fmt::Debug,
+	T: Transport + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.debug_struct("Bus")
@@ -95,7 +95,7 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	T: Transport,
 {
 	/// Create a new bus using pre-allocated buffers.
 	///
@@ -128,9 +128,9 @@ where
 		}
 	}
 
-	/// Get a reference to the underlying [`SerialPort`].
+	/// Get a reference to the underlying [`Transport`].
 	///
-	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
+	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the bus,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.
@@ -332,7 +332,7 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	T: Transport,
 {
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {

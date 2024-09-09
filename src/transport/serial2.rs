@@ -6,7 +6,7 @@ use std::time::Duration;
 /// Re-exported `serial2` crate in case you need to modify serial port settings.
 pub use serial2;
 
-impl crate::SerialPort for serial2::SerialPort {
+impl crate::Transport for serial2::SerialPort {
 	type Error = std::io::Error;
 
 	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>> {
