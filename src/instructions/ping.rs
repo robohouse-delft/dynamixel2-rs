@@ -3,7 +3,7 @@ use core::time::{Duration};
 use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
 use crate::transport::Transport;
-use crate::{Bus, ReadError, Response, TransferError, WriteError};
+use crate::{Bus, ReadError, Response, TransferError};
 
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
@@ -81,10 +81,9 @@ where
 		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())?;
 		let response_time = crate::bus::message_transfer_time(14, self.baud_rate());
 		let timeout = response_time * 253 + Duration::from_millis(34);
-		let deadline = Instant::now() + timeout;
 
 		loop {
-			let response = self.read_status_response_deadline(deadline);
+			let response = self.read_status_response_timeout(timeout);
 			match response {
 				Ok(response) => {
 					let response = response.try_into()?;

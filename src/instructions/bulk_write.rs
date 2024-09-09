@@ -93,11 +93,13 @@ where
 mod tests {
 	use super::*;
 
+	type Bus = crate::Bus<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port>;
+
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_slice(bus: &mut Bus<Vec<u8>, Vec<u8>, serial2::SerialPort>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_slice(bus: &mut Bus) -> Result<(), Box<dyn std::error::Error>> {
 		bus.bulk_write(&[
 			BulkWriteData {
 				motor_id: 1,
@@ -117,7 +119,7 @@ mod tests {
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_vec_ref(bus: &mut Bus<Vec<u8>, Vec<u8>, serial2::SerialPort>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_vec_ref(bus: &mut Bus) -> Result<(), Box<dyn std::error::Error>> {
 		bus.bulk_write(&vec![
 			BulkWriteData {
 				motor_id: 1,
@@ -138,7 +140,7 @@ mod tests {
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
 	fn bulk_write_accepts_vec_ref_no_clone(
-		bus: &mut Bus<Vec<u8>, Vec<u8>, serial2::SerialPort>,
+		bus: &mut Bus,
 	) -> Result<(), Box<dyn std::error::Error>> {
 		/// Non-clonable wrapper around `&[u8]` to ensure `bulk_write` doesn't clone data from vec references.
 		struct Data<'a> {

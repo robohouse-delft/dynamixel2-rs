@@ -1,5 +1,4 @@
-use std::time::{Duration, Instant};
-
+use core::time::Duration;
 use crate::bytestuff;
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le, write_u16_le};
@@ -50,7 +49,7 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
+impl Bus<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
@@ -69,12 +68,12 @@ impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError<std::io::Error>> {
-		Self::with_buffers(serial_port, vec![0; 128], vec![0; 128])
+		Self::with_buffers(serial_port.into(), vec![0; 128], vec![0; 128])
 	}
 }
 
 #[cfg(feature = "serial2")]
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, serial2::SerialPort>
+impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, crate::transport::serial2::Serial2Port>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -115,14 +114,14 @@ where
 	}
 
 	/// Create a new bus using pre-allocated buffers.
-	fn with_buffers_and_baud_rate(transport: T, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
+	fn with_buffers_and_baud_rate(transport: impl Into<T>, read_buffer: ReadBuffer, mut write_buffer: WriteBuffer, baud_rate: u32) -> Self {
 		// Pre-fill write buffer with the header prefix.
 		// TODO: return Err instead of panicking.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 2);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
-			transport,
+			transport: transport.into(),
 			baud_rate,
 			read_buffer,
 			read_len: 0,
@@ -234,9 +233,11 @@ where
 	}
 
 	/// Read a raw status response from the bus with the given deadline.
-	pub fn read_status_response_deadline(&mut self, deadline: Instant) -> Result<StatusPacket, ReadError<T::Error>> {
+	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<T::Error>> {
 		// Check that the read buffer is large enough to hold atleast a status packet header.
 		crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE, self.read_buffer.as_mut().len())?;
+
+		self.transport.set_timeout(timeout).map_err(ReadError::Io)?;
 
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -257,19 +258,8 @@ where
 				}
 			}
 
-			let timeout = match deadline.checked_duration_since(Instant::now()) {
-				Some(x) => x,
-				None => {
-					trace!(
-						"timeout reading status response, data in buffer: {:02X?}",
-						&self.read_buffer.as_ref()[..self.read_len]
-					);
-					return Err(ReadError::Timeout);
-				},
-			};
-
 			// Try to read more data into the buffer.
-			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], timeout)?;
+			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
 			if new_data == 0 {
 				continue;
 			}
@@ -315,7 +305,7 @@ where
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
 		let timeout = message_transfer_time(message_size, self.baud_rate) + Duration::from_millis(34);
-		self.read_status_response_deadline(Instant::now() + timeout)
+		self.read_status_response_timeout(timeout)
 	}
 }
 
