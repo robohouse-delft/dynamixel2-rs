@@ -3,8 +3,9 @@ use crate::endian::write_u16_le;
 use crate::transport::Transport;
 use crate::{Bus, ReadError, Response, WriteError};
 
+use crate::packet::Packet;
 #[cfg(feature = "alloc")]
-use alloc::{vec::Vec, borrow::ToOwned};
+use alloc::{borrow::ToOwned, vec::Vec};
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
