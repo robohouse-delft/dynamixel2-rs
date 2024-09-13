@@ -1,6 +1,6 @@
 use crate::instructions::InstructionId;
 use crate::messaging::Messenger;
-use crate::{Bus, ReadError, Transport, WriteError};
+use crate::{ReadError, Transport, WriteError};
 use core::time::Duration;
 use std::path::Path;
 

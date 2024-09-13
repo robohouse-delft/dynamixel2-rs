@@ -1,3 +1,5 @@
+//! Endianness conversion functions.
+
 /// Write a u8 to a buffer in little endian format.
 ///
 /// Although endianness has no meaning for single-byte values,
