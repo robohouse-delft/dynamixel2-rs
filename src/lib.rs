@@ -22,6 +22,11 @@
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
+
 #[macro_use]
 mod log;
 
@@ -35,8 +40,8 @@ mod bus;
 pub use bus::*;
 
 mod error;
+pub mod transport;
+
+pub use transport::Transport;
+
 pub use error::*;
-
-
-/// Re-exported `serial2` crate in case you need to modify serial port settings.
-pub use serial2;

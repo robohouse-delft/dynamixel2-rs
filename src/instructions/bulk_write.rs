@@ -1,11 +1,13 @@
 use super::{instruction_id, packet_id, BulkWriteData};
 use crate::endian::{write_u16_le, write_u8_le};
+use crate::transport::Transport;
 use crate::{Bus, WriteError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	T: Transport,
 {
 	/// Synchronously write arbitrary data ranges to multiple motors.
 	///
@@ -46,14 +48,14 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn bulk_write<'a, I, T>(&mut self, writes: &'a I) -> Result<(), WriteError>
+	pub fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<T::Error>>
 	where
 		&'a I: IntoIterator,
 		<&'a I as IntoIterator>::IntoIter: Clone,
-		<&'a I as IntoIterator>::Item: std::borrow::Borrow<BulkWriteData<T>>,
-		T: AsRef<[u8]>,
+		<&'a I as IntoIterator>::Item: core::borrow::Borrow<BulkWriteData<D>>,
+		D: AsRef<[u8]>,
 	{
-		use std::borrow::Borrow;
+		use core::borrow::Borrow;
 
 		let writes = writes.into_iter();
 		let mut parameter_count = 0;
@@ -91,11 +93,13 @@ where
 mod tests {
 	use super::*;
 
+	type Bus = crate::Bus<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port>;
+
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_slice(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_slice(bus: &mut Bus) -> Result<(), Box<dyn std::error::Error>> {
 		bus.bulk_write(&[
 			BulkWriteData {
 				motor_id: 1,
@@ -115,7 +119,7 @@ mod tests {
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_vec_ref(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_vec_ref(bus: &mut Bus) -> Result<(), Box<dyn std::error::Error>> {
 		bus.bulk_write(&vec![
 			BulkWriteData {
 				motor_id: 1,
@@ -135,7 +139,9 @@ mod tests {
 	///
 	/// This is a compile test. It only tests that the test code compiles.
 	#[allow(dead_code)]
-	fn bulk_write_accepts_vec_ref_no_clone(bus: &mut Bus<Vec<u8>, Vec<u8>>) -> Result<(), Box<dyn std::error::Error>> {
+	fn bulk_write_accepts_vec_ref_no_clone(
+		bus: &mut Bus,
+	) -> Result<(), Box<dyn std::error::Error>> {
 		/// Non-clonable wrapper around `&[u8]` to ensure `bulk_write` doesn't clone data from vec references.
 		struct Data<'a> {
 			data: &'a [u8],
@@ -149,9 +155,7 @@ mod tests {
 
 		impl<'a> Data<'a> {
 			fn new<const N: usize>(data: &'a [u8; N]) -> Self {
-				Self {
-					data: data.as_slice(),
-				}
+				Self { data: data.as_slice() }
 			}
 		}
 

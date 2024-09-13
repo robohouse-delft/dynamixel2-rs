@@ -1,5 +1,6 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
+use dynamixel2::transport::serial2::Serial2Port;
 
 mod logging;
 mod options;
@@ -151,7 +152,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> {
+fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>, Serial2Port>, ()> {
 	let bus = dynamixel2::Bus::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
@@ -159,7 +160,7 @@ fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>>, ()> 
 		options.serial_port.display(),
 		options.baud_rate
 	);
-	log::trace!("{:#?}", bus);
+	// log::trace!("{:#?}", bus);
 	Ok(bus)
 }
 

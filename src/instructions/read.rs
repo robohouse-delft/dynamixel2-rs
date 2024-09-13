@@ -1,14 +1,19 @@
 use super::instruction_id;
 use crate::endian::write_u16_le;
+use crate::transport::Transport;
 use crate::{bus::StatusPacket, Bus, Response, TransferError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	T: Transport,
 {
 	/// Read an arbitrary number of bytes from multiple motors.
-	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError> {
+	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError<T::Error>> {
 		let response = self.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
@@ -21,7 +26,8 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Vec<u8>>, TransferError> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Vec<u8>>, TransferError<T::Error>> {
 		let response = self.read_raw(motor_id, address, count)?;
 		Ok(response.into())
 	}
@@ -30,7 +36,7 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<Response<u8>, TransferError> {
+	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<Response<u8>, TransferError<T::Error>> {
 		let response = self.read_raw(motor_id, address, 1)?;
 		Ok(response.try_into()?)
 	}
@@ -39,7 +45,7 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<Response<u16>, TransferError> {
+	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<Response<u16>, TransferError<T::Error>> {
 		let response = self.read_raw(motor_id, address, 2)?;
 		Ok(response.try_into()?)
 	}
@@ -48,7 +54,7 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<Response<u32>, TransferError> {
+	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<Response<u32>, TransferError<T::Error>> {
 		let response = self.read_raw(motor_id, address, 4)?;
 		Ok(response.try_into()?)
 	}

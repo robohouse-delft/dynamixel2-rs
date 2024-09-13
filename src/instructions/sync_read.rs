@@ -1,19 +1,30 @@
 use super::{instruction_id, packet_id};
 use crate::endian::write_u16_le;
-use crate::{Bus, ReadError, Response, TransferError, WriteError};
+use crate::transport::Transport;
+use crate::{Bus, ReadError, Response, WriteError};
 
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer>
+#[cfg(feature = "alloc")]
+use alloc::{vec::Vec, borrow::ToOwned};
+
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	T: Transport,
 {
 	/// Synchronously read an arbitrary number of bytes from multiple motors in one command.
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16, mut on_response: F) -> Result<(), WriteError>
+	pub fn sync_read_cb<'a, F>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+		mut on_response: F,
+	) -> Result<(), WriteError<T::Error>>
 	where
-		F: FnMut(Result<Response<&[u8]>, ReadError>),
+		F: FnMut(Result<Response<&[u8]>, ReadError<T::Error>>),
 	{
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
@@ -39,9 +50,9 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u8_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError>
+	pub fn sync_read_u8_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<T::Error>>
 	where
-		F: FnMut(Result<Response<u8>, ReadError>),
+		F: FnMut(Result<Response<u8>, ReadError<T::Error>>),
 	{
 		let count = 1;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
@@ -63,9 +74,9 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u16_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError>
+	pub fn sync_read_u16_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<T::Error>>
 	where
-		F: FnMut(Result<Response<u16>, ReadError>),
+		F: FnMut(Result<Response<u16>, ReadError<T::Error>>),
 	{
 		let count = 2;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
@@ -87,9 +98,9 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u32_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError>
+	pub fn sync_read_u32_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<T::Error>>
 	where
-		F: FnMut(Result<Response<u32>, ReadError>),
+		F: FnMut(Result<Response<u32>, ReadError<T::Error>>),
 	{
 		let count = 4;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
@@ -112,7 +123,13 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_cb`].
-	pub fn sync_read<'a>(&'a mut self, motor_ids: &'a [u8], address: u16, count: u16) -> Result<Vec<Response<Vec<u8>>>, TransferError> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn sync_read<'a>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+	) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<T::Error>> {
 		let mut result = Vec::with_capacity(motor_ids.len());
 		let mut read_error = None;
 		self.sync_read_cb(motor_ids, address, count, |data| match data {
@@ -131,7 +148,8 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u8_cb`].
-	pub fn sync_read_u8<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u8>>, TransferError> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn sync_read_u8<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u8>>, crate::TransferError<T::Error>> {
 		let mut result = Vec::with_capacity(motor_ids.len());
 		let mut read_error = None;
 		self.sync_read_u8_cb(motor_ids, address, |data| match data {
@@ -146,7 +164,8 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u16_cb`].
-	pub fn sync_read_u16<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u16>>, TransferError> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn sync_read_u16<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u16>>, crate::TransferError<T::Error>> {
 		let mut result = Vec::with_capacity(motor_ids.len());
 		let mut read_error = None;
 		self.sync_read_u16_cb(motor_ids, address, |data| match data {
@@ -161,7 +180,8 @@ where
 	///
 	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
 	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u32_cb`].
-	pub fn sync_read_u32<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u32>>, TransferError> {
+	#[cfg(any(feature = "alloc", feature = "std"))]
+	pub fn sync_read_u32<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u32>>, crate::TransferError<T::Error>> {
 		let mut result = Vec::with_capacity(motor_ids.len());
 		let mut read_error = None;
 		self.sync_read_u32_cb(motor_ids, address, |data| match data {

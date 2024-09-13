@@ -1,36 +1,37 @@
 use crate::instructions::packet_id::BROADCAST;
+use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 /// An error that can occur while initializing a bus.
 #[derive(Debug)]
-pub enum InitializeError {
+pub enum InitializeError<E> {
 	/// Failed to get the configuration of the serial port.
-	GetConfiguration(std::io::Error),
+	GetConfiguration(E),
 
 	/// Failed to get the baud rate from the configuration of the serial port.
-	GetBaudRate(std::io::Error),
+	GetBaudRate(E),
 }
 
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
-pub enum TransferError {
+pub enum TransferError<E> {
 	/// The write of failed.
-	WriteError(WriteError),
+	WriteError(WriteError<E>),
 
 	/// The read failed.
-	ReadError(ReadError),
+	ReadError(ReadError<E>),
 }
 
 /// An error that can occur during a write transfer.
 #[derive(Debug)]
-pub enum WriteError {
+pub enum WriteError<E> {
 	/// The write buffer is too small to contain the whole stuffed message.
 	BufferTooSmall(BufferTooSmallError),
 
 	/// Failed to discard the input buffer before writing the instruction.
-	DiscardBuffer(std::io::Error),
+	DiscardBuffer(E),
 
 	/// Failed to write the instruction.
-	Write(std::io::Error),
+	Write(E),
 }
 
 /// The buffer is too small to hold the entire message.
@@ -48,12 +49,15 @@ pub struct BufferTooSmallError {
 
 /// An error that can occur during a read transfer.
 #[derive(Debug)]
-pub enum ReadError {
+pub enum ReadError<E> {
 	/// The read buffer is too small to contain the whole stuffed message.
 	BufferFull(BufferTooSmallError),
 
 	/// Failed to read from the serial port.
-	Io(std::io::Error),
+	Io(E),
+
+	/// A timeout occurred while waiting for a response.
+	Timeout,
 
 	/// The received message is invalid.
 	InvalidMessage(InvalidMessage),
@@ -112,8 +116,8 @@ impl MotorError {
 	}
 }
 
-impl std::fmt::Debug for MotorError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl Debug for MotorError {
+	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 		f.debug_struct("MotorError")
 			.field("error_number", &self.error_number())
 			.field("alert", &self.alert())
@@ -282,127 +286,128 @@ impl InvalidParameterCount {
 	}
 }
 
-impl std::error::Error for InitializeError {}
-impl std::error::Error for TransferError {}
-impl std::error::Error for WriteError {}
-impl std::error::Error for ReadError {}
+#[cfg(feature = "std")]
+impl<E: Debug + Display> std::error::Error for InitializeError<E> {}
+#[cfg(feature = "std")]
+impl<E: Debug + Display> std::error::Error for TransferError<E> {}
+#[cfg(feature = "std")]
+impl<E: Debug + Display> std::error::Error for WriteError<E> {}
+#[cfg(feature = "std")]
+impl<E: Debug + Display> std::error::Error for ReadError<E> {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidMessage {}
+#[cfg(feature = "std")]
 impl std::error::Error for MotorError {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidHeaderPrefix {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidChecksum {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidPacketId {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidInstruction {}
+#[cfg(feature = "std")]
 impl std::error::Error for InvalidParameterCount {}
 
-impl From<WriteError> for TransferError {
-	fn from(other: WriteError) -> Self {
+impl<E> From<WriteError<E>> for TransferError<E>
+{
+	fn from(other: WriteError<E>) -> Self {
 		Self::WriteError(other)
 	}
 }
 
-impl From<ReadError> for TransferError {
-	fn from(other: ReadError) -> Self {
+impl<E> From<ReadError<E>> for TransferError<E>
+{
+	fn from(other: ReadError<E>) -> Self {
 		Self::ReadError(other)
 	}
 }
 
-impl From<InvalidMessage> for TransferError {
+impl<E> From<InvalidMessage> for TransferError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<InvalidHeaderPrefix> for TransferError {
+impl<E> From<InvalidHeaderPrefix> for TransferError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<InvalidChecksum> for TransferError {
+impl<E> From<InvalidChecksum> for TransferError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<InvalidPacketId> for TransferError {
+impl<E> From<InvalidPacketId> for TransferError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<InvalidInstruction> for TransferError {
+impl<E> From<InvalidInstruction> for TransferError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<InvalidParameterCount> for TransferError {
+impl<E> From<InvalidParameterCount> for TransferError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::ReadError(other.into())
 	}
 }
 
-impl From<BufferTooSmallError> for WriteError {
+impl<E> From<BufferTooSmallError> for WriteError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferTooSmall(other)
 	}
 }
 
-impl From<BufferTooSmallError> for ReadError {
+impl<E> From<BufferTooSmallError> for ReadError<E> {
 	fn from(other: BufferTooSmallError) -> Self {
 		Self::BufferFull(other)
 	}
 }
 
-impl From<std::io::Error> for ReadError {
-	fn from(other: std::io::Error) -> Self {
-		Self::Io(other)
-	}
-}
-
-impl From<std::io::ErrorKind> for ReadError {
-	fn from(other: std::io::ErrorKind) -> Self {
-		Self::Io(other.into())
-	}
-}
-
-impl From<InvalidMessage> for ReadError {
+impl<E> From<InvalidMessage> for ReadError<E> {
 	fn from(other: InvalidMessage) -> Self {
 		Self::InvalidMessage(other)
 	}
 }
 
-impl From<MotorError> for ReadError {
+impl<E> From<MotorError> for ReadError<E> {
 	fn from(other: MotorError) -> Self {
 		Self::MotorError(other)
 	}
 }
 
-impl From<InvalidHeaderPrefix> for ReadError {
+impl<E> From<InvalidHeaderPrefix> for ReadError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidChecksum> for ReadError {
+impl<E> From<InvalidChecksum> for ReadError<E> {
 	fn from(other: InvalidChecksum) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidPacketId> for ReadError {
+impl<E> From<InvalidPacketId> for ReadError<E> {
 	fn from(other: InvalidPacketId) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidInstruction> for ReadError {
+impl<E> From<InvalidInstruction> for ReadError<E> {
 	fn from(other: InvalidInstruction) -> Self {
 		Self::InvalidMessage(other.into())
 	}
 }
 
-impl From<InvalidParameterCount> for ReadError {
+impl<E> From<InvalidParameterCount> for ReadError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidMessage(other.into())
 	}
@@ -438,8 +443,11 @@ impl From<InvalidParameterCount> for InvalidMessage {
 	}
 }
 
-impl std::fmt::Display for InitializeError {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<E> Display for InitializeError<E>
+where
+	E: Display,
+{
+	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
 		match self {
 			Self::GetConfiguration(e) => write!(f, "failed to get configuration of serial port: {e}"),
 			Self::GetBaudRate(e) => write!(f, "failed to get baud rate of serial port: {e}"),
@@ -447,8 +455,11 @@ impl std::fmt::Display for InitializeError {
 	}
 }
 
-impl std::fmt::Display for TransferError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<E> Display for TransferError<E>
+where
+	E: Display,
+{
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		match self {
 			Self::WriteError(e) => write!(f, "{}", e),
 			Self::ReadError(e) => write!(f, "{}", e),
@@ -456,8 +467,11 @@ impl std::fmt::Display for TransferError {
 	}
 }
 
-impl std::fmt::Display for WriteError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<E> Display for WriteError<E>
+where
+	E: Display,
+{
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		match self {
 			Self::BufferTooSmall(e) => write!(
 				f,
@@ -470,8 +484,8 @@ impl std::fmt::Display for WriteError {
 	}
 }
 
-impl std::fmt::Display for BufferTooSmallError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for BufferTooSmallError {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
 			"buffer is too small: need {} bytes, but the size is {}",
@@ -480,8 +494,11 @@ impl std::fmt::Display for BufferTooSmallError {
 	}
 }
 
-impl std::fmt::Display for ReadError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl<E> Display for ReadError<E>
+where
+	E: Display,
+{
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		match self {
 			Self::BufferFull(e) => write!(
 				f,
@@ -489,14 +506,15 @@ impl std::fmt::Display for ReadError {
 				e.required_size, e.total_size
 			),
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
+			Self::Timeout => write!(f, "timeout while waiting for response"),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),
 		}
 	}
 }
 
-impl std::fmt::Display for InvalidMessage {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidMessage {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		match self {
 			Self::InvalidHeaderPrefix(e) => write!(f, "{}", e),
 			Self::InvalidChecksum(e) => write!(f, "{}", e),
@@ -507,14 +525,14 @@ impl std::fmt::Display for InvalidMessage {
 	}
 }
 
-impl std::fmt::Display for MotorError {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for MotorError {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(f, "motor reported error status: {:#02X}", self.raw,)
 	}
 }
 
-impl std::fmt::Display for InvalidHeaderPrefix {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidHeaderPrefix {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
 			"invalid header prefix, expected {:02X?}, got {:02X?}",
@@ -523,8 +541,8 @@ impl std::fmt::Display for InvalidHeaderPrefix {
 	}
 }
 
-impl std::fmt::Display for InvalidChecksum {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidChecksum {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
 			"invalid checksum, message claims {:#02X}, computed {:#02X}",
@@ -533,8 +551,8 @@ impl std::fmt::Display for InvalidChecksum {
 	}
 }
 
-impl std::fmt::Display for InvalidPacketId {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidPacketId {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		if let Some(expected) = self.expected {
 			write!(f, "invalid packet ID, expected {:#02X}, got {:#02X}", expected, self.actual)
 		} else {
@@ -543,8 +561,8 @@ impl std::fmt::Display for InvalidPacketId {
 	}
 }
 
-impl std::fmt::Display for InvalidInstruction {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidInstruction {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
 			"invalid instruction ID, expected {:#02X}, got {:#02X}",
@@ -553,8 +571,8 @@ impl std::fmt::Display for InvalidInstruction {
 	}
 }
 
-impl std::fmt::Display for ExpectedCount {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for ExpectedCount {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		match self {
 			Self::Exact(x) => write!(f, "exactly {}", x),
 			Self::Max(x) => write!(f, "at most {}", x),
@@ -562,8 +580,8 @@ impl std::fmt::Display for ExpectedCount {
 	}
 }
 
-impl std::fmt::Display for InvalidParameterCount {
-	fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+impl Display for InvalidParameterCount {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(f, "invalid parameter count, expected {}, got {}", self.expected, self.actual)
 	}
 }

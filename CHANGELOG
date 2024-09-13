@@ -1,3 +1,14 @@
+# Unreleased
+- [major][add] Added `Transport` trait. Used to abstract the serial port.
+- [major][add] Added `Serial2Port` struct, implementing the `Transport` trait for the `serial2` crate.
+- [major][add] Added `std` and `serial2` as default features
+- [major][add] Added `alloc` as a feature.
+- [major][add] Added feature gates for `std`, `alloc` and `serial2`.
+- [major][change] Changed `Bus` to be generic over `Transport`
+- [major][change] Changed errors types to be generic over `Transport::Error`
+- [major][change] Moved `crate::serial2` re-export to `crate::transport::serial2::serial2`.
+- [minor][change] Changed `Bus::read_status_response_deadline()` to `Bus::read_status_response_timeout()`, which takes a `Duration` instead of an `Instant`.
+
 # Version 0.9.1 - 2024-07-31
 - [minor][add] Add missing `Error` impl for `InitializeError`.
 
