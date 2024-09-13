@@ -1,7 +1,8 @@
 use crate::instructions::InstructionId;
 use crate::messaging::Messenger;
-use crate::{ReadError, Transport, WriteError};
+use crate::{Bus, ReadError, Transport, WriteError};
 use core::time::Duration;
+use std::path::Path;
 
 /// Dynamixel [`Device`] for communicating with a [`Bus`].
 pub struct Device<ReadBuffer, WriteBuffer, T: Transport> {
@@ -17,6 +18,52 @@ where
 			.field("transport", &self.messenger.transport)
 			.field("baud_rate", &self.messenger.baud_rate)
 			.finish_non_exhaustive()
+	}
+}
+
+#[cfg(feature = "serial2")]
+impl Device<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
+	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
+		let port = serial2::SerialPort::open(path, baud_rate)?;
+		let messenger = Messenger::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate);
+		Ok(Self { messenger })
+	}
+
+	/// Create a new bus for an open serial port.
+	///
+	/// The serial port must already be configured in raw mode with the correct baud rate,
+	/// character size (8), parity (disabled) and stop bits (1).
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
+	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError<std::io::Error>> {
+		let messenger = Messenger::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
+		Ok(Self { messenger })
+	}
+}
+
+#[cfg(feature = "serial2")]
+impl<ReadBuffer, WriteBuffer> Device<ReadBuffer, WriteBuffer, crate::transport::serial2::Serial2Port>
+where
+	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
+	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	pub fn open_with_buffers(
+		path: impl AsRef<Path>,
+		baud_rate: u32,
+		read_buffer: ReadBuffer,
+		write_buffer: WriteBuffer,
+	) -> std::io::Result<Self> {
+		let port = serial2::SerialPort::open(path, baud_rate)?;
+		let messenger = Messenger::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate);
+		Ok(Self { messenger })
 	}
 }
 impl<ReadBuffer, WriteBuffer, T> Device<ReadBuffer, WriteBuffer, T>

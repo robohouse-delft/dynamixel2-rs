@@ -45,7 +45,7 @@ where
 	}
 
 	/// Create a new bus using pre-allocated buffers.
-	pub(crate) fn with_buffers_and_baud_rate(
+	pub fn with_buffers_and_baud_rate(
 		transport: impl Into<T>,
 		read_buffer: ReadBuffer,
 		mut write_buffer: WriteBuffer,

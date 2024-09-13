@@ -8,6 +8,11 @@
 - [major][change] Changed errors types to be generic over `Transport::Error`
 - [major][change] Moved `crate::serial2` re-export to `crate::transport::serial2::serial2`.
 - [minor][change] Changed `Bus::read_status_response_deadline()` to `Bus::read_status_response_timeout()`, which takes a `Duration` instead of an `Instant`.
+- [major][add] Added `Packet` trait for shared functionality between `InstructionPacket` and `StatusPacket`.
+- [major][add] Added `messaging::Messenger` struct to handle low level communication.
+- [major][change] Changed `Bus` to use `Messenger` for low level communication.
+- [major][add] Added `MockSerialPort` and integration tests between `Bus` and `Device`.
+- [major][add] Added `InstructionId` enum.
 
 # Version 0.9.1 - 2024-07-31
 - [minor][add] Add missing `Error` impl for `InitializeError`.
