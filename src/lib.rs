@@ -33,7 +33,7 @@ pub mod checksum;
 pub mod instructions;
 
 mod bytestuff;
-pub mod endian;
+mod endian;
 
 mod bus;
 pub use bus::*;

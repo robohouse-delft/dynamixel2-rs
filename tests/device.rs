@@ -1,7 +1,6 @@
 mod mock_transport;
 
 use crate::mock_transport::MockSerialPort;
-use dynamixel2::endian::read_u16_le;
 use dynamixel2::instructions::InstructionId;
 use dynamixel2::{Bus, Device, Packet, ReadError, TransferError, Transport};
 use log::{info, trace};
@@ -89,8 +88,8 @@ fn test_packet_response() {
 					InstructionId::Ping => {},
 					InstructionId::Read => {
 						let parameters = packet.parameters();
-						let address = read_u16_le(&parameters[..2]);
-						let length = read_u16_le(&parameters[2..]);
+						let address = u16::from_le_bytes(parameters[..2].try_into().unwrap());
+						let length = u16::from_le_bytes(parameters[2..4].try_into().unwrap());
 						if let Some(data) = control_table.read(address, length) {
 							device.write_status(DEVICE_ID, 0, length as usize, |buffer| {
 								buffer.copy_from_slice(data);
@@ -101,7 +100,7 @@ fn test_packet_response() {
 					},
 					InstructionId::Write => {
 						let parameters = packet.parameters();
-						let address = read_u16_le(&parameters[..2]);
+						let address = u16::from_le_bytes(parameters[..2].try_into().unwrap());
 						let data = &parameters[2..];
 						if control_table.write(address, data) {
 							device.write_status_ok(DEVICE_ID)?;
