@@ -12,7 +12,8 @@
 - [major][add] Added `messaging::Messenger` struct to handle low level communication.
 - [major][change] Changed `Bus` to use `Messenger` for low level communication.
 - [major][add] Added `MockSerialPort` and integration tests between `Bus` and `Device`.
-- [major][add] Added `InstructionId` enum.
+- [major][add] Added `Instruction` struct and `Instructions` enum for parsing received `InstructionPacket`s into.
+- [major][add] Added `ExpectedCount::Min` to check for a minimum number of parameters in a packet.
 
 # Version 0.9.1 - 2024-07-31
 - [minor][add] Add missing `Error` impl for `InitializeError`.

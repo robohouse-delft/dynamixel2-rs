@@ -1,8 +1,7 @@
 mod mock_transport;
 
 use crate::mock_transport::MockSerialPort;
-use dynamixel2::instructions::InstructionId;
-use dynamixel2::{Bus, Device, Packet, ReadError, TransferError, Transport};
+use dynamixel2::{Bus, Device, Instructions, ReadError, TransferError, Transport};
 use log::{info, trace};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
@@ -72,7 +71,7 @@ fn test_packet_response() {
 		move || {
 			let mut control_table = ControlTable::new(10);
 			while !kill_device.load(Relaxed) {
-				let res = device.read_instruction_packet_timeout(Duration::from_secs(1));
+				let res = device.read(Duration::from_secs(1));
 				let packet = match res {
 					Ok(p) => p,
 					Err(ReadError::Timeout) => continue,
@@ -80,16 +79,13 @@ fn test_packet_response() {
 						return Err(e.into());
 					},
 				};
-				let id = packet.packet_id();
+				let id = packet.id;
 				if id != DEVICE_ID {
 					continue;
 				}
-				match packet.instruction_id() {
-					InstructionId::Ping => {},
-					InstructionId::Read => {
-						let parameters = packet.parameters();
-						let address = u16::from_le_bytes(parameters[..2].try_into().unwrap());
-						let length = u16::from_le_bytes(parameters[2..4].try_into().unwrap());
+				match packet.instruction {
+					Instructions::Ping => {},
+					Instructions::Read { address, length } => {
 						if let Some(data) = control_table.read(address, length) {
 							device.write_status(DEVICE_ID, 0, length as usize, |buffer| {
 								buffer.copy_from_slice(data);
@@ -98,27 +94,14 @@ fn test_packet_response() {
 							device.write_status_error(DEVICE_ID, 0x07)?;
 						}
 					},
-					InstructionId::Write => {
-						let parameters = packet.parameters();
-						let address = u16::from_le_bytes(parameters[..2].try_into().unwrap());
-						let data = &parameters[2..];
-						if control_table.write(address, data) {
+					Instructions::Write { address, parameters } => {
+						if control_table.write(address, parameters) {
 							device.write_status_ok(DEVICE_ID)?;
 						} else {
 							device.write_status_error(DEVICE_ID, 0x07)?;
 						}
 					},
-					InstructionId::RegWrite => {},
-					InstructionId::Action => {},
-					InstructionId::FactoryReset => {},
-					InstructionId::Reboot => {},
-					InstructionId::Clear => {},
-					InstructionId::SyncRead => {},
-					InstructionId::SyncWrite => {},
-					InstructionId::BulkRead => {},
-					InstructionId::BulkWrite => {},
-					InstructionId::Status => {},
-					InstructionId::Unknown(_) => {},
+					i => todo!("impl {:?}", i),
 				}
 			}
 
