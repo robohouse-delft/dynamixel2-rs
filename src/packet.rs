@@ -1,5 +1,4 @@
 use crate::device::InstructionPacket;
-use crate::instructions::InstructionId;
 use crate::StatusPacket;
 
 pub const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
@@ -29,8 +28,8 @@ pub trait Packet<'a> {
 	}
 
 	/// The instruction ID of the response.
-	fn instruction_id(&'a self) -> InstructionId {
-		self.as_bytes()[7].into()
+	fn instruction_id(&'a self) -> u8 {
+		self.as_bytes()[7]
 	}
 	/// The parameters of the response.
 	fn parameters(&'a self) -> &'a [u8] {

@@ -1,4 +1,4 @@
-use crate::instructions::InstructionId;
+use crate::instructions::instruction_id;
 use crate::messaging::Messenger;
 use crate::{ReadError, Transport, WriteError};
 use core::time::Duration;
@@ -143,7 +143,7 @@ where
 		F: FnOnce(&mut [u8]),
 	{
 		self.messenger
-			.write_status(packet_id, InstructionId::Status.into(), error, parameter_count, encode_parameters)
+			.write_status(packet_id, instruction_id::STATUS, error, parameter_count, encode_parameters)
 	}
 
 	/// Write an empty status message with an error code.

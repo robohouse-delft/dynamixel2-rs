@@ -1,5 +1,4 @@
 use crate::instructions::packet_id::BROADCAST;
-use crate::instructions::InstructionId;
 use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 /// An error that can occur while initializing a bus.
@@ -160,10 +159,10 @@ pub struct InvalidPacketId {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct InvalidInstruction {
 	/// The actual instruction ID.
-	pub actual: InstructionId,
+	pub actual: u8,
 
 	/// The expected instruction id.
-	pub expected: InstructionId,
+	pub expected: u8,
 }
 
 /// The expected number of parameters.
@@ -252,7 +251,7 @@ impl InvalidPacketId {
 
 impl InvalidInstruction {
 	/// Check if the instruction ID is the expected value.
-	pub fn check(actual: InstructionId, expected: InstructionId) -> Result<(), Self> {
+	pub fn check(actual: u8, expected: u8) -> Result<(), Self> {
 		if actual == expected {
 			Ok(())
 		} else {

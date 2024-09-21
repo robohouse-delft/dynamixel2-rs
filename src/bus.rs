@@ -8,7 +8,7 @@ use std::path::Path;
 
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
-use crate::instructions::InstructionId;
+use crate::instructions::instruction_id;
 use crate::messaging::Messenger;
 use crate::packet::{Packet, STATUS_HEADER_SIZE};
 
@@ -165,7 +165,7 @@ where
 	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<T::Error>> {
 		let response: StatusPacket = self.messenger.read_packet_response_timeout(timeout)?;
 
-		crate::InvalidInstruction::check(response.instruction_id(), InstructionId::Status)?;
+		crate::InvalidInstruction::check(response.instruction_id(), instruction_id::STATUS)?;
 		crate::MotorError::check(response.error())?;
 		Ok(response)
 	}
