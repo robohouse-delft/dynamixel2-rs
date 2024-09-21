@@ -32,7 +32,7 @@ impl Device<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
 		Ok(Self { messenger })
 	}
 
-	/// Create a new bus for an open serial port.
+	/// Create a new device for an open serial port.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
@@ -71,7 +71,7 @@ where
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	T: Transport,
 {
-	/// Create a new bus using pre-allocated buffers.
+	/// Create a new device using pre-allocated buffers.
 	pub fn with_buffers(
 		transport: impl Into<T>,
 		read_buffer: ReadBuffer,
@@ -83,23 +83,23 @@ where
 
 	/// Get a reference to the underlying [`Transport`].
 	///
-	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the bus,
+	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the device,
 	/// and may disrupt the communication with the motors.
-	/// In general, it should be safe to read and write to the bus manually in between instructions,
+	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
 	pub fn transport(&self) -> &T {
 		&self.messenger.transport
 	}
 
-	/// Consume this bus object to get ownership of the serial port.
+	/// Consume this device object to get ownership of the serial port.
 	///
-	/// This discards any data in internal the read buffer of the bus object.
+	/// This discards any data in internal the read buffer of the device object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_transport(self) -> T {
 		self.messenger.transport
 	}
 
-	/// Get the baud rate of the bus.
+	/// Get the baud rate of the device.
 	pub fn baud_rate(&self) -> u32 {
 		self.messenger.baud_rate
 	}
@@ -131,7 +131,7 @@ where
 	//     Ok(())
 	// }
 
-	/// Write a status message to the bus.
+	/// Write a status message to the device.
 	pub fn write_status<F>(
 		&mut self,
 		packet_id: u8,
