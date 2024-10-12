@@ -25,7 +25,7 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Device<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
+impl Device<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
@@ -50,7 +50,7 @@ impl Device<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
 }
 
 #[cfg(feature = "serial2")]
-impl<ReadBuffer, WriteBuffer> Device<ReadBuffer, WriteBuffer, crate::transport::serial2::Serial2Port>
+impl<ReadBuffer, WriteBuffer> Device<ReadBuffer, WriteBuffer, serial2::SerialPort>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,

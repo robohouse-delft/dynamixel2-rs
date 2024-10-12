@@ -93,7 +93,7 @@ where
 mod tests {
 	use super::*;
 
-	type Bus = crate::Bus<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port>;
+	type Bus = crate::Bus<Vec<u8>, Vec<u8>, serial2::SerialPort>;
 
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///

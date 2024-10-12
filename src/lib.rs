@@ -26,6 +26,10 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "serial2")]
+/// Public re-export of the serial2 crate.
+pub use serial2;
+
 #[macro_use]
 mod log;
 
