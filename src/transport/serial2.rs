@@ -1,6 +1,5 @@
 //! Serial port transport implementation using the `serial2` crate.
 
-use crate::ReadError;
 use std::time::{Duration, Instant};
 
 /// Re-exported `serial2` crate in case you need to modify serial port settings.
@@ -75,14 +74,11 @@ impl crate::Transport for Serial2Port {
 		self.port.discard_input_buffer()
 	}
 
-	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, ReadError<Self::Error>> {
-		let timeout = deadline.checked_duration_since(Instant::now()).ok_or(ReadError::Timeout)?;
-		self.port.set_read_timeout(timeout).map_err(ReadError::Io)?;
-		match self.port.read(buffer) {
-			Err(e) if e.kind() == std::io::ErrorKind::TimedOut => Err(ReadError::Timeout),
-			Err(e) => Err(ReadError::Io(e)),
-			Ok(count) => Ok(count),
-		}
+	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
+		let timeout = deadline.checked_duration_since(Instant::now())
+			.ok_or(std::io::ErrorKind::TimedOut)?;
+		self.port.set_read_timeout(timeout)?;
+		self.port.read(buffer)
 	}
 
 	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
@@ -91,5 +87,9 @@ impl crate::Transport for Serial2Port {
 
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant {
 		Instant::now() + timeout
+	}
+
+	fn is_timeout_error(error: &Self::Error) -> bool {
+		error.kind() == std::io::ErrorKind::TimedOut
 	}
 }

@@ -89,11 +89,13 @@ where
 					let response = response.try_into()?;
 					on_response(response);
 				},
-				Err(ReadError::Timeout) => {
+				Err(ReadError::Io(e)) if T::is_timeout_error(&e) => {
 					trace!("Ping response timed out.");
 					return Ok(());
 				},
-				Err(e) => return Err(e.into()),
+				Err(e) => {
+					return Err(e.into());
+				}
 			}
 		}
 	}

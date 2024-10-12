@@ -1,10 +1,9 @@
 //! The [`Transport`] trait is used to implementing the Dynamixel Protocol 2.0 communication interface.
 
+use core::time::Duration;
+
 #[cfg(feature = "serial2")]
 pub mod serial2;
-
-use crate::ReadError;
-use core::time::Duration;
 
 /// [`Transport`]s are used to communicate with the hardware via reading and writing data.
 ///
@@ -26,11 +25,14 @@ pub trait Transport {
 	fn discard_input_buffer(&mut self) -> Result<(), Self::Error>;
 
 	/// Returns available bytes to read, blocking until at least one byte is available or the deadline expires.
-	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, ReadError<Self::Error>>;
+	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error>;
 
 	/// Write all bytes in the buffer to the transport.
 	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error>;
 
 	/// Make a deadline to expire after the given timeout.
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant;
+
+	/// Check if an error indicates a timeout.
+	fn is_timeout_error(error: &Self::Error) -> bool;
 }

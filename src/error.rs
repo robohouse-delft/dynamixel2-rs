@@ -56,9 +56,6 @@ pub enum ReadError<E> {
 	/// Failed to read from the serial port.
 	Io(E),
 
-	/// A timeout occurred while waiting for a response.
-	Timeout,
-
 	/// The received message is invalid.
 	InvalidMessage(InvalidMessage),
 
@@ -521,7 +518,6 @@ where
 				e.required_size, e.total_size
 			),
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
-			Self::Timeout => write!(f, "timeout while waiting for response"),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),
 		}

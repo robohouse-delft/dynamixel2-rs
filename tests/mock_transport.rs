@@ -1,13 +1,13 @@
-use dynamixel2::{InitializeError, ReadError, Transport};
+use dynamixel2::Transport;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
+
 #[derive(Default, Clone)]
 pub struct MockSerialPort {
 	pub read_buffer: Arc<Mutex<VecDeque<u8>>>,
 	pub write_buffer: Arc<Mutex<VecDeque<u8>>>,
 	pub baud_rate: u32,
-	pub deadline: Option<Instant>,
 }
 
 impl MockSerialPort {
@@ -16,7 +16,6 @@ impl MockSerialPort {
 			read_buffer: Arc::new(Mutex::new(VecDeque::new())),
 			write_buffer: Arc::new(Mutex::new(VecDeque::new())),
 			baud_rate,
-			deadline: None,
 		}
 	}
 
@@ -25,34 +24,33 @@ impl MockSerialPort {
 			read_buffer: self.write_buffer.clone(),
 			write_buffer: self.read_buffer.clone(),
 			baud_rate: self.baud_rate,
-			deadline: self.deadline,
 		}
 	}
 }
 
 impl Transport for MockSerialPort {
-	type Error = ();
+	type Error = std::io::Error;
 
 	type Instant = std::time::Instant;
 
-	fn baud_rate(&self) -> Result<u32, InitializeError<()>> {
+	fn baud_rate(&self) -> Result<u32, InitializeError<Self::Error>> {
 		Ok(self.baud_rate)
 	}
 
-	fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), ()> {
+	fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Self::Error> {
 		self.baud_rate = baud_rate;
 		Ok(())
 	}
 
-	fn discard_input_buffer(&mut self) -> Result<(), ()> {
+	fn discard_input_buffer(&mut self) -> Result<(), Self::Error> {
 		self.read_buffer.lock().unwrap().clear();
 		Ok(())
 	}
 
-	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, ReadError<Self::Error>> {
+	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
 		let mut data = loop {
 			if Instant::now() > *deadline {
-				return Err(ReadError::Timeout);
+				return Err(std::io::ErrorKind::TimedOut.into());
 			}
 			if let Ok(data) = self.read_buffer.try_lock() {
 				break data;
@@ -63,7 +61,7 @@ impl Transport for MockSerialPort {
 		Ok(len)
 	}
 
-	fn write_all(&mut self, buffer: &[u8]) -> Result<(), ()> {
+	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
 		let mut data = self.write_buffer.lock().unwrap();
 		for &byte in buffer {
 			data.push_back(byte);
@@ -73,5 +71,9 @@ impl Transport for MockSerialPort {
 
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant {
 		Instant::now() + timeout
+	}
+
+	fn is_timeout_error(error: &Self::Error) -> bool {
+		error.kind() == std::io::ErrorKind::TimedOut
 	}
 }

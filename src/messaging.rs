@@ -168,7 +168,8 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)?;
+			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
+				.map_err(ReadError::Io)?;
 			if new_data == 0 {
 				continue;
 			}

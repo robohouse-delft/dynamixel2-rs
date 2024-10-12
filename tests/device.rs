@@ -74,7 +74,7 @@ fn test_packet_response() {
 				let res = device.read(Duration::from_secs(1));
 				let packet = match res {
 					Ok(p) => p,
-					Err(ReadError::Timeout) => continue,
+					Err(ReadError::Io(e)) if T::is_timeout_error(&e) => continue,
 					Err(e) => {
 						return Err(e.into());
 					},
