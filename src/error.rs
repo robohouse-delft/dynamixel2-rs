@@ -1,16 +1,6 @@
 use crate::instructions::packet_id::BROADCAST;
 use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
-/// An error that can occur while initializing a bus.
-#[derive(Debug)]
-pub enum InitializeError<E> {
-	/// Failed to get the configuration of the serial port.
-	GetConfiguration(E),
-
-	/// Failed to get the baud rate from the configuration of the serial port.
-	GetBaudRate(E),
-}
-
 /// An error that can occur during a read/write transfer.
 #[derive(Debug)]
 pub enum TransferError<E> {
@@ -55,9 +45,6 @@ pub enum ReadError<E> {
 
 	/// Failed to read from the serial port.
 	Io(E),
-
-	/// A timeout occurred while waiting for a response.
-	Timeout,
 
 	/// The received message is invalid.
 	InvalidMessage(InvalidMessage),
@@ -302,8 +289,6 @@ impl InvalidParameterCount {
 }
 
 #[cfg(feature = "std")]
-impl<E: Debug + Display> std::error::Error for InitializeError<E> {}
-#[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for TransferError<E> {}
 #[cfg(feature = "std")]
 impl<E: Debug + Display> std::error::Error for WriteError<E> {}
@@ -458,18 +443,6 @@ impl From<InvalidParameterCount> for InvalidMessage {
 	}
 }
 
-impl<E> Display for InitializeError<E>
-where
-	E: Display,
-{
-	fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-		match self {
-			Self::GetConfiguration(e) => write!(f, "failed to get configuration of serial port: {e}"),
-			Self::GetBaudRate(e) => write!(f, "failed to get baud rate of serial port: {e}"),
-		}
-	}
-}
-
 impl<E> Display for TransferError<E>
 where
 	E: Display,
@@ -521,7 +494,6 @@ where
 				e.required_size, e.total_size
 			),
 			Self::Io(e) => write!(f, "failed to read from serial port: {}", e),
-			Self::Timeout => write!(f, "timeout while waiting for response"),
 			Self::InvalidMessage(e) => write!(f, "{}", e),
 			Self::MotorError(e) => write!(f, "{}", e),
 		}

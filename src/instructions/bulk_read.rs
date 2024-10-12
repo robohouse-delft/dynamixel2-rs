@@ -1,6 +1,6 @@
 use super::{instruction_id, packet_id, BulkReadData};
 use crate::endian::{write_u16_le, write_u8_le};
-use crate::transport::Transport;
+use crate::serial_port::SerialPort;
 use crate::{Bus, ReadError, Response, WriteError};
 
 #[cfg(feature = "alloc")]
@@ -11,7 +11,7 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Synchronously read arbitrary data ranges from multiple motors in one command.
 	///
