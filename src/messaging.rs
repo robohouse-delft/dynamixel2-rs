@@ -145,7 +145,7 @@ where
 		// Check that the read buffer is large enough to hold atleast a status packet header.
 		crate::error::BufferTooSmallError::check(P::HEADER_SIZE, self.read_buffer.as_mut().len())?;
 
-		self.transport.set_timeout(timeout).map_err(ReadError::Io)?;
+		let deadline = self.transport.make_deadline(timeout);
 
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -168,7 +168,7 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..])?;
+			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)?;
 			if new_data == 0 {
 				continue;
 			}

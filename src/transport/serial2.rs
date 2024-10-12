@@ -10,8 +10,6 @@ pub use serial2;
 pub struct Serial2Port {
 	/// The serial port.
 	pub port: serial2::SerialPort,
-	/// The deadline for the next read operation.
-	pub deadline: Option<Instant>,
 }
 
 impl Serial2Port {
@@ -19,7 +17,6 @@ impl Serial2Port {
 	pub fn new(port: serial2::SerialPort) -> Self {
 		Self {
 			port,
-			deadline: None,
 		}
 	}
 }
@@ -58,6 +55,8 @@ impl core::fmt::Debug for Serial2Port {
 impl crate::Transport for Serial2Port {
 	type Error = std::io::Error;
 
+	type Instant = std::time::Instant;
+
 	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>> {
 		self.port.get_configuration()
 			.map_err(crate::InitializeError::GetConfiguration)?
@@ -76,13 +75,8 @@ impl crate::Transport for Serial2Port {
 		self.port.discard_input_buffer()
 	}
 
-	fn set_timeout(&mut self, timeout: Duration) -> Result<(), Self::Error> {
-		self.deadline = Some(Instant::now() + timeout);
-		Ok(())
-	}
-
-	fn read(&mut self, buffer: &mut [u8]) -> Result<usize, ReadError<Self::Error>> {
-		let timeout = self.deadline.ok_or(ReadError::Timeout)?.checked_duration_since(Instant::now()).ok_or(ReadError::Timeout)?;
+	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, ReadError<Self::Error>> {
+		let timeout = deadline.checked_duration_since(Instant::now()).ok_or(ReadError::Timeout)?;
 		self.port.set_read_timeout(timeout).map_err(ReadError::Io)?;
 		match self.port.read(buffer) {
 			Err(e) if e.kind() == std::io::ErrorKind::TimedOut => Err(ReadError::Timeout),
@@ -93,5 +87,9 @@ impl crate::Transport for Serial2Port {
 
 	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
 		self.port.write_all(buffer)
+	}
+
+	fn make_deadline(&self, timeout: Duration) -> Self::Instant {
+		Instant::now() + timeout
 	}
 }

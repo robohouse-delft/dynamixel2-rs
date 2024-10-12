@@ -33,6 +33,8 @@ impl MockSerialPort {
 impl Transport for MockSerialPort {
 	type Error = ();
 
+	type Instant = std::time::Instant;
+
 	fn baud_rate(&self) -> Result<u32, InitializeError<()>> {
 		Ok(self.baud_rate)
 	}
@@ -47,15 +49,9 @@ impl Transport for MockSerialPort {
 		Ok(())
 	}
 
-	fn set_timeout(&mut self, timeout: Duration) -> Result<(), Self::Error> {
-		self.deadline = Some(Instant::now() + timeout);
-		Ok(())
-	}
-
-	fn read(&mut self, buffer: &mut [u8]) -> Result<usize, ReadError<Self::Error>> {
-		let deadline = self.deadline.ok_or(ReadError::Timeout)?;
+	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, ReadError<Self::Error>> {
 		let mut data = loop {
-			if Instant::now() > deadline {
+			if Instant::now() > *deadline {
 				return Err(ReadError::Timeout);
 			}
 			if let Ok(data) = self.read_buffer.try_lock() {
@@ -73,5 +69,9 @@ impl Transport for MockSerialPort {
 			data.push_back(byte);
 		}
 		Ok(())
+	}
+
+	fn make_deadline(&self, timeout: Duration) -> Self::Instant {
+		Instant::now() + timeout
 	}
 }
