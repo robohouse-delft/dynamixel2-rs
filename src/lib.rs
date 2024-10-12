@@ -36,20 +36,21 @@ mod log;
 pub mod checksum;
 pub mod instructions;
 
-mod bytestuff;
-mod endian;
-
 mod bus;
 pub use bus::*;
 
 mod device;
-mod error;
-pub mod transport;
 pub use device::*;
+
+mod serial_port;
+pub use serial_port::SerialPort;
+
+mod error;
+pub use error::*;
+
 mod packet;
 pub use packet::Packet;
+
+mod bytestuff;
+mod endian;
 mod messaging;
-
-pub use transport::Transport;
-
-pub use error::*;

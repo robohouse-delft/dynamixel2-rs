@@ -1,12 +1,12 @@
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, write_u16_le};
 use crate::packet::{Packet, HEADER_PREFIX, INSTRUCTION_HEADER_SIZE, STATUS_HEADER_SIZE};
-use crate::{bytestuff, ReadError, Transport, WriteError};
+use crate::{bytestuff, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
 pub struct Messenger<ReadBuffer, WriteBuffer, T> {
 	/// The underlying stream (normally a serial port).
-	pub(crate) transport: T,
+	pub(crate) serial_port: T,
 
 	/// The baud rate of the serial port, if known.
 	pub(crate) baud_rate: u32,
@@ -28,25 +28,25 @@ impl<ReadBuffer, WriteBuffer, T> Messenger<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Create a new [`Messenger`] using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
 	pub fn with_buffers(
-		transport: impl Into<T>,
+		serial_port: impl Into<T>,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
-		let transport = transport.into();
-		let baud_rate = transport.baud_rate()?;
-		Ok(Self::with_buffers_and_baud_rate(transport, read_buffer, write_buffer, baud_rate))
+		let serial_port = serial_port.into();
+		let baud_rate = serial_port.baud_rate()?;
+		Ok(Self::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate))
 	}
 
 	/// Create a new bus using pre-allocated buffers.
 	pub fn with_buffers_and_baud_rate(
-		transport: impl Into<T>,
+		serial_port: impl Into<T>,
 		read_buffer: ReadBuffer,
 		mut write_buffer: WriteBuffer,
 		baud_rate: u32,
@@ -57,7 +57,7 @@ where
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
-			transport: transport.into(),
+			serial_port: serial_port.into(),
 			baud_rate,
 			read_buffer,
 			read_len: 0,
@@ -68,7 +68,7 @@ where
 
 	/// Set the baud rate of the underlying serial port.
 	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), T::Error> {
-		self.transport.set_baud_rate(baud_rate)?;
+		self.serial_port.set_baud_rate(baud_rate)?;
 		self.baud_rate = baud_rate;
 		Ok(())
 	}
@@ -131,12 +131,12 @@ where
 		// and read() can potentially read more than one reply per syscall.
 		self.read_len = 0;
 		self.used_bytes = 0;
-		self.transport.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
+		self.serial_port.discard_input_buffer().map_err(WriteError::DiscardBuffer)?;
 
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
 		trace!("sending instruction: {:02X?}", stuffed_message);
-		self.transport.write_all(stuffed_message).map_err(WriteError::Write)?;
+		self.serial_port.write_all(stuffed_message).map_err(WriteError::Write)?;
 		Ok(())
 	}
 
@@ -145,7 +145,7 @@ where
 		// Check that the read buffer is large enough to hold atleast a status packet header.
 		crate::error::BufferTooSmallError::check(P::HEADER_SIZE, self.read_buffer.as_mut().len())?;
 
-		let deadline = self.transport.make_deadline(timeout);
+		let deadline = self.serial_port.make_deadline(timeout);
 
 		let stuffed_message_len = loop {
 			self.remove_garbage();
@@ -168,7 +168,7 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self.transport.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
+			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
 				.map_err(ReadError::Io)?;
 			if new_data == 0 {
 				continue;
@@ -211,7 +211,7 @@ impl<ReadBuffer, WriteBuffer, T> Messenger<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {

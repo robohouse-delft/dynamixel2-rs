@@ -1,6 +1,6 @@
 use core::time::Duration;
 use crate::endian::{read_u16_le, read_u32_le, read_u8_le};
-use crate::transport::Transport;
+use crate::serial_port::SerialPort;
 use crate::{ReadError, TransferError, WriteError};
 
 #[cfg(feature = "serial2")]
@@ -13,17 +13,17 @@ use crate::messaging::Messenger;
 use crate::packet::{Packet, STATUS_HEADER_SIZE};
 
 /// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer, T: Transport> {
+pub struct Bus<ReadBuffer, WriteBuffer, T: SerialPort> {
 	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
 }
 //
 impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, T>
 where
-	T: Transport + core::fmt::Debug,
+	T: SerialPort + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Bus")
-			.field("transport", &self.messenger.transport)
+			.field("serial_port", &self.messenger.serial_port)
 			.field("baud_rate", &self.messenger.baud_rate)
 			.finish_non_exhaustive()
 	}
@@ -79,18 +79,18 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Create a new bus using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
 	pub fn with_buffers(
-		transport: T,
+		serial_port: T,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
-		let messenger = Messenger::with_buffers(transport, read_buffer, write_buffer)?;
+		let messenger = Messenger::with_buffers(serial_port, read_buffer, write_buffer)?;
 		Ok(Self { messenger })
 	}
 
@@ -100,16 +100,16 @@ where
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.
-	pub fn transport(&self) -> &T {
-		&self.messenger.transport
+	pub fn serial_port(&self) -> &T {
+		&self.messenger.serial_port
 	}
 
 	/// Consume this bus object to get ownership of the serial port.
 	///
 	/// This discards any data in internal the read buffer of the bus object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
-	pub fn into_transport(self) -> T {
-		self.messenger.transport
+	pub fn into_serial_port(self) -> T {
+		self.messenger.serial_port
 	}
 
 	/// Get the baud rate of the bus.

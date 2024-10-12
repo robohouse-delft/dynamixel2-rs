@@ -1,4 +1,4 @@
-use dynamixel2::Transport;
+use dynamixel2::SerialPort;
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -28,7 +28,7 @@ impl MockSerialPort {
 	}
 }
 
-impl Transport for MockSerialPort {
+impl SerialPort for MockSerialPort {
 	type Error = std::io::Error;
 
 	type Instant = std::time::Instant;

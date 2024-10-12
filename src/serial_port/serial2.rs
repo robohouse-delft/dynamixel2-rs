@@ -1,8 +1,8 @@
-//! Serial port transport implementation using the `serial2` crate.
+//! Trait implementation using the `serial2` crate.
 
 use std::time::{Duration, Instant};
 
-impl crate::Transport for serial2::SerialPort {
+impl crate::SerialPort for serial2::SerialPort {
 	type Error = std::io::Error;
 
 	type Instant = std::time::Instant;

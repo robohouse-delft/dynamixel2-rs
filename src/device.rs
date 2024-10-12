@@ -1,24 +1,24 @@
 use crate::endian::read_u16_le;
 use crate::instructions::instruction_id;
 use crate::messaging::Messenger;
-use crate::{InvalidParameterCount, Packet, ReadError, Transport, WriteError};
+use crate::{InvalidParameterCount, Packet, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
 
 /// Dynamixel [`Device`] for communicating with a [`Bus`].
-pub struct Device<ReadBuffer, WriteBuffer, T: Transport> {
+pub struct Device<ReadBuffer, WriteBuffer, T: SerialPort> {
 	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
 }
 
 impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Device<ReadBuffer, WriteBuffer, T>
 where
-	T: Transport + core::fmt::Debug,
+	T: SerialPort + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Device")
-			.field("transport", &self.messenger.transport)
+			.field("serial_port", &self.messenger.serial_port)
 			.field("baud_rate", &self.messenger.baud_rate)
 			.finish_non_exhaustive()
 	}
@@ -73,15 +73,15 @@ impl<ReadBuffer, WriteBuffer, T> Device<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Create a new device using pre-allocated buffers.
 	pub fn with_buffers(
-		transport: impl Into<T>,
+		serial_port: impl Into<T>,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
-		let messenger = Messenger::with_buffers(transport, read_buffer, write_buffer)?;
+		let messenger = Messenger::with_buffers(serial_port, read_buffer, write_buffer)?;
 		Ok(Device { messenger })
 	}
 
@@ -91,16 +91,16 @@ where
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
-	pub fn transport(&self) -> &T {
-		&self.messenger.transport
+	pub fn serial_port(&self) -> &T {
+		&self.messenger.serial_port
 	}
 
 	/// Consume this device object to get ownership of the serial port.
 	///
 	/// This discards any data in internal the read buffer of the device object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
-	pub fn into_transport(self) -> T {
-		self.messenger.transport
+	pub fn into_serial_port(self) -> T {
+		self.messenger.serial_port
 	}
 
 	/// Get the baud rate of the device.
