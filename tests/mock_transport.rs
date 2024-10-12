@@ -33,7 +33,7 @@ impl Transport for MockSerialPort {
 
 	type Instant = std::time::Instant;
 
-	fn baud_rate(&self) -> Result<u32, InitializeError<Self::Error>> {
+	fn baud_rate(&self) -> Result<u32, Self::Error> {
 		Ok(self.baud_rate)
 	}
 

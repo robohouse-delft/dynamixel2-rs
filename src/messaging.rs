@@ -38,7 +38,7 @@ where
 		transport: impl Into<T>,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
-	) -> Result<Self, crate::InitializeError<T::Error>> {
+	) -> Result<Self, T::Error> {
 		let transport = transport.into();
 		let baud_rate = transport.baud_rate()?;
 		Ok(Self::with_buffers_and_baud_rate(transport, read_buffer, write_buffer, baud_rate))

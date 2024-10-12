@@ -43,7 +43,7 @@ impl Device<Vec<u8>, Vec<u8>, crate::transport::serial2::Serial2Port> {
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
-	pub fn new(serial_port: serial2::SerialPort) -> Result<Self, crate::InitializeError<std::io::Error>> {
+	pub fn new(serial_port: serial2::SerialPort) -> std::io::Result<Self> {
 		let messenger = Messenger::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
 		Ok(Self { messenger })
 	}
@@ -80,7 +80,7 @@ where
 		transport: impl Into<T>,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
-	) -> Result<Self, crate::InitializeError<T::Error>> {
+	) -> Result<Self, T::Error> {
 		let messenger = Messenger::with_buffers(transport, read_buffer, write_buffer)?;
 		Ok(Device { messenger })
 	}

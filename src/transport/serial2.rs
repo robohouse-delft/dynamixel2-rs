@@ -56,11 +56,9 @@ impl crate::Transport for Serial2Port {
 
 	type Instant = std::time::Instant;
 
-	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>> {
-		self.port.get_configuration()
-			.map_err(crate::InitializeError::GetConfiguration)?
+	fn baud_rate(&self) -> Result<u32, Self::Error> {
+		self.port.get_configuration()?
 			.get_baud_rate()
-			.map_err(crate::InitializeError::GetBaudRate)
 	}
 
 	fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Self::Error> {

@@ -16,7 +16,7 @@ pub trait Transport {
 	type Instant;
 
 	/// Get the current baud rate of the transport.
-	fn baud_rate(&self) -> Result<u32, crate::InitializeError<Self::Error>>;
+	fn baud_rate(&self) -> Result<u32, Self::Error>;
 
 	/// Set the baud rate of the transport.
 	fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Self::Error>;
