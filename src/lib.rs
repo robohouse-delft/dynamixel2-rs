@@ -21,7 +21,6 @@
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
-
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "alloc")]
@@ -39,8 +38,13 @@ mod endian;
 mod bus;
 pub use bus::*;
 
+mod device;
 mod error;
 pub mod transport;
+pub use device::*;
+mod packet;
+pub use packet::Packet;
+mod messaging;
 
 pub use transport::Transport;
 

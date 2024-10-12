@@ -173,6 +173,9 @@ pub enum ExpectedCount {
 
 	/// An upper limit on the expected number of parameters.
 	Max(usize),
+
+	/// A lower limit on the expected number of parameters.
+	Min(usize),
 }
 
 /// The received message has an invalid or unexpected parameter count.
@@ -281,6 +284,18 @@ impl InvalidParameterCount {
 			Err(Self {
 				actual,
 				expected: ExpectedCount::Max(max),
+			})
+		}
+	}
+
+	/// Check if the parameter count is at or above the min count.
+	pub fn check_min(actual: usize, min: usize) -> Result<(), Self> {
+		if actual >= min {
+			Ok(())
+		} else {
+			Err(Self {
+				actual,
+				expected: ExpectedCount::Min(min),
 			})
 		}
 	}
@@ -565,7 +580,7 @@ impl Display for InvalidInstruction {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
-			"invalid instruction ID, expected {:#02X}, got {:#02X}",
+			"invalid instruction ID, expected {:?}, got {:?}",
 			self.expected, self.actual
 		)
 	}
@@ -576,6 +591,7 @@ impl Display for ExpectedCount {
 		match self {
 			Self::Exact(x) => write!(f, "exactly {}", x),
 			Self::Max(x) => write!(f, "at most {}", x),
+			Self::Min(x) => write!(f, "at least {}", x),
 		}
 	}
 }

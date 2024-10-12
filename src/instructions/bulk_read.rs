@@ -5,6 +5,7 @@ use crate::{Bus, ReadError, Response, WriteError};
 
 #[cfg(feature = "alloc")]
 use alloc::{vec::Vec, borrow::ToOwned};
+use crate::packet::Packet;
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where

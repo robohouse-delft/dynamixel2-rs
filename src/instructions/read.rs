@@ -3,6 +3,7 @@ use crate::endian::write_u16_le;
 use crate::transport::Transport;
 use crate::{bus::StatusPacket, Bus, Response, TransferError};
 
+use crate::packet::Packet;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
