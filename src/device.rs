@@ -77,7 +77,7 @@ where
 {
 	/// Create a new device using pre-allocated buffers.
 	pub fn with_buffers(
-		serial_port: impl Into<T>,
+		serial_port: T,
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
