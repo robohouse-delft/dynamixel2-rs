@@ -25,7 +25,7 @@ log = "0.4.8"
 [features]
 default = ["std", "serial2"]
 alloc = []
-std = []
+std = ["alloc"]
 rs4xx = ["serial2/rs4xx"]
 
 [workspace]

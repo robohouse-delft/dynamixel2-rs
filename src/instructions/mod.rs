@@ -38,7 +38,7 @@ mod sync_read;
 mod sync_write;
 mod write;
 
-use crate::Transport;
+use crate::SerialPort;
 pub use factory_reset::FactoryResetKind;
 pub use ping::Ping;
 
@@ -113,7 +113,7 @@ fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer, T>(
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	if motor_id == packet_id::BROADCAST {
 		Ok(crate::Response {

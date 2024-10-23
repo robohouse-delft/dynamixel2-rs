@@ -1,24 +1,25 @@
-mod mock_transport;
-
-use crate::mock_transport::MockSerialPort;
-use dynamixel2::{Bus, Device, Instructions, ReadError, TransferError, Transport};
+use assert2::{assert, let_assert};
+use dynamixel2::{Bus, Device, Instructions, ReadError, SerialPort};
 use log::{info, trace};
+use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 use test_log::test;
+
+mod mock_serial_port;
+use crate::mock_serial_port::MockSerialPort;
 
 type ReadBuffer = Vec<u8>;
 type WriteBuffer = Vec<u8>;
 type T = MockSerialPort;
 fn setup_bus() -> (Bus<ReadBuffer, WriteBuffer, T>, Device<ReadBuffer, WriteBuffer, T>) {
-	let transport = MockSerialPort::new(56700);
-	let device_transport = transport.device_port();
+	let serial_port = MockSerialPort::new(56700);
+	let device_serial_port = serial_port.device_port();
 	(
-		Bus::with_buffers(transport, vec![0; 1024], vec![0; 1024]).unwrap(),
-		Device::with_buffers(device_transport, vec![0; 1024], vec![0; 1024]).unwrap(),
+		Bus::with_buffers(serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
+		Device::with_buffers(device_serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
 	)
 }
 
@@ -61,24 +62,21 @@ fn test_packet_response() {
 	let kill_device = Arc::new(AtomicBool::new(false));
 	let (mut bus, mut device) = setup_bus();
 	let bus_t = thread::spawn(move || {
-		bus.write_u8(1, 5, 1)?;
-		let res = bus.read_u8(1, 5)?;
-		assert_eq!(res.data, 1);
-		Ok::<(), TransferError<<MockSerialPort as Transport>::Error>>(())
+		assert!(let Ok(_) = bus.write_u8(1, 5, 1));
+		let_assert!(Ok(response) =  bus.read_u8(1, 5));
+		assert!(response.data == 1);
 	});
 	let device_t = thread::spawn({
 		let kill_device = kill_device.clone();
 		move || {
 			let mut control_table = ControlTable::new(10);
 			while !kill_device.load(Relaxed) {
-				let res = device.read(Duration::from_secs(1));
-				let packet = match res {
-					Ok(p) => p,
-					Err(ReadError::Timeout) => continue,
-					Err(e) => {
-						return Err(e.into());
-					},
+				let packet = device.read(Duration::from_millis(50));
+				let packet = match packet {
+					Err(ReadError::Io(e)) if T::is_timeout_error(&e) => continue,
+					x => x,
 				};
+				let_assert!(Ok(packet) = packet);
 				let id = packet.id;
 				if id != DEVICE_ID {
 					continue;
@@ -87,28 +85,26 @@ fn test_packet_response() {
 					Instructions::Ping => {},
 					Instructions::Read { address, length } => {
 						if let Some(data) = control_table.read(address, length) {
-							device.write_status(DEVICE_ID, 0, length as usize, |buffer| {
+							assert!(let Ok(()) = device.write_status(DEVICE_ID, 0, length as usize, |buffer| {
 								buffer.copy_from_slice(data);
-							})?;
+							}));
 						} else {
-							device.write_status_error(DEVICE_ID, 0x07)?;
+							assert!(let Ok(()) = device.write_status_error(DEVICE_ID, 0x07));
 						}
 					},
 					Instructions::Write { address, parameters } => {
 						if control_table.write(address, parameters) {
-							device.write_status_ok(DEVICE_ID)?;
+							let_assert!(Ok(()) = device.write_status_ok(DEVICE_ID));
 						} else {
-							device.write_status_error(DEVICE_ID, 0x07)?;
+							let_assert!(Ok(()) = device.write_status_error(DEVICE_ID, 0x07));
 						}
 					},
 					i => todo!("impl {:?}", i),
 				}
 			}
-
-			Ok::<(), TransferError<<MockSerialPort as Transport>::Error>>(())
 		}
 	});
-	bus_t.join().unwrap().unwrap();
+	bus_t.join().unwrap();
 	kill_device.store(true, Relaxed);
-	device_t.join().unwrap().unwrap();
+	device_t.join().unwrap();
 }

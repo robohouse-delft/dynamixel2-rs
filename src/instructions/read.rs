@@ -1,6 +1,6 @@
 use super::instruction_id;
 use crate::endian::write_u16_le;
-use crate::transport::Transport;
+use crate::serial_port::SerialPort;
 use crate::{bus::StatusPacket, Bus, Response, TransferError};
 
 use crate::packet::Packet;
@@ -11,7 +11,7 @@ impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: Transport,
+	T: SerialPort,
 {
 	/// Read an arbitrary number of bytes from multiple motors.
 	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError<T::Error>> {

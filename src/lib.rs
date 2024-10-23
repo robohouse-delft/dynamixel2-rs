@@ -26,26 +26,31 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
+#[cfg(feature = "serial2")]
+/// Public re-export of the serial2 crate.
+pub use serial2;
+
 #[macro_use]
 mod log;
 
 pub mod checksum;
 pub mod instructions;
 
-mod bytestuff;
-mod endian;
-
 mod bus;
 pub use bus::*;
 
 mod device;
-mod error;
-pub mod transport;
 pub use device::*;
+
+mod serial_port;
+pub use serial_port::SerialPort;
+
+mod error;
+pub use error::*;
+
 mod packet;
 pub use packet::Packet;
+
+mod bytestuff;
+mod endian;
 mod messaging;
-
-pub use transport::Transport;
-
-pub use error::*;
