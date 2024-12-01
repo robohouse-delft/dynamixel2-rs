@@ -17,12 +17,12 @@ fn do_main(options: Options) -> Result<(), ()> {
 	logging::init(module_path!(), options.verbose as i8);
 	match &options.command {
 		Command::Ping { motor_id } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			match motor_id {
 				&MotorId::Id(motor_id) => {
 					log::debug!("Sending ping command to motor {}", motor_id);
 					let start = Instant::now();
-					let response = bus.ping(motor_id).map_err(|e| log::error!("Command failed: {}", e))?;
+					let response = client.ping(motor_id).map_err(|e| log::error!("Command failed: {}", e))?;
 					if response.alert {
 						log::warn!("Alert bit set in response from motor!")
 					}
@@ -30,7 +30,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				},
 				MotorId::Broadcast => {
 					let start = Instant::now();
-					bus.scan_cb(|response| {
+					client.scan_cb(|response| {
 						log_ping_response(&response, start.elapsed());
 					})
 					.map_err(|e| log::error!("Command failed: {}", e))?;
@@ -38,20 +38,20 @@ fn do_main(options: Options) -> Result<(), ()> {
 			}
 		},
 		Command::Reboot { motor_id } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!("Sending reboot command with motor ID {}", motor_id.raw());
 			let start = Instant::now();
-			let response = bus.reboot(motor_id.raw()).map_err(|e| log::error!("Command failed: {}", e))?;
+			let response = client.reboot(motor_id.raw()).map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
 				log::warn!("Alert bit set in response from motor!")
 			}
 			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Read8 { motor_id, address } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!("Reading an 8-bit value from motor {} at address {}", motor_id.raw(), address);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.read_u8(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
@@ -60,10 +60,10 @@ fn do_main(options: Options) -> Result<(), ()> {
 			log::info!("{:?}: {:?} (0x{:02X})", start.elapsed(), response.data, response.data);
 		},
 		Command::Read16 { motor_id, address } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!("Reading a 16-bit value from motor {} at address {}", motor_id.raw(), address);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.read_u16(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
@@ -72,10 +72,10 @@ fn do_main(options: Options) -> Result<(), ()> {
 			log::info!("{:?}: {:?} (0x{:04X})", start.elapsed(), response.data, response.data);
 		},
 		Command::Read32 { motor_id, address } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!("Reading a 32-bit value from motor {} at address {}", motor_id.raw(), address);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.read_u32(motor_id.assume_unicast()?, *address)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
@@ -90,7 +90,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			);
 		},
 		Command::Write8 { motor_id, address, value } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!(
 				"Writing 8-bit value {} (0x{:02X}) to motor {} at address {}",
 				value,
@@ -99,7 +99,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				address
 			);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.write_u8(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Write failed: {}", e))?;
 			if response.alert {
@@ -108,7 +108,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Write16 { motor_id, address, value } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!(
 				"Writing 16-bit value {} (0x{:04X}) to motor {} at address {}",
 				value,
@@ -117,7 +117,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				address
 			);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.write_u16(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
@@ -126,7 +126,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			log::info!("{:?}: Ok", start.elapsed());
 		},
 		Command::Write32 { motor_id, address, value } => {
-			let mut bus = open_bus(&options)?;
+			let mut client = open_client(&options)?;
 			log::debug!(
 				"Writing 32-bit value {} (0x{:04X} {:04X}) to motor {} at address {}",
 				value,
@@ -136,7 +136,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 				address
 			);
 			let start = Instant::now();
-			let response = bus
+			let response = client
 				.write_u32(motor_id.raw(), *address, *value)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
@@ -152,16 +152,16 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>, SerialPort>, ()> {
-	let bus = dynamixel2::Bus::open(&options.serial_port, options.baud_rate)
+fn open_client(options: &Options) -> Result<dynamixel2::Client<Vec<u8>, Vec<u8>, SerialPort>, ()> {
+	let client = dynamixel2::Client::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
 		"Using serial port {} with baud rate {}",
 		options.serial_port.display(),
 		options.baud_rate
 	);
-	// log::trace!("{:#?}", bus);
-	Ok(bus)
+	// log::trace!("{:#?}", client);
+	Ok(client)
 }
 
 fn log_ping_response(response: &dynamixel2::Response<dynamixel2::instructions::Ping>, elapsed: Duration) {

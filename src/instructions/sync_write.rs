@@ -1,9 +1,9 @@
 use super::{instruction_id, packet_id, SyncWriteData};
 use crate::endian::{write_u16_le, write_u32_le};
 use crate::serial_port::SerialPort;
-use crate::{Bus, WriteError};
+use crate::{Client, WriteError};
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -21,13 +21,13 @@ where
 	/// # Example
 	/// ```no_run
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-	/// use dynamixel2::Bus;
+	/// use dynamixel2::Client;
 	/// use dynamixel2::instructions::SyncWriteData;
 	/// use std::time::Duration;
 	///
-	/// let mut bus = Bus::open("/dev/ttyUSB0", 57600)?;
+	/// let mut client = Client::open("/dev/ttyUSB0", 57600)?;
 	/// // Write to register 116 of motor 1 and and 2 at the same time.
-	/// bus.sync_write(116, 4, &[
+	/// client.sync_write(116, 4, &[
 	///   SyncWriteData {
 	///     motor_id: 1,
 	///     data: 2000u32.to_le_bytes(),

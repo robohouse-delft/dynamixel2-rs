@@ -12,17 +12,18 @@ use crate::instructions::instruction_id;
 use crate::messaging::Messenger;
 use crate::packet::{Packet, STATUS_HEADER_SIZE};
 
-/// Dynamixel Protocol 2 communication bus.
-pub struct Bus<ReadBuffer, WriteBuffer, T: SerialPort> {
+/// Client for the Dynamixel Protocol 2 communication.
+///
+/// Used to interact with devices on the bus.
+pub struct Client<ReadBuffer, WriteBuffer, T: SerialPort> {
 	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
 }
-//
-impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Client<ReadBuffer, WriteBuffer, T>
 where
 	T: SerialPort + core::fmt::Debug,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-		f.debug_struct("Bus")
+		f.debug_struct("Client")
 			.field("serial_port", &self.messenger.serial_port)
 			.field("baud_rate", &self.messenger.baud_rate)
 			.finish_non_exhaustive()
@@ -30,7 +31,7 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
+impl Client<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
@@ -41,7 +42,7 @@ impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 		Ok(Self { messenger })
 	}
 
-	/// Create a new bus for an open serial port.
+	/// Create a new client using an open serial port.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
@@ -55,7 +56,7 @@ impl Bus<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 }
 
 #[cfg(feature = "serial2")]
-impl<ReadBuffer, WriteBuffer> Bus<ReadBuffer, WriteBuffer, serial2::SerialPort>
+impl<ReadBuffer, WriteBuffer> Client<ReadBuffer, WriteBuffer, serial2::SerialPort>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -75,13 +76,13 @@ where
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	T: SerialPort,
 {
-	/// Create a new bus using pre-allocated buffers.
+	/// Create a new client using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
@@ -104,9 +105,9 @@ where
 		&self.messenger.serial_port
 	}
 
-	/// Consume this bus object to get ownership of the serial port.
+	/// Consume the client to get ownership of the serial port.
 	///
-	/// This discards any data in internal the read buffer of the bus object.
+	/// This discards any data in internal the read buffer of the client.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_serial_port(self) -> T {
 		self.messenger.serial_port
@@ -193,7 +194,7 @@ pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Durati
 	Duration::new(secs, nanos as u32)
 }
 
-/// A status response that is currently in the read buffer of a bus.
+/// A status response that is currently in the read buffer of a client.
 ///
 /// When dropped, the response data is removed from the read buffer.
 #[derive(Debug)]

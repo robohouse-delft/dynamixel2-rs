@@ -1,5 +1,5 @@
 use assert2::{assert, let_assert};
-use dynamixel2::{Bus, Device, Instructions, ReadError, SerialPort};
+use dynamixel2::{Client, Device, Instructions, ReadError, SerialPort};
 use log::{info, trace};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
@@ -14,11 +14,11 @@ use crate::mock_serial_port::MockSerialPort;
 type ReadBuffer = Vec<u8>;
 type WriteBuffer = Vec<u8>;
 type T = MockSerialPort;
-fn setup_bus() -> (Bus<ReadBuffer, WriteBuffer, T>, Device<ReadBuffer, WriteBuffer, T>) {
+fn setup_bus() -> (Client<ReadBuffer, WriteBuffer, T>, Device<ReadBuffer, WriteBuffer, T>) {
 	let serial_port = MockSerialPort::new(56700);
 	let device_serial_port = serial_port.device_port();
 	(
-		Bus::with_buffers(serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
+		Client::with_buffers(serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
 		Device::with_buffers(device_serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
 	)
 }

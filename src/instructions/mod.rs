@@ -107,7 +107,7 @@ impl AsRef<BulkReadData> for BulkReadData {
 ///
 /// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.
 fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer, T>(
-	bus: &mut crate::Bus<ReadBuffer, WriteBuffer, T>,
+	client: &mut crate::Client<ReadBuffer, WriteBuffer, T>,
 	motor_id: u8,
 ) -> Result<crate::Response<()>, crate::error::ReadError<T::Error>>
 where
@@ -122,6 +122,6 @@ where
 			data: (),
 		})
 	} else {
-		Ok(bus.read_status_response(0)?.try_into()?)
+		Ok(client.read_status_response(0)?.try_into()?)
 	}
 }

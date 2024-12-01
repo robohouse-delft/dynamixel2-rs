@@ -7,7 +7,7 @@ use core::time::Duration;
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
 
-/// Dynamixel [`Device`] for communicating with a [`Bus`].
+/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
 pub struct Device<ReadBuffer, WriteBuffer, T: SerialPort> {
 	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
 }

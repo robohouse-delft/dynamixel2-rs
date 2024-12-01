@@ -1,9 +1,9 @@
 use core::time::Duration;
 
 use super::{instruction_id, packet_id};
-use crate::bus::StatusPacket;
+use crate::client::StatusPacket;
 use crate::serial_port::SerialPort;
-use crate::{Bus, ReadError, Response, TransferError};
+use crate::{Client, ReadError, Response, TransferError};
 
 use crate::packet::Packet;
 #[cfg(feature = "alloc")]
@@ -38,7 +38,7 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<Ping> {
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -53,7 +53,7 @@ where
 		Ok(response.try_into()?)
 	}
 
-	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
+	/// Scan the bus for motors with a broadcast ping, returning the responses in a [`Vec`].
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are collected.
@@ -70,7 +70,7 @@ where
 		Ok(result)
 	}
 
-	/// Scan a bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
+	/// Scan the bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are passed to the handler.
@@ -79,7 +79,7 @@ where
 		F: FnMut(Response<Ping>),
 	{
 		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())?;
-		let response_time = crate::bus::message_transfer_time(14, self.baud_rate());
+		let response_time = crate::client::message_transfer_time(14, self.baud_rate());
 		let timeout = response_time * 253 + Duration::from_millis(34);
 
 		loop {
