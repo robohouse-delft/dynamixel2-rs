@@ -85,9 +85,9 @@ where
 		Ok(Device { messenger })
 	}
 
-	/// Get a reference to the underlying [`Transport`].
+	/// Get a reference to the underlying [`SerialPort`].
 	///
-	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the device,
+	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the device,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
@@ -162,7 +162,9 @@ where
 	}
 }
 
-/// [`InstructionPacket`] is a packet that contains an instruction and its parameters. Sent from the [`Bus`] to [`Device`]s.
+/// [`InstructionPacket`] is a packet that contains an instruction and its parameters.
+///
+/// Sent by a client to a device.
 #[derive(Debug)]
 pub struct InstructionPacket<'a> {
 	pub(crate) data: &'a [u8],
@@ -207,7 +209,8 @@ pub struct Instruction<T> {
 }
 
 /// Instructions as defined in the [Dynamixel Protocol 2.0](https://emanual.robotis.com/docs/en/dxl/protocol2/#instruction-details).
-/// The parameters are stored as a &[u8] slice or a Vec<u8>.
+///
+/// The parameters are stored as a `&[u8]` slice or a `Vec<u8>`.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub enum Instructions<T> {

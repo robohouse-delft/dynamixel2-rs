@@ -95,9 +95,9 @@ where
 		Ok(Self { messenger })
 	}
 
-	/// Get a reference to the underlying [`Transport`].
+	/// Get a reference to the underlying [`SerialPort`].
 	///
-	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the bus,
+	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.
