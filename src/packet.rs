@@ -1,5 +1,5 @@
 use crate::device::InstructionPacket;
-use crate::StatusPacket;
+use crate::bus::StatusPacket;
 
 pub const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 pub const INSTRUCTION_HEADER_SIZE: usize = 8;

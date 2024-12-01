@@ -1,14 +1,19 @@
+//! Low level interface to a DYNAMIXEL Protocol 2.0 bus.
+
 use crate::checksum::calculate_checksum;
 use crate::endian::{read_u16_le, write_u16_le};
 use crate::packet::{Packet, HEADER_PREFIX, INSTRUCTION_HEADER_SIZE, STATUS_HEADER_SIZE};
 use crate::{bytestuff, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
+mod status_packet;
+pub use status_packet::*;
+
 /// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 ///
 /// Does not assume anything about the direction of communication.
 /// Used by [`crate::Client`] and [`crate::Device`].
-pub struct Bus<ReadBuffer, WriteBuffer, T> {
+pub(crate) struct Bus<ReadBuffer, WriteBuffer, T> {
 	/// The underlying stream (normally a serial port).
 	pub(crate) serial_port: T,
 
@@ -256,20 +261,86 @@ fn find_header(buffer: &[u8]) -> usize {
 	buffer.len()
 }
 
-#[test]
-fn test_find_garbage_end() {
-	assert!(find_header(&[0xFF]) == 0);
-	assert!(find_header(&[0xFF, 0xFF]) == 0);
-	assert!(find_header(&[0xFF, 0xFF, 0xFD]) == 0);
-	assert!(find_header(&[0xFF, 0xFF, 0xFD, 0x00]) == 0);
-	assert!(find_header(&[0xFF, 0xFF, 0xFD, 0x00, 9]) == 0);
+/// Calculate the required time to transfer a message of a given size.
+///
+/// The size must include any headers and footers of the message.
+pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Duration {
+	let baud_rate = u64::from(baud_rate);
+	let bits = u64::from(message_size) * 10; // each byte is 1 start bit, 8 data bits and 1 stop bit.
+	let secs = bits / baud_rate;
+	let subsec_bits = bits % baud_rate;
+	let nanos = (subsec_bits * 1_000_000_000).div_ceil(baud_rate);
+	Duration::new(secs, nanos as u32)
+}
 
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF]) == 5);
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF]) == 5);
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD]) == 5);
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD, 0x00]) == 5);
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD, 0x00, 9]) == 5);
+#[cfg(test)]
+mod test {
+	use super::*;
+	use assert2::assert;
 
-	assert!(find_header(&[0xFF, 1]) == 2);
-	assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
+	#[test]
+	fn test_message_transfer_time() {
+		// Try a bunch of values to ensure we dealt with overflow correctly.
+		assert!(message_transfer_time(100, 1_000) == Duration::from_secs(1));
+		assert!(message_transfer_time(1_000, 10_000) == Duration::from_secs(1));
+		assert!(message_transfer_time(1_000, 1_000_000) == Duration::from_millis(10));
+		assert!(message_transfer_time(1_000, 10_000_000) == Duration::from_millis(1));
+		assert!(message_transfer_time(1_000, 100_000_000) == Duration::from_micros(100));
+		assert!(message_transfer_time(1_000, 1_000_000_000) == Duration::from_micros(10));
+		assert!(message_transfer_time(1_000, 2_000_000_000) == Duration::from_micros(5));
+		assert!(message_transfer_time(1_000, 4_000_000_000) == Duration::from_nanos(2500));
+		assert!(message_transfer_time(10_000, 4_000_000_000) == Duration::from_micros(25));
+		assert!(message_transfer_time(1_000_000, 4_000_000_000) == Duration::from_micros(2500));
+		assert!(message_transfer_time(10_000_000, 4_000_000_000) == Duration::from_millis(25));
+		assert!(message_transfer_time(100_000_000, 4_000_000_000) == Duration::from_millis(250));
+		assert!(message_transfer_time(1_000_000_000, 4_000_000_000) == Duration::from_millis(2500));
+		assert!(message_transfer_time(2_000_000_000, 4_000_000_000) == Duration::from_secs(5));
+		assert!(message_transfer_time(4_000_000_000, 4_000_000_000) == Duration::from_secs(10));
+		assert!(message_transfer_time(4_000_000_000, 2_000_000_000) == Duration::from_secs(20));
+		assert!(message_transfer_time(4_000_000_000, 1_000_000_000) == Duration::from_secs(40));
+		assert!(message_transfer_time(4_000_000_000, 100_000_000) == Duration::from_secs(400));
+		assert!(message_transfer_time(4_000_000_000, 10_000_000) == Duration::from_secs(4_000));
+		assert!(message_transfer_time(4_000_000_000, 1_000_000) == Duration::from_secs(40_000));
+		assert!(message_transfer_time(4_000_000_000, 100_000) == Duration::from_secs(400_000));
+		assert!(message_transfer_time(4_000_000_000, 10_000) == Duration::from_secs(4_000_000));
+		assert!(message_transfer_time(4_000_000_000, 1_000) == Duration::from_secs(40_000_000));
+		assert!(message_transfer_time(4_000_000_000, 100) == Duration::from_secs(400_000_000));
+		assert!(message_transfer_time(4_000_000_000, 10) == Duration::from_secs(4_000_000_000));
+		assert!(message_transfer_time(4_000_000_000, 1) == Duration::from_secs(40_000_000_000));
+
+		assert!(message_transfer_time(43, 1) == Duration::from_secs(430));
+		assert!(message_transfer_time(43, 10) == Duration::from_secs(43));
+		assert!(message_transfer_time(43, 2) == Duration::from_secs(215));
+		assert!(message_transfer_time(43, 20) == Duration::from_millis(21_500));
+		assert!(message_transfer_time(43, 200) == Duration::from_millis(2_150));
+		assert!(message_transfer_time(43, 2_000_000) == Duration::from_micros(215));
+		assert!(message_transfer_time(43, 2_000_000_000) == Duration::from_nanos(215));
+		assert!(message_transfer_time(43, 4_000_000_000) == Duration::from_nanos(108)); // rounded up
+		assert!(message_transfer_time(3, 4_000_000_000) == Duration::from_nanos(8)); // rounded up
+		assert!(message_transfer_time(5, 4_000_000_000) == Duration::from_nanos(13)); // rounded up
+
+		let lots = u32::MAX - 1; // Use MAX - 1 because MAX is not cleanly divisible by 2.
+		assert!(message_transfer_time(lots, 1) == Duration::from_secs(u64::from(lots) * 10));
+		assert!(message_transfer_time(lots, lots) == Duration::from_secs(10));
+		assert!(message_transfer_time(lots / 2, lots) == Duration::from_secs(5));
+		assert!(message_transfer_time(lots, lots / 2) == Duration::from_secs(20));
+	}
+
+	#[test]
+	fn test_find_garbage_end() {
+		assert!(find_header(&[0xFF]) == 0);
+		assert!(find_header(&[0xFF, 0xFF]) == 0);
+		assert!(find_header(&[0xFF, 0xFF, 0xFD]) == 0);
+		assert!(find_header(&[0xFF, 0xFF, 0xFD, 0x00]) == 0);
+		assert!(find_header(&[0xFF, 0xFF, 0xFD, 0x00, 9]) == 0);
+
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF]) == 5);
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF]) == 5);
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD]) == 5);
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD, 0x00]) == 5);
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 0xFF, 0xFD, 0x00, 9]) == 5);
+
+		assert!(find_header(&[0xFF, 1]) == 2);
+		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
+	}
 }

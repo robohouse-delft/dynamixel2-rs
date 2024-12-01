@@ -1,11 +1,11 @@
-use super::instruction_id;
-use crate::endian::write_u16_le;
-use crate::serial_port::SerialPort;
-use crate::{client::StatusPacket, Client, Response, TransferError};
-
-use crate::packet::Packet;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
+
+use crate::bus::StatusPacket;
+use crate::endian::write_u16_le;
+use crate::serial_port::SerialPort;
+use crate::{Client, Response, TransferError};
+use super::instruction_id;
 
 impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where

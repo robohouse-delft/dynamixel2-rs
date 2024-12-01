@@ -1,11 +1,10 @@
 use core::time::Duration;
 
-use super::{instruction_id, packet_id};
-use crate::client::StatusPacket;
+use crate::bus::StatusPacket;
 use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, TransferError};
+use super::{instruction_id, packet_id};
 
-use crate::packet::Packet;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
@@ -79,7 +78,7 @@ where
 		F: FnMut(Response<Ping>),
 	{
 		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())?;
-		let response_time = crate::client::message_transfer_time(14, self.baud_rate());
+		let response_time = crate::bus::message_transfer_time(14, self.baud_rate());
 		let timeout = response_time * 253 + Duration::from_millis(34);
 
 		loop {

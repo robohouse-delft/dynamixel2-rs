@@ -5,7 +5,6 @@ use crate::{Client, ReadError, Response, WriteError};
 
 #[cfg(feature = "alloc")]
 use alloc::{vec::Vec, borrow::ToOwned};
-use crate::packet::Packet;
 
 impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where

@@ -51,6 +51,10 @@ pub use error::*;
 mod packet;
 pub use packet::Packet;
 
-mod bus;
+mod response;
+pub use response::*;
+
+pub mod bus;
+
 mod bytestuff;
 mod endian;

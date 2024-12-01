@@ -3,7 +3,6 @@ use crate::endian::write_u16_le;
 use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, WriteError};
 
-use crate::packet::Packet;
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
 

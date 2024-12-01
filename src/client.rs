@@ -1,16 +1,15 @@
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 use core::time::Duration;
-use crate::endian::{read_u16_le, read_u32_le, read_u8_le};
-use crate::serial_port::SerialPort;
-use crate::{ReadError, TransferError, WriteError};
-
 #[cfg(feature = "serial2")]
 use std::path::Path;
 
-#[cfg(feature = "alloc")]
-use alloc::{borrow::ToOwned, vec::Vec};
+use crate::bus::{Bus, StatusPacket};
 use crate::instructions::instruction_id;
-use crate::bus::Bus;
-use crate::packet::{Packet, STATUS_HEADER_SIZE};
+use crate::packet::STATUS_HEADER_SIZE;
+use crate::serial_port::SerialPort;
+use crate::{ReadError, TransferError, WriteError};
+
 
 /// Client for the Dynamixel Protocol 2 communication.
 ///
@@ -177,198 +176,7 @@ where
 	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<T::Error>> {
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
-		let timeout = message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
+		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
 		self.read_status_response_timeout(timeout)
-	}
-}
-
-/// Calculate the required time to transfer a message of a given size.
-///
-/// The size must include any headers and footers of the message.
-pub(crate) fn message_transfer_time(message_size: u32, baud_rate: u32) -> Duration {
-	let baud_rate = u64::from(baud_rate);
-	let bits = u64::from(message_size) * 10; // each byte is 1 start bit, 8 data bits and 1 stop bit.
-	let secs = bits / baud_rate;
-	let subsec_bits = bits % baud_rate;
-	let nanos = (subsec_bits * 1_000_000_000).div_ceil(baud_rate);
-	Duration::new(secs, nanos as u32)
-}
-
-/// A status response that is currently in the read buffer of a client.
-///
-/// When dropped, the response data is removed from the read buffer.
-#[derive(Debug)]
-pub struct StatusPacket<'a> {
-	/// Message data (with byte-stuffing already undone).
-	pub(crate) data: &'a [u8],
-}
-
-impl<'a> StatusPacket<'a> {
-	/// The error field of the response.
-	pub fn error(&self) -> u8 {
-		self.as_bytes()[8]
-	}
-
-	/// The error number of the status packet.
-	///
-	/// This is the lower 7 bits of the error field.
-	pub fn error_number(&self) -> u8 {
-		self.error() & !0x80
-	}
-
-	/// The alert bit from the error field of the response.
-	///
-	/// This is the 8th bit of the error field.
-	///
-	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
-	/// Consult the manual of your motor for more information.
-	pub fn alert(&self) -> bool {
-		self.error() & 0x80 != 0
-	}
-}
-
-/// A response from a motor.
-///
-/// Note that the `Eq` and `PartialEq` compare all fields of the struct,
-/// including the `motor_id` and `alert`.
-#[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Response<T> {
-	/// The motor that sent the response.
-	pub motor_id: u8,
-
-	/// The alert bit from the response message.
-	///
-	/// If this bit is set, you can normally check the "Hardware Error" register for more details.
-	/// Consult the manual of your motor for more information.
-	pub alert: bool,
-
-	/// The data from the motor.
-	pub data: T,
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<()> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 0)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: (),
-		})
-	}
-}
-
-impl<'a, 'b> From<&'b StatusPacket<'a>> for Response<&'b [u8]> {
-	fn from(status_packet: &'b StatusPacket<'a>) -> Self {
-		Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: status_packet.parameters(),
-		}
-	}
-}
-
-#[cfg(any(feature = "alloc", feature = "std"))]
-impl<'a> From<StatusPacket<'a>> for Response<Vec<u8>> {
-	fn from(status_packet: StatusPacket<'a>) -> Self {
-		Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: status_packet.parameters().to_owned(),
-		}
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u8> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 1)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u8_le(status_packet.parameters()),
-		})
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u16> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 2)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u16_le(status_packet.parameters()),
-		})
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u32> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 4)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u32_le(status_packet.parameters()),
-		})
-	}
-}
-
-#[cfg(test)]
-mod test {
-	use super::*;
-	use assert2::assert;
-
-	#[test]
-	fn test_message_transfer_time() {
-		// Try a bunch of values to ensure we dealt with overflow correctly.
-		assert!(message_transfer_time(100, 1_000) == Duration::from_secs(1));
-		assert!(message_transfer_time(1_000, 10_000) == Duration::from_secs(1));
-		assert!(message_transfer_time(1_000, 1_000_000) == Duration::from_millis(10));
-		assert!(message_transfer_time(1_000, 10_000_000) == Duration::from_millis(1));
-		assert!(message_transfer_time(1_000, 100_000_000) == Duration::from_micros(100));
-		assert!(message_transfer_time(1_000, 1_000_000_000) == Duration::from_micros(10));
-		assert!(message_transfer_time(1_000, 2_000_000_000) == Duration::from_micros(5));
-		assert!(message_transfer_time(1_000, 4_000_000_000) == Duration::from_nanos(2500));
-		assert!(message_transfer_time(10_000, 4_000_000_000) == Duration::from_micros(25));
-		assert!(message_transfer_time(1_000_000, 4_000_000_000) == Duration::from_micros(2500));
-		assert!(message_transfer_time(10_000_000, 4_000_000_000) == Duration::from_millis(25));
-		assert!(message_transfer_time(100_000_000, 4_000_000_000) == Duration::from_millis(250));
-		assert!(message_transfer_time(1_000_000_000, 4_000_000_000) == Duration::from_millis(2500));
-		assert!(message_transfer_time(2_000_000_000, 4_000_000_000) == Duration::from_secs(5));
-		assert!(message_transfer_time(4_000_000_000, 4_000_000_000) == Duration::from_secs(10));
-		assert!(message_transfer_time(4_000_000_000, 2_000_000_000) == Duration::from_secs(20));
-		assert!(message_transfer_time(4_000_000_000, 1_000_000_000) == Duration::from_secs(40));
-		assert!(message_transfer_time(4_000_000_000, 100_000_000) == Duration::from_secs(400));
-		assert!(message_transfer_time(4_000_000_000, 10_000_000) == Duration::from_secs(4_000));
-		assert!(message_transfer_time(4_000_000_000, 1_000_000) == Duration::from_secs(40_000));
-		assert!(message_transfer_time(4_000_000_000, 100_000) == Duration::from_secs(400_000));
-		assert!(message_transfer_time(4_000_000_000, 10_000) == Duration::from_secs(4_000_000));
-		assert!(message_transfer_time(4_000_000_000, 1_000) == Duration::from_secs(40_000_000));
-		assert!(message_transfer_time(4_000_000_000, 100) == Duration::from_secs(400_000_000));
-		assert!(message_transfer_time(4_000_000_000, 10) == Duration::from_secs(4_000_000_000));
-		assert!(message_transfer_time(4_000_000_000, 1) == Duration::from_secs(40_000_000_000));
-
-		assert!(message_transfer_time(43, 1) == Duration::from_secs(430));
-		assert!(message_transfer_time(43, 10) == Duration::from_secs(43));
-		assert!(message_transfer_time(43, 2) == Duration::from_secs(215));
-		assert!(message_transfer_time(43, 20) == Duration::from_millis(21_500));
-		assert!(message_transfer_time(43, 200) == Duration::from_millis(2_150));
-		assert!(message_transfer_time(43, 2_000_000) == Duration::from_micros(215));
-		assert!(message_transfer_time(43, 2_000_000_000) == Duration::from_nanos(215));
-		assert!(message_transfer_time(43, 4_000_000_000) == Duration::from_nanos(108)); // rounded up
-		assert!(message_transfer_time(3, 4_000_000_000) == Duration::from_nanos(8)); // rounded up
-		assert!(message_transfer_time(5, 4_000_000_000) == Duration::from_nanos(13)); // rounded up
-
-		let lots = u32::MAX - 1; // Use MAX - 1 because MAX is not cleanly divisible by 2.
-		assert!(message_transfer_time(lots, 1) == Duration::from_secs(u64::from(lots) * 10));
-		assert!(message_transfer_time(lots, lots) == Duration::from_secs(10));
-		assert!(message_transfer_time(lots / 2, lots) == Duration::from_secs(5));
-		assert!(message_transfer_time(lots, lots / 2) == Duration::from_secs(20));
 	}
 }
