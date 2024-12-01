@@ -9,14 +9,14 @@ use std::path::Path;
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
 use crate::instructions::instruction_id;
-use crate::messaging::Messenger;
+use crate::bus::Bus;
 use crate::packet::{Packet, STATUS_HEADER_SIZE};
 
 /// Client for the Dynamixel Protocol 2 communication.
 ///
 /// Used to interact with devices on the bus.
 pub struct Client<ReadBuffer, WriteBuffer, T: SerialPort> {
-	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
+	bus: Bus<ReadBuffer, WriteBuffer, T>,
 }
 impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Client<ReadBuffer, WriteBuffer, T>
 where
@@ -24,8 +24,8 @@ where
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Client")
-			.field("serial_port", &self.messenger.serial_port)
-			.field("baud_rate", &self.messenger.baud_rate)
+			.field("serial_port", &self.bus.serial_port)
+			.field("baud_rate", &self.bus.baud_rate)
 			.finish_non_exhaustive()
 	}
 }
@@ -38,8 +38,8 @@ impl Client<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let port = serial2::SerialPort::open(path, baud_rate)?;
-		let messenger = Messenger::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate);
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate);
+		Ok(Self { bus })
 	}
 
 	/// Create a new client using an open serial port.
@@ -50,8 +50,8 @@ impl Client<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	pub fn new(serial_port: serial2::SerialPort) -> std::io::Result<Self> {
-		let messenger = Messenger::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
+		Ok(Self { bus })
 	}
 }
 
@@ -71,8 +71,8 @@ where
 		write_buffer: WriteBuffer,
 	) -> std::io::Result<Self> {
 		let port = serial2::SerialPort::open(path, baud_rate)?;
-		let messenger = Messenger::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate);
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate);
+		Ok(Self { bus })
 	}
 }
 
@@ -91,8 +91,8 @@ where
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
-		let messenger = Messenger::with_buffers(serial_port, read_buffer, write_buffer)?;
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
+		Ok(Self { bus })
 	}
 
 	/// Get a reference to the underlying [`SerialPort`].
@@ -102,7 +102,7 @@ where
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.
 	pub fn serial_port(&self) -> &T {
-		&self.messenger.serial_port
+		&self.bus.serial_port
 	}
 
 	/// Consume the client to get ownership of the serial port.
@@ -110,17 +110,17 @@ where
 	/// This discards any data in internal the read buffer of the client.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_serial_port(self) -> T {
-		self.messenger.serial_port
+		self.bus.serial_port
 	}
 
 	/// Get the baud rate of the bus.
 	pub fn baud_rate(&self) -> u32 {
-		self.messenger.baud_rate
+		self.bus.baud_rate
 	}
 
 	/// Set the baud rate of the underlying serial port.
 	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), T::Error> {
-		self.messenger.set_baud_rate(baud_rate)
+		self.bus.set_baud_rate(baud_rate)
 	}
 
 	/// Write a raw instruction to a stream, and read a single raw response.
@@ -158,13 +158,13 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
-		self.messenger
+		self.bus
 			.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)
 	}
 
 	/// Read a raw status response from the bus with the given deadline.
 	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<T::Error>> {
-		let response: StatusPacket = self.messenger.read_packet_response_timeout(timeout)?;
+		let response: StatusPacket = self.bus.read_packet_response_timeout(timeout)?;
 
 		crate::InvalidInstruction::check(response.instruction_id(), instruction_id::STATUS)?;
 		crate::MotorError::check(response.error())?;
@@ -177,7 +177,7 @@ where
 	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<T::Error>> {
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
-		let timeout = message_transfer_time(message_size, self.messenger.baud_rate) + Duration::from_millis(34);
+		let timeout = message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
 		self.read_status_response_timeout(timeout)
 	}
 }

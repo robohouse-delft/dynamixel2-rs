@@ -4,7 +4,11 @@ use crate::packet::{Packet, HEADER_PREFIX, INSTRUCTION_HEADER_SIZE, STATUS_HEADE
 use crate::{bytestuff, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
-pub struct Messenger<ReadBuffer, WriteBuffer, T> {
+/// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
+///
+/// Does not assume anything about the direction of communication.
+/// Used by [`crate::Client`] and [`crate::Device`].
+pub struct Bus<ReadBuffer, WriteBuffer, T> {
 	/// The underlying stream (normally a serial port).
 	pub(crate) serial_port: T,
 
@@ -24,13 +28,13 @@ pub struct Messenger<ReadBuffer, WriteBuffer, T> {
 	pub(crate) write_buffer: WriteBuffer,
 }
 
-impl<ReadBuffer, WriteBuffer, T> Messenger<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	T: SerialPort,
 {
-	/// Create a new [`Messenger`] using pre-allocated buffers.
+	/// Create a new bus using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
@@ -207,7 +211,7 @@ where
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, T> Messenger<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
