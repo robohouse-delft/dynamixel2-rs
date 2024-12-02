@@ -48,13 +48,7 @@ pub use serial_port::SerialPort;
 mod error;
 pub use error::*;
 
-mod packet;
-pub use packet::Packet;
-
 mod response;
 pub use response::*;
 
 pub mod bus;
-
-mod bytestuff;
-mod endian;

@@ -1,11 +1,8 @@
-use crate::endian::read_u16_le;
+use crate::bus::endian::read_u16_le;
 use crate::instructions::instruction_id;
-use crate::bus::Bus;
-use crate::{InvalidParameterCount, Packet, ReadError, SerialPort, WriteError};
+use crate::bus::{Bus, InstructionPacket};
+use crate::{InvalidParameterCount, ReadError, SerialPort, WriteError};
 use core::time::Duration;
-
-#[cfg(feature = "alloc")]
-use alloc::{borrow::ToOwned, vec::Vec};
 
 /// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
 pub struct Device<ReadBuffer, WriteBuffer, T: SerialPort> {
@@ -118,7 +115,7 @@ where
 	///
 	/// Use [`Device::read_owned`] to received owned data
 	pub fn read(&mut self, timeout: Duration) -> Result<Instruction<&[u8]>, ReadError<T::Error>> {
-		let packet = self.read_instruction_packet_timeout(timeout)?;
+		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
 	}
@@ -126,7 +123,7 @@ where
 	/// Read a single [`Instruction`] with borrowed data
 	#[cfg(any(feature = "alloc", feature = "std"))]
 	pub fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<Vec<u8>>, ReadError<T::Error>> {
-		let packet = self.read_instruction_packet_timeout(timeout)?;
+		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
 	}
@@ -143,7 +140,7 @@ where
 		F: FnOnce(&mut [u8]),
 	{
 		self.bus
-			.write_status(packet_id, instruction_id::STATUS, error, parameter_count, encode_parameters)
+			.write_status(packet_id, error, parameter_count, encode_parameters)
 	}
 
 	/// Write an empty status message with an error code.
@@ -157,17 +154,20 @@ where
 	}
 
 	/// Read a single [`InstructionPacket`].
-	pub fn read_instruction_packet_timeout(&mut self, timeout: Duration) -> Result<InstructionPacket, ReadError<T::Error>> {
-		self.bus.read_packet_response_timeout(timeout)
+	pub fn read_raw_instruction_timeout(&mut self, timeout: Duration) -> Result<crate::bus::InstructionPacket<'_>, ReadError<T::Error>> {
+		let deadline = T::make_deadline(self.serial_port(), timeout);
+		loop {
+			// SAFETY: This is a workaround for a limitation in the borrow checker.
+			// Even though `packet` is dropped inside the loop body, it has lifetime 'a, which outlives the current function.
+			// So each loop iteration tries to borrow the same field mutably, with the a lifetime that outlives the current function.
+			// Borrow checker says no.
+			let bus: &mut Bus<ReadBuffer, WriteBuffer, T> = unsafe { &mut * (&mut self.bus as *mut _) };
+			let packet = bus.read_packet_deadline(deadline)?;
+			if let Some(instruction) = packet.as_instruction() {
+				return Ok(instruction)
+			}
+		}
 	}
-}
-
-/// [`InstructionPacket`] is a packet that contains an instruction and its parameters.
-///
-/// Sent by a client to a device.
-#[derive(Debug)]
-pub struct InstructionPacket<'a> {
-	pub(crate) data: &'a [u8],
 }
 
 /// The options for the [Factory Reset](https://emanual.robotis.com/docs/en/dxl/protocol2/#factory-reset-0x06) instruction.
@@ -234,8 +234,7 @@ impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<&'a [u8]> {
 
 	fn try_from(packet: InstructionPacket<'a>) -> Result<Self, Self::Error> {
 		let id = packet.packet_id();
-		let InstructionPacket { data } = packet;
-		let parameters = &data[InstructionPacket::HEADER_SIZE..];
+		let parameters: &'a [u8] = packet.parameters();
 		let instruction = match packet.instruction_id() {
 			instruction_id::PING => Instructions::Ping,
 			instruction_id::READ => {

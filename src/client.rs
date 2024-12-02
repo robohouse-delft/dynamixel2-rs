@@ -6,7 +6,6 @@ use std::path::Path;
 
 use crate::bus::{Bus, StatusPacket};
 use crate::instructions::instruction_id;
-use crate::packet::STATUS_HEADER_SIZE;
 use crate::serial_port::SerialPort;
 use crate::{ReadError, TransferError, WriteError};
 
@@ -163,11 +162,18 @@ where
 
 	/// Read a raw status response from the bus with the given deadline.
 	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<T::Error>> {
-		let response: StatusPacket = self.bus.read_packet_response_timeout(timeout)?;
+		let deadline = self.serial_port().make_deadline(timeout);
+		let packet = self.bus.read_packet_deadline(deadline)?;
+		let status = match packet.as_status() {
+			Some(status) => status,
+			None => return Err(crate::InvalidInstruction {
+				actual: packet.instruction_id(),
+				expected: instruction_id::STATUS,
+			}.into()),
+		};
 
-		crate::InvalidInstruction::check(response.instruction_id(), instruction_id::STATUS)?;
-		crate::MotorError::check(response.error())?;
-		Ok(response)
+		crate::MotorError::check(status.error())?;
+		Ok(status)
 	}
 
 	/// Read a raw status response with an automatically calculated timeout.
@@ -175,7 +181,7 @@ where
 	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
 	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<T::Error>> {
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
-		let message_size = STATUS_HEADER_SIZE as u32 + u32::from(expected_parameters) + 2;
+		let message_size = crate::bus::StatusPacket::message_len(expected_parameters as usize) as u32;
 		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
 		self.read_status_response_timeout(timeout)
 	}

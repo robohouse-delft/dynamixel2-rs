@@ -1,5 +1,5 @@
 use crate::bus::StatusPacket;
-use crate::endian::{read_u16_le, read_u32_le, read_u8_le};
+use crate::bus::endian::{read_u16_le, read_u32_le, read_u8_le};
 
 /// A response from a motor.
 ///

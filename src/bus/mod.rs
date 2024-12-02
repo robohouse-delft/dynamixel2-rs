@@ -1,13 +1,25 @@
 //! Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 
-use crate::checksum::calculate_checksum;
-use crate::endian::{read_u16_le, write_u16_le};
-use crate::packet::{Packet, HEADER_PREFIX, INSTRUCTION_HEADER_SIZE, STATUS_HEADER_SIZE};
-use crate::{bytestuff, ReadError, SerialPort, WriteError};
+use crate::{checksum, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
-mod status_packet;
-pub use status_packet::*;
+pub(crate) mod bytestuff;
+pub(crate) mod endian;
+
+mod packet;
+pub use packet::{Packet, InstructionPacket, StatusPacket};
+
+/// Prefix of a packet.
+///
+/// All packets start with this prefix, and they can not contain it in the body.
+///
+/// In other words: if you see this in the data stream, it must be the start of a packet.
+const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
+
+/// The size of a message header, including the pre-amble, packet ID and length.
+///
+/// Excludes the instruction ID, the error field of status packets, the parameters and the CRC.
+const HEADER_SIZE: usize = 7;
 
 /// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 ///
@@ -62,7 +74,7 @@ where
 	) -> Self {
 		// Pre-fill write buffer with the header prefix.
 		// TODO: return Err instead of panicking.
-		assert!(write_buffer.as_mut().len() >= INSTRUCTION_HEADER_SIZE + 2);
+		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 3);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
@@ -82,10 +94,10 @@ where
 		Ok(())
 	}
 
+	/// Write a status message to the bus.
 	pub fn write_status<F>(
 		&mut self,
 		packet_id: u8,
-		instruction_id: u8,
 		error: u8,
 		parameter_count: usize,
 		encode_parameters: F,
@@ -93,8 +105,8 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
-		crate::error::BufferTooSmallError::check(STATUS_HEADER_SIZE + parameter_count + 2, self.write_buffer.as_ref().len())?;
-		self.write_instruction(packet_id, instruction_id, parameter_count + 1, |buffer| {
+		crate::error::BufferTooSmallError::check(StatusPacket::message_len(parameter_count), self.write_buffer.as_ref().len())?;
+		self.write_packet(packet_id, crate::instructions::instruction_id::STATUS, parameter_count + 1, |buffer| {
 			buffer[0] = error;
 			encode_parameters(&mut buffer[1..]);
 		})
@@ -111,29 +123,43 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
+		self.write_packet(packet_id, instruction_id, parameter_count, encode_parameters)
+	}
+
+	/// Write a packet to the bus.
+	pub fn write_packet<F>(
+		&mut self,
+		packet_id: u8,
+		instruction_id: u8,
+		parameter_count: usize,
+		encode_parameters: F,
+	) -> Result<(), WriteError<T::Error>>
+	where
+		F: FnOnce(&mut [u8]),
+	{
 		let buffer = self.write_buffer.as_mut();
 
 		// Check if the buffer can hold the unstuffed message.
-		crate::error::BufferTooSmallError::check(INSTRUCTION_HEADER_SIZE + parameter_count + 2, buffer.len())?;
+		crate::error::BufferTooSmallError::check(InstructionPacket::message_len(parameter_count), buffer.len())?;
 
 		// Add the header, with a placeholder for the length field.
 		buffer[4] = packet_id;
 		buffer[5] = 0;
 		buffer[6] = 0;
 		buffer[7] = instruction_id;
-		// The error byte for StatusPackets gets added in
-		encode_parameters(&mut buffer[INSTRUCTION_HEADER_SIZE..][..parameter_count]);
+		encode_parameters(&mut buffer[8..][..parameter_count]);
 
 		// Perform bitstuffing on the body.
 		// The header never needs stuffing.
-		let stuffed_body_len = bytestuff::stuff_inplace(&mut buffer[INSTRUCTION_HEADER_SIZE..], parameter_count)?;
+		// However, strictly following the spec, the instruction ID might need stuffing.
+		let stuffed_body_len = bytestuff::stuff_inplace(&mut buffer[HEADER_SIZE..], 1 + parameter_count)?;
 
-		write_u16_le(&mut buffer[5..], stuffed_body_len as u16 + 3);
+		endian::write_u16_le(&mut buffer[5..], stuffed_body_len as u16 + 2);
 
 		// Add checksum.
-		let checksum_index = INSTRUCTION_HEADER_SIZE + stuffed_body_len;
-		let checksum = calculate_checksum(0, &buffer[..checksum_index]);
-		write_u16_le(&mut buffer[checksum_index..], checksum);
+		let checksum_index = HEADER_SIZE + stuffed_body_len;
+		let checksum = checksum::calculate_checksum(0, &buffer[..checksum_index]);
+		endian::write_u16_le(&mut buffer[checksum_index..], checksum);
 
 		// Throw away old data in the read buffer and the kernel read buffer.
 		// We don't do this when reading a reply, because we might receive multiple replies for one instruction,
@@ -144,35 +170,31 @@ where
 
 		// Send message.
 		let stuffed_message = &buffer[..checksum_index + 2];
-		trace!("sending instruction: {:02X?}", stuffed_message);
+		trace!("sending packet: {:02X?}", stuffed_message);
 		self.serial_port.write_all(stuffed_message).map_err(WriteError::Write)?;
 		Ok(())
 	}
 
-	/// Read a raw status response from the bus with the given deadline.
-	pub fn read_packet_response_timeout<'a, P: Packet<'a>>(&'a mut self, timeout: Duration) -> Result<P, ReadError<T::Error>> {
-		// Check that the read buffer is large enough to hold atleast a status packet header.
-		crate::error::BufferTooSmallError::check(P::HEADER_SIZE, self.read_buffer.as_mut().len())?;
-
-		let deadline = self.serial_port.make_deadline(timeout);
+	/// Read a raw packet from the bus with the given deadline.
+	pub fn read_packet_deadline(&mut self, deadline: T::Instant) -> Result<Packet<'_>, ReadError<T::Error>> {
+		// Check that the read buffer is large enough to hold atleast a instruction packet with 0 parameters.
+		crate::error::BufferTooSmallError::check(HEADER_SIZE + 3, self.read_buffer.as_mut().len())?;
 
 		let stuffed_message_len = loop {
 			self.remove_garbage();
 
-			// The call to remove_garbage() removes all leading bytes that don't match a status header.
-			// So if there's enough bytes left, it's a status header.
-			if self.read_len > P::HEADER_SIZE {
+			// The call to remove_garbage() removes all leading bytes that don't match a packet header.
+			// So if there's enough bytes left, it's a packet header.
+			if self.read_len > HEADER_SIZE {
 				let read_buffer = &self.read_buffer.as_mut()[..self.read_len];
-				let body_len = read_buffer[5] as usize + read_buffer[6] as usize * 256;
-				let body_len = body_len - P::HEADER_OVERLAP; // Length includes some bytes which are already included in P::PACKET_HEADER_SIZE.
+				let body_len = endian::read_u16_le(&read_buffer[5..]) as usize;
 
 				// Check if the read buffer is large enough for the entire message.
 				// We don't have to remove the read bytes, because `write_instruction()` already clears the read buffer.
-				crate::error::BufferTooSmallError::check(P::HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
+				crate::error::BufferTooSmallError::check(HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
 
-				if self.read_len >= P::HEADER_SIZE + body_len {
-					trace!("P::HEADER_SIZE: {}, body_len: {}", P::HEADER_SIZE, body_len);
-					break P::HEADER_SIZE + body_len;
+				if self.read_len >= HEADER_SIZE + body_len {
+					break HEADER_SIZE + body_len;
 				}
 			}
 
@@ -190,8 +212,8 @@ where
 		let parameters_end = stuffed_message_len - 2;
 		trace!("read packet: {:02X?}", &buffer[..parameters_end]);
 
-		let checksum_message = read_u16_le(&buffer[parameters_end..]);
-		let checksum_computed = calculate_checksum(0, &buffer[..parameters_end]);
+		let checksum_message = endian::read_u16_le(&buffer[parameters_end..]);
+		let checksum_computed = checksum::calculate_checksum(0, &buffer[..parameters_end]);
 		if checksum_message != checksum_computed {
 			self.consume_read_bytes(stuffed_message_len);
 			return Err(crate::InvalidChecksum {
@@ -204,15 +226,22 @@ where
 		// Mark the whole message as "used_bytes", so that the next call to `remove_garbage()` removes it.
 		self.used_bytes += stuffed_message_len;
 
-		// Remove byte-stuffing from the parameters.
-		let parameter_count = bytestuff::unstuff_inplace(&mut buffer[P::HEADER_SIZE..parameters_end]);
+		// Remove byte-stuffing from the everything from instruction ID to the parameters.
+		let parameter_count = bytestuff::unstuff_inplace(&mut buffer[HEADER_SIZE..parameters_end]);
 
-		// Wrap the data in a `StatusPacket`.
-		let response = P::new(&self.read_buffer.as_ref()[..P::HEADER_SIZE + parameter_count]);
-		// TODO MOVE THESE BACK TO BUS
-		// crate::InvalidInstruction::check(response.instruction_id(), crate::instructions::instruction_id::STATUS)?;
-		// crate::MotorError::check(response.error())?;
-		Ok(response)
+		// Wrap the data in a `Packet`.
+		let data = &self.read_buffer.as_ref()[..HEADER_SIZE + parameter_count];
+		let packet = packet::Packet { data };
+
+		// Ensure that status packets have an error field (included in parameter_count here).
+		if packet.instruction_id() == crate::instructions::instruction_id::STATUS && parameter_count < 1 {
+			return Err(crate::InvalidMessage::InvalidParameterCount(crate::InvalidParameterCount {
+				actual: 0,
+				expected: crate::ExpectedCount::Min(1),
+			}).into());
+		}
+
+		Ok(packet)
 	}
 }
 

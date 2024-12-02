@@ -2,6 +2,9 @@
 
 use crate::error::BufferTooSmallError;
 
+/// The stuffed pattern.
+///
+/// The unstuffed pattern is this with the last byte removed.
 pub const PATTERN: [u8; 4] = [0xFF, 0xFF, 0xFD, 0xFD];
 
 /// Remove bit-stuffing in-place.
@@ -39,7 +42,7 @@ pub fn stuffing_required(data: &[u8]) -> usize {
 		} else {
 			state = 0;
 		}
-		if state == 3 {
+		if state == PATTERN.len() - 1 {
 			state = 0;
 			count += 1;
 		}
