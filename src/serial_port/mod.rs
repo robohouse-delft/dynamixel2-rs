@@ -13,7 +13,7 @@ pub trait SerialPort {
 	type Error;
 
 	/// A point in time that can be used as a deadline for a I/O operations.
-	type Instant;
+	type Instant: Copy;
 
 	/// Get the current baud rate of the serial port.
 	fn baud_rate(&self) -> Result<u32, Self::Error>;

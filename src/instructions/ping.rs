@@ -30,8 +30,8 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<Ping> {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
 			data: Ping {
-				model: crate::endian::read_u16_le(&parameters[0..]),
-				firmware: crate::endian::read_u8_le(&parameters[2..]),
+				model: crate::bus::endian::read_u16_le(&parameters[0..]),
+				firmware: crate::bus::endian::read_u8_le(&parameters[2..]),
 			},
 		})
 	}

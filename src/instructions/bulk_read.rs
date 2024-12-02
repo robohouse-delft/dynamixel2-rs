@@ -1,5 +1,5 @@
 use super::{instruction_id, packet_id, BulkReadData};
-use crate::endian::{write_u16_le, write_u8_le};
+use crate::bus::endian::{write_u16_le, write_u8_le};
 use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, WriteError};
 

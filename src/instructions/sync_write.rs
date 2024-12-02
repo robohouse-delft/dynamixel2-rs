@@ -1,7 +1,7 @@
-use super::{instruction_id, packet_id, SyncWriteData};
-use crate::endian::{write_u16_le, write_u32_le};
+use crate::bus::endian::{write_u16_le, write_u32_le};
 use crate::serial_port::SerialPort;
 use crate::{Client, WriteError};
+use super::{instruction_id, packet_id, SyncWriteData};
 
 impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where

@@ -2,7 +2,7 @@
 use alloc::vec::Vec;
 
 use crate::bus::StatusPacket;
-use crate::endian::write_u16_le;
+use crate::bus::endian::write_u16_le;
 use crate::serial_port::SerialPort;
 use crate::{Client, Response, TransferError};
 use super::instruction_id;

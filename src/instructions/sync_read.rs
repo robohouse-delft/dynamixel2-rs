@@ -1,7 +1,7 @@
-use super::{instruction_id, packet_id};
-use crate::endian::write_u16_le;
+use crate::bus::endian::write_u16_le;
 use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, WriteError};
+use super::{instruction_id, packet_id};
 
 #[cfg(feature = "alloc")]
 use alloc::{borrow::ToOwned, vec::Vec};
