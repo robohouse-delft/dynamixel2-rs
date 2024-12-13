@@ -1,11 +1,9 @@
 use super::instruction_id;
 use crate::endian::write_u16_le;
 use crate::serial_port::SerialPort;
-use crate::{StatusPacket, Bus, Response, TransferError};
-
+use crate::{Bus, Response, StatusPacket, TransferError};
+use crate::packet::Read;
 use crate::packet::Packet;
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
 
 impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
 where
@@ -27,10 +25,9 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Vec<u8>>, TransferError<T::Error>> {
+	pub fn read<Data: Read>(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Data>, TransferError<T::Error>> {
 		let response = self.read_raw(motor_id, address, count)?;
-		Ok(response.into())
+		Ok(response.try_into_response()?)
 	}
 
 	/// Read an 8 bit register from a specific motor.

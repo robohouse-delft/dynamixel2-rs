@@ -75,6 +75,8 @@ pub enum InvalidMessage {
 
 	/// The message has an invalid parameter count.
 	InvalidParameterCount(InvalidParameterCount),
+	/// The message was unable to be parsed into the requested type
+	ParseError,
 }
 
 /// An error reported by the motor.
@@ -508,6 +510,7 @@ impl Display for InvalidMessage {
 			Self::InvalidPacketId(e) => write!(f, "{}", e),
 			Self::InvalidInstruction(e) => write!(f, "{}", e),
 			Self::InvalidParameterCount(e) => write!(f, "{}", e),
+			Self::ParseError => write!(f, "error parsing bytes in Read trait"),
 		}
 	}
 }

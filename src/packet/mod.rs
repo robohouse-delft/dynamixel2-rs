@@ -1,8 +1,11 @@
 mod status;
-pub use status::{StatusPacket, Response};
+pub use status::{Response, StatusPacket};
 mod instruction;
-pub use instruction::{Instruction, Instructions, InstructionPacket};
+mod data_traits;
 
+pub use instruction::{Instruction, InstructionPacket, Instructions};
+
+pub use data_traits::{Read, Write};
 pub(crate) const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 pub(crate) const INSTRUCTION_HEADER_SIZE: usize = 8;
 pub(crate) const STATUS_HEADER_SIZE: usize = 9;
