@@ -1,7 +1,7 @@
 use super::instruction_id;
 use crate::endian::write_u16_le;
 use crate::serial_port::SerialPort;
-use crate::{bus::StatusPacket, Bus, Response, TransferError};
+use crate::{StatusPacket, Bus, Response, TransferError};
 
 use crate::packet::Packet;
 #[cfg(feature = "alloc")]

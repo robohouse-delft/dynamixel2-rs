@@ -1,6 +1,7 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
 use dynamixel2::serial2::SerialPort;
+use dynamixel2::{Packet, Response, StatusPacket};
 
 mod logging;
 mod options;
@@ -164,7 +165,7 @@ fn open_bus(options: &Options) -> Result<dynamixel2::Bus<Vec<u8>, Vec<u8>, Seria
 	Ok(bus)
 }
 
-fn log_ping_response(response: &dynamixel2::Response<dynamixel2::instructions::Ping>, elapsed: Duration) {
+fn log_ping_response(response: &Response<dynamixel2::instructions::Ping>, elapsed: Duration) {
 	log::info!("Motor ID: {}", response.motor_id);
 	log::info!(" ├─ Response time: {:?}", elapsed);
 	if response.alert {
