@@ -78,6 +78,7 @@ where
 fn clear_revolution_count_parameters(buffer: &mut [u8]) {
 	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT)
 }
+
 fn clear_error_parameters(buffer: &mut [u8]) {
-	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT)
+	buffer.copy_from_slice(&CLEAR_ERROR)
 }
