@@ -6,6 +6,7 @@ use crate::{Bus, Response, TransferError, WriteError};
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
 
 /// The parameters for the CLEAR command to clear the error state.
+///
 /// This is only supported on some motors.
 const CLEAR_ERROR: [u8; 5] = [0x01, 0x45, 0x52, 0x43, 0x4C];
 
@@ -48,20 +49,21 @@ where
 	/// Clear the error of a motor.
 	///
 	/// This will reset the "error code" register to 0 if the error can be cleared.
-	/// If the error cannot be cleared, the status packet error will be 0x01.
-	/// This is currently only implemented on the Dynamixel Y series.
+	/// If the error cannot be cleared, the function returns a [`MotorError`](crate::MotorError) with error code `0x01`.
+	///
+	/// This instruction is currently only implemented on the Dynamixel Y series.
 	pub fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<T::Error>> {
 		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 
 	}
 
-	/// Clear the error of a motor.
+	/// Try to clear the error of all motors on the bus.
 	///
-	/// This will reset the "error code" register to 0 if the error can be cleared.
-	/// If the error cannot be cleared, the status packet error will be 0x01.
-	/// This is currently only implemented on the Dynamixel Y series.
-
+	/// This will reset the "error code" register to 0 if the error can be cleared
+	/// and if the instruction is supported by the motor.
+    ///
+	/// This instruction is currently only implemented on the Dynamixel Y series.
 	pub fn broadcast_clear_error(&mut self) -> Result<(), WriteError<T::Error>> {
 		self.write_instruction(
 			packet_id::BROADCAST,
