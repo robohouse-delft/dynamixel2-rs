@@ -40,7 +40,7 @@ impl StatusPacket<'_> {
 			Response {
 				motor_id: self.packet_id(),
 				alert: self.alert(),
-				data:  T::try_from_bytes(self.data)?,
+				data:  T::try_from_bytes(self.parameters())?,
 			}
 		)
 	}

@@ -42,7 +42,7 @@ pub trait Read {
 	fn try_from_bytes(bytes: &[u8]) -> Result<Self, InvalidMessage> where Self: Sized;
 
 	fn response_from_status(status_packet: StatusPacket<'_>) -> Result<Response<Self>, InvalidMessage> where Self: Sized {
-		let data = Self::try_from_bytes(status_packet.parameters()).map_err(|_| InvalidMessage::ParseError)?;
+		let data = Self::try_from_bytes(status_packet.parameters())?;
 		Ok(Response {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
@@ -55,7 +55,7 @@ impl Read for u8 {
 	const R_COUNT: u16 = size_of::<u8>() as u16;
 
 	fn try_from_bytes(bytes: &[u8]) -> Result<Self, InvalidMessage> {
-		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize).map_err(|_| InvalidMessage::ParseError)?;
+		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize)?;
 		Ok(read_u8_le(bytes))
 	}
 }
@@ -64,7 +64,7 @@ impl Read for u16 {
 	const R_COUNT: u16 = size_of::<u16>() as u16;
 
 	fn try_from_bytes(bytes: &[u8]) -> Result<Self, InvalidMessage> {
-		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize).map_err(|_| InvalidMessage::ParseError)?;
+		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize)?;
 		Ok(read_u16_le(bytes))
 	}
 }
@@ -73,7 +73,7 @@ impl Read for u32 {
 	const R_COUNT: u16 = size_of::<u32>() as u16;
 
 	fn try_from_bytes(bytes: &[u8]) -> Result<Self, InvalidMessage> {
-		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize).map_err(|_| InvalidMessage::ParseError)?;
+		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize)?;
 		Ok(read_u32_le(bytes))
 
 	}
@@ -82,7 +82,7 @@ impl Read for u32 {
 impl<const N: usize> Read for [u8; N] {
 	const R_COUNT: u16 = N as u16;
 	fn try_from_bytes(bytes: &[u8]) -> Result<Self, InvalidMessage> {
-		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize).map_err(|_| InvalidMessage::ParseError)?;
+		InvalidParameterCount::check(bytes.len(), Self::R_COUNT as usize)?;
 		let r = bytes.try_into().map_err(|_| InvalidMessage::ParseError)?;
 		Ok(r)
 	}
