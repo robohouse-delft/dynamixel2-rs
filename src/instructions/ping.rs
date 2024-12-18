@@ -1,9 +1,8 @@
 use core::time::Duration;
 
 use super::{instruction_id, packet_id};
-use crate::bus::StatusPacket;
 use crate::serial_port::SerialPort;
-use crate::{Bus, ReadError, Response, TransferError};
+use crate::{Bus, ReadError, Response, TransferError, StatusPacket};
 
 use crate::packet::Packet;
 #[cfg(feature = "alloc")]

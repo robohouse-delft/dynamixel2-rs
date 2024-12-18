@@ -49,7 +49,7 @@ mod error;
 pub use error::*;
 
 mod packet;
-pub use packet::Packet;
+pub use packet::*;
 
 mod bytestuff;
 mod endian;
