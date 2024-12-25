@@ -33,6 +33,9 @@ where
 	}
 }
 
+/// A sync read operation.
+///
+/// Used to retrieve the responses of the different motors.
 #[derive(Debug)]
 pub struct SyncRead<'a, SerialPort, Buffer>
 where
@@ -50,6 +53,7 @@ where
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
+	/// Read the next motor reply.
 	pub fn next(&mut self) -> Option<Result<Response<&[u8]>, ReadError<SerialPort::Error>>>{
 		let motor_id = self.pop_motor_id()?;
 		match self.next_status_packet(motor_id) {
@@ -67,6 +71,7 @@ where
 	fn next_status_packet(&mut self, motor_id: u8) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
 		self.client.read_status_response(self.count).and_then(|response| {
 			// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
+			// We need to report a timeout or somehing for the missed motor though.
 			crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 			crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
 			Ok(response)
