@@ -1,15 +1,12 @@
-use crate::endian::read_u16_le;
+use crate::bus::endian::read_u16_le;
 use crate::instructions::instruction_id;
-use crate::messaging::Messenger;
-use crate::{InvalidParameterCount, Packet, ReadError, SerialPort, WriteError};
+use crate::bus::{Bus, InstructionPacket};
+use crate::{InvalidParameterCount, ReadError, SerialPort, WriteError};
 use core::time::Duration;
 
-#[cfg(feature = "alloc")]
-use alloc::{borrow::ToOwned, vec::Vec};
-
-/// Dynamixel [`Device`] for communicating with a [`Bus`].
+/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
 pub struct Device<ReadBuffer, WriteBuffer, T: SerialPort> {
-	messenger: Messenger<ReadBuffer, WriteBuffer, T>,
+	bus: Bus<ReadBuffer, WriteBuffer, T>,
 }
 
 impl<ReadBuffer, WriteBuffer, T> core::fmt::Debug for Device<ReadBuffer, WriteBuffer, T>
@@ -18,8 +15,8 @@ where
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("Device")
-			.field("serial_port", &self.messenger.serial_port)
-			.field("baud_rate", &self.messenger.baud_rate)
+			.field("serial_port", &self.bus.serial_port)
+			.field("baud_rate", &self.bus.baud_rate)
 			.finish_non_exhaustive()
 	}
 }
@@ -32,8 +29,8 @@ impl Device<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let port = serial2::SerialPort::open(path, baud_rate)?;
-		let messenger = Messenger::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate);
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers_and_baud_rate(port, vec![0; 128], vec![0; 128], baud_rate);
+		Ok(Self { bus })
 	}
 
 	/// Create a new device for an open serial port.
@@ -44,8 +41,8 @@ impl Device<Vec<u8>, Vec<u8>, serial2::SerialPort> {
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	pub fn new(serial_port: serial2::SerialPort) -> std::io::Result<Self> {
-		let messenger = Messenger::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
+		Ok(Self { bus })
 	}
 }
 
@@ -65,8 +62,8 @@ where
 		write_buffer: WriteBuffer,
 	) -> std::io::Result<Self> {
 		let port = serial2::SerialPort::open(path, baud_rate)?;
-		let messenger = Messenger::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate);
-		Ok(Self { messenger })
+		let bus = Bus::with_buffers_and_baud_rate(port, read_buffer, write_buffer, baud_rate);
+		Ok(Self { bus })
 	}
 }
 impl<ReadBuffer, WriteBuffer, T> Device<ReadBuffer, WriteBuffer, T>
@@ -81,18 +78,18 @@ where
 		read_buffer: ReadBuffer,
 		write_buffer: WriteBuffer,
 	) -> Result<Self, T::Error> {
-		let messenger = Messenger::with_buffers(serial_port, read_buffer, write_buffer)?;
-		Ok(Device { messenger })
+		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
+		Ok(Device { bus })
 	}
 
-	/// Get a reference to the underlying [`Transport`].
+	/// Get a reference to the underlying [`SerialPort`].
 	///
-	/// Note that performing any read or write with the [`Transport`] bypasses the read/write buffer of the device,
+	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the device,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
 	pub fn serial_port(&self) -> &T {
-		&self.messenger.serial_port
+		&self.bus.serial_port
 	}
 
 	/// Consume this device object to get ownership of the serial port.
@@ -100,17 +97,17 @@ where
 	/// This discards any data in internal the read buffer of the device object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
 	pub fn into_serial_port(self) -> T {
-		self.messenger.serial_port
+		self.bus.serial_port
 	}
 
 	/// Get the baud rate of the device.
 	pub fn baud_rate(&self) -> u32 {
-		self.messenger.baud_rate
+		self.bus.baud_rate
 	}
 
 	/// Set the baud rate of the underlying serial port.
 	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), T::Error> {
-		self.messenger.set_baud_rate(baud_rate)?;
+		self.bus.set_baud_rate(baud_rate)?;
 		Ok(())
 	}
 
@@ -118,7 +115,7 @@ where
 	///
 	/// Use [`Device::read_owned`] to received owned data
 	pub fn read(&mut self, timeout: Duration) -> Result<Instruction<&[u8]>, ReadError<T::Error>> {
-		let packet = self.read_instruction_packet_timeout(timeout)?;
+		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
 	}
@@ -126,7 +123,7 @@ where
 	/// Read a single [`Instruction`] with borrowed data
 	#[cfg(any(feature = "alloc", feature = "std"))]
 	pub fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<Vec<u8>>, ReadError<T::Error>> {
-		let packet = self.read_instruction_packet_timeout(timeout)?;
+		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
 	}
@@ -142,8 +139,8 @@ where
 	where
 		F: FnOnce(&mut [u8]),
 	{
-		self.messenger
-			.write_status(packet_id, instruction_id::STATUS, error, parameter_count, encode_parameters)
+		self.bus
+			.write_status(packet_id, error, parameter_count, encode_parameters)
 	}
 
 	/// Write an empty status message with an error code.
@@ -157,15 +154,20 @@ where
 	}
 
 	/// Read a single [`InstructionPacket`].
-	pub fn read_instruction_packet_timeout(&mut self, timeout: Duration) -> Result<InstructionPacket, ReadError<T::Error>> {
-		self.messenger.read_packet_response_timeout(timeout)
+	pub fn read_raw_instruction_timeout(&mut self, timeout: Duration) -> Result<crate::bus::InstructionPacket<'_>, ReadError<T::Error>> {
+		let deadline = T::make_deadline(self.serial_port(), timeout);
+		loop {
+			// SAFETY: This is a workaround for a limitation in the borrow checker.
+			// Even though `packet` is dropped inside the loop body, it has lifetime 'a, which outlives the current function.
+			// So each loop iteration tries to borrow the same field mutably, with the a lifetime that outlives the current function.
+			// Borrow checker says no.
+			let bus: &mut Bus<ReadBuffer, WriteBuffer, T> = unsafe { &mut * (&mut self.bus as *mut _) };
+			let packet = bus.read_packet_deadline(deadline)?;
+			if let Some(instruction) = packet.as_instruction() {
+				return Ok(instruction)
+			}
+		}
 	}
-}
-
-/// [`InstructionPacket`] is a packet that contains an instruction and its parameters. Sent from the [`Bus`] to [`Device`]s.
-#[derive(Debug)]
-pub struct InstructionPacket<'a> {
-	pub(crate) data: &'a [u8],
 }
 
 /// The options for the [Factory Reset](https://emanual.robotis.com/docs/en/dxl/protocol2/#factory-reset-0x06) instruction.
@@ -207,7 +209,8 @@ pub struct Instruction<T> {
 }
 
 /// Instructions as defined in the [Dynamixel Protocol 2.0](https://emanual.robotis.com/docs/en/dxl/protocol2/#instruction-details).
-/// The parameters are stored as a &[u8] slice or a Vec<u8>.
+///
+/// The parameters are stored as a `&[u8]` slice or a `Vec<u8>`.
 #[allow(missing_docs)]
 #[derive(Debug)]
 pub enum Instructions<T> {
@@ -231,8 +234,7 @@ impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<&'a [u8]> {
 
 	fn try_from(packet: InstructionPacket<'a>) -> Result<Self, Self::Error> {
 		let id = packet.packet_id();
-		let InstructionPacket { data } = packet;
-		let parameters = &data[InstructionPacket::HEADER_SIZE..];
+		let parameters: &'a [u8] = packet.parameters();
 		let instruction = match packet.instruction_id() {
 			instruction_id::PING => Instructions::Ping,
 			instruction_id::READ => {

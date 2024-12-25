@@ -9,9 +9,9 @@
 //! such as moving it to a specific angle or at a specific speed.
 //! Instead, you will have to write the appropriate values to the correct registers yourself.
 //!
-//! The main interface is the [`Bus`] struct, which represents the serial communication bus.
-//! The [`Bus`] struct exposes functions for all supported instructions such as [`Bus::ping`], [`Bus::read`], [`Bus::write`] and much more.
-//! Additionally, you can also transmit raw commands using [`Bus::write_instruction`] and [`Bus::read_status_response`], or [`Bus::transfer_single`].
+//! The main interface is the [`Client`] struct, which can be used to interact with devices on the serial communication bus.
+//! The [`Client`] struct exposes functions for all supported instructions such as [`Client::ping`], [`Client::read`], [`Client::write`] and much more.
+//! Additionally, you can also transmit raw commands using [`Client::write_instruction`] and [`Client::read_status_response`], or [`Client::transfer_single`].
 //!
 //! The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 //!
@@ -36,8 +36,8 @@ mod log;
 pub mod checksum;
 pub mod instructions;
 
-mod bus;
-pub use bus::*;
+mod client;
+pub use client::*;
 
 mod device;
 pub use device::*;
@@ -48,9 +48,7 @@ pub use serial_port::SerialPort;
 mod error;
 pub use error::*;
 
-mod packet;
-pub use packet::Packet;
+mod response;
+pub use response::*;
 
-mod bytestuff;
-mod endian;
-mod messaging;
+pub mod bus;

@@ -1,6 +1,6 @@
 use super::{instruction_id, packet_id};
 use crate::serial_port::SerialPort;
-use crate::{Bus, Response, TransferError, WriteError};
+use crate::{Client, Response, TransferError, WriteError};
 
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
@@ -10,7 +10,7 @@ const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
 /// This is only supported on some motors.
 const CLEAR_ERROR: [u8; 5] = [0x01, 0x45, 0x52, 0x43, 0x4C];
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,

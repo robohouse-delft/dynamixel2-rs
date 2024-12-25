@@ -1,4 +1,6 @@
 # Unreleased
+- [major][change] Renamed `Bus` to `Client` to better show the difference between `Client` and `Device.
+- [minor][add] Added a `Device` struct to implement the device side of the communication protocol.
 - [major][add] Added `Transport` trait. Used to abstract the serial port.
 - [major][add] Added `Serial2Port` struct, implementing the `Transport` trait for the `serial2` crate.
 - [major][add] Added `std` and `serial2` as default features

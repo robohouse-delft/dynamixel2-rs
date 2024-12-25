@@ -1,11 +1,10 @@
 use core::time::Duration;
 
-use super::{instruction_id, packet_id};
 use crate::bus::StatusPacket;
 use crate::serial_port::SerialPort;
-use crate::{Bus, ReadError, Response, TransferError};
+use crate::{Client, ReadError, Response, TransferError};
+use super::{instruction_id, packet_id};
 
-use crate::packet::Packet;
 #[cfg(feature = "alloc")]
 use alloc::vec::Vec;
 
@@ -31,14 +30,14 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<Ping> {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
 			data: Ping {
-				model: crate::endian::read_u16_le(&parameters[0..]),
-				firmware: crate::endian::read_u8_le(&parameters[2..]),
+				model: crate::bus::endian::read_u16_le(&parameters[0..]),
+				firmware: crate::bus::endian::read_u8_le(&parameters[2..]),
 			},
 		})
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
 where
 	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
 	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -53,7 +52,7 @@ where
 		Ok(response.try_into()?)
 	}
 
-	/// Scan a bus for motors with a broadcast ping, returning the responses in a [`Vec`].
+	/// Scan the bus for motors with a broadcast ping, returning the responses in a [`Vec`].
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are collected.
@@ -70,7 +69,7 @@ where
 		Ok(result)
 	}
 
-	/// Scan a bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
+	/// Scan the bus for motors with a broadcast ping, calling an [`FnMut`] for each response.
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are passed to the handler.

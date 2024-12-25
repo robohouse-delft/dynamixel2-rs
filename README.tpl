@@ -6,10 +6,10 @@
 
 {{readme}}
 
-[`Bus`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html
-[`Bus::ping`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.ping
-[`Bus::read`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read
-[`Bus::write`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write
-[`Bus::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write_instruction
-[`Bus::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read_status_response
-[`Bus::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.transfer_single
+[`Client`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html
+[`Client::ping`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.ping
+[`Client::read`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.read
+[`Client::write`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.write
+[`Client::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.write_instruction
+[`Client::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.read_status_response
+[`Client::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.transfer_single
