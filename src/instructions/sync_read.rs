@@ -1,9 +1,7 @@
 use crate::bus::endian::write_u16_le;
+use crate::bus::StatusPacket;
 use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
-
-#[cfg(feature = "alloc")]
-use alloc::{borrow::ToOwned, vec::Vec};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
@@ -14,179 +12,74 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_cb<'a, F>(
-		&'a mut self,
-		motor_ids: &'a [u8],
-		address: u16,
-		count: u16,
-		mut on_response: F,
-	) -> Result<(), WriteError<SerialPort::Error>>
-	where
-		F: FnMut(Result<Response<&[u8]>, ReadError<SerialPort::Error>>),
-	{
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-			buffer[4..].copy_from_slice(motor_ids);
-		})?;
-		for &motor_id in motor_ids {
-			let response = self.read_status_response(count).and_then(|response| {
-				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
-				Ok(response)
-			});
-
-			match response {
-				Ok(response) => on_response(Ok((&response).into())),
-				Err(e) => on_response(Err(e)),
-			}
-		}
-		Ok(())
-	}
-
-	/// Synchronously read an 8 bit value from multiple motors in one command.
-	///
-	/// The `on_response` function is called for the reply from each motor.
-	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u8_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<SerialPort::Error>>
-	where
-		F: FnMut(Result<Response<u8>, ReadError<SerialPort::Error>>),
-	{
-		let count = 1;
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-			buffer[4..].copy_from_slice(motor_ids);
-		})?;
-		for &motor_id in motor_ids {
-			let data = self.read_status_response(count).and_then(|response| {
-				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				Ok(response.try_into()?)
-			});
-			on_response(data);
-		}
-		Ok(())
-	}
-
-	/// Synchronously read a 16 bit value from multiple motors in one command.
-	///
-	/// The `on_response` function is called for the reply from each motor.
-	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u16_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<SerialPort::Error>>
-	where
-		F: FnMut(Result<Response<u16>, ReadError<SerialPort::Error>>),
-	{
-		let count = 2;
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-			buffer[4..].copy_from_slice(motor_ids);
-		})?;
-		for &motor_id in motor_ids {
-			let data = self.read_status_response(count).and_then(|response| {
-				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				Ok(response.try_into()?)
-			});
-			on_response(data);
-		}
-		Ok(())
-	}
-
-	/// Synchronously read a 32 bit value from multiple motors in one command.
-	///
-	/// The `on_response` function is called for the reply from each motor.
-	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read_u32_cb<'a, F>(&'a mut self, motor_ids: &'a [u8], address: u16, mut on_response: F) -> Result<(), WriteError<SerialPort::Error>>
-	where
-		F: FnMut(Result<Response<u32>, ReadError<SerialPort::Error>>),
-	{
-		let count = 4;
-		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-			buffer[4..].copy_from_slice(motor_ids);
-		})?;
-		for &motor_id in motor_ids {
-			let data = self.read_status_response(count).and_then(|response| {
-				crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-				crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
-				Ok(response.try_into()?)
-			});
-			on_response(data);
-		}
-		Ok(())
-	}
-
-	/// Synchronously read an arbitrary number of bytes from multiple motors in one command.
-	///
-	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_cb`].
-	#[cfg(any(feature = "alloc", feature = "std"))]
 	pub fn sync_read<'a>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
 		count: u16,
-	) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<SerialPort::Error>> {
-		let mut result = Vec::with_capacity(motor_ids.len());
-		let mut read_error = None;
-		self.sync_read_cb(motor_ids, address, count, |data| match data {
-			Err(e) if read_error.is_none() => read_error = Some(e),
-			Err(_) => (),
-			Ok(response) => result.push(Response {
-				motor_id: response.motor_id,
-				alert: response.alert,
-				data: response.data.to_owned(),
-			}),
+	) -> Result<SyncRead<'a, SerialPort, Buffer>, WriteError<SerialPort::Error>> {
+		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			write_u16_le(&mut buffer[2..], count);
+			buffer[4..].copy_from_slice(motor_ids);
 		})?;
-		Ok(result)
+
+		Ok(SyncRead {
+			client: self,
+			count,
+			motor_ids,
+			index: 0,
+		})
+	}
+}
+
+#[derive(Debug)]
+pub struct SyncRead<'a, SerialPort, Buffer>
+where
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	client: &'a mut Client<SerialPort, Buffer>,
+	count: u16,
+	motor_ids: &'a [u8],
+	index: usize,
+}
+
+impl<SerialPort, Buffer> SyncRead<'_, SerialPort, Buffer>
+where
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	pub fn next(&mut self) -> Option<Result<Response<&[u8]>, ReadError<SerialPort::Error>>>{
+		let motor_id = self.pop_motor_id()?;
+		match self.next_status_packet(motor_id) {
+			Ok(status) => Some(Ok(status.into())),
+			Err(e) => Some(Err(e)),
+		}
 	}
 
-	/// Synchronously read an 8 bit value from multiple motors in one command.
-	///
-	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u8_cb`].
-	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn sync_read_u8<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u8>>, crate::TransferError<SerialPort::Error>> {
-		let mut result = Vec::with_capacity(motor_ids.len());
-		let mut read_error = None;
-		self.sync_read_u8_cb(motor_ids, address, |data| match data {
-			Err(e) if read_error.is_none() => read_error = Some(e),
-			Err(_) => (),
-			Ok(data) => result.push(data),
-		})?;
-		Ok(result)
+	fn pop_motor_id(&mut self) -> Option<u8> {
+		let motor_id = self.motor_ids.get(self.index)?;
+		self.index += 1;
+		Some(*motor_id)
 	}
 
-	/// Synchronously read a 16 bit value from multiple motors in one command.
-	///
-	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u16_cb`].
-	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn sync_read_u16<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u16>>, crate::TransferError<SerialPort::Error>> {
-		let mut result = Vec::with_capacity(motor_ids.len());
-		let mut read_error = None;
-		self.sync_read_u16_cb(motor_ids, address, |data| match data {
-			Err(e) if read_error.is_none() => read_error = Some(e),
-			Err(_) => (),
-			Ok(data) => result.push(data),
-		})?;
-		Ok(result)
+	fn next_status_packet(&mut self, motor_id: u8) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
+		self.client.read_status_response(self.count).and_then(|response| {
+			// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
+			crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
+			crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
+			Ok(response)
+		})
 	}
+}
 
-	/// Synchronously read a 32 bit value from multiple motors in one command.
-	///
-	/// If this function fails to get the data from any of the motors, the entire function retrns an error.
-	/// If you need access to the data from other motors, or if you want acces to the error for each motor, see [`Self::sync_read_u32_cb`].
-	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn sync_read_u32<'a>(&'a mut self, motor_ids: &'a [u8], address: u16) -> Result<Vec<Response<u32>>, crate::TransferError<SerialPort::Error>> {
-		let mut result = Vec::with_capacity(motor_ids.len());
-		let mut read_error = None;
-		self.sync_read_u32_cb(motor_ids, address, |data| match data {
-			Err(e) if read_error.is_none() => read_error = Some(e),
-			Err(_) => (),
-			Ok(data) => result.push(data),
-		})?;
-		Ok(result)
+impl<SerialPort, Buffer> Drop for SyncRead<'_, SerialPort, Buffer>
+where
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	fn drop(&mut self) {
+		while self.next().is_some() {}
 	}
 }
