@@ -17,9 +17,9 @@ pub trait Data<'a>: Sized {
 }
 
 /// A fized-size type that can be read or written over the bus.
-pub trait FixedSizedData<'a>: Data<'a> {
+pub trait FixedSizeData<'a>: Data<'a> {
 	/// The size in bytes of the encoded value.
-	const ENCODED_SIZE: usize;
+	const ENCODED_SIZE: u16;
 }
 
 macro_rules! impl_data_for_number {
@@ -46,8 +46,11 @@ macro_rules! impl_data_for_number {
 			}
 		}
 
-		impl FixedSizedData<'_> for $type {
-			const ENCODED_SIZE: usize = core::mem::size_of::<Self>();
+		impl FixedSizeData<'_> for $type {
+			const ENCODED_SIZE: u16 = const {
+				assert!(core::mem::size_of::<Self>() <= u16::MAX as usize);
+				core::mem::size_of::<Self>() as u16
+			};
 		}
 	};
 }
@@ -63,21 +66,23 @@ impl_data_for_number!(i32);
 impl_data_for_number!(i64);
 impl_data_for_number!(i128);
 
-impl<'a, T: FixedSizedData<'a>, const N: usize> Data<'a> for [T; N] {
+impl<'a, T: FixedSizeData<'a>, const N: usize> Data<'a> for [T; N] {
 	fn encode(&self, buffer: &mut [u8]) -> Result<usize, crate::error::BufferTooSmallError> {
-		crate::BufferTooSmallError::check(T::ENCODED_SIZE * N, buffer.len())?;
+		let encoded_size = T::ENCODED_SIZE as usize;
+		crate::BufferTooSmallError::check(encoded_size * N, buffer.len())?;
 		for (i, value) in self.iter().enumerate() {
-			let size = value.encode(&mut buffer[i * T::ENCODED_SIZE..][..T::ENCODED_SIZE])?;
-			debug_assert!(size == T::ENCODED_SIZE);
+			let size = value.encode(&mut buffer[i * encoded_size..][..encoded_size])?;
+			debug_assert!(size == encoded_size);
 		}
-		Ok(T::ENCODED_SIZE * N)
+		Ok(encoded_size * N)
 	}
 
 	fn decode(buffer: &[u8]) -> Result<(Self, usize), crate::InvalidMessage> {
+		let encoded_size = T::ENCODED_SIZE as usize;
 		let mut output = ArrayInitializer::new();
 		for i in 0..N {
-			let (value, size) = T::decode(&buffer[i * T::ENCODED_SIZE..][..T::ENCODED_SIZE])?;
-			debug_assert!(size == T::ENCODED_SIZE);
+			let (value, size) = T::decode(&buffer[i * encoded_size..][..encoded_size])?;
+			debug_assert!(size == encoded_size);
 			// SAFETY: We loop over 0..N, so we can not call `push()` more than `N` times.
 			unsafe {
 				output.push(value);
@@ -85,7 +90,7 @@ impl<'a, T: FixedSizedData<'a>, const N: usize> Data<'a> for [T; N] {
 		}
 		unsafe {
 			// SAFETY: We looped over 0..N, so we called `push()` exactly `N` times.
-			Ok((output.finish(), T::ENCODED_SIZE * N))
+			Ok((output.finish(), encoded_size * N))
 		}
 	}
 
@@ -98,8 +103,11 @@ impl<'a, T: FixedSizedData<'a>, const N: usize> Data<'a> for [T; N] {
 	}
 }
 
-impl<'a, T: FixedSizedData<'a>, const N: usize> FixedSizedData<'a> for [T; N] {
-	const ENCODED_SIZE: usize = T::ENCODED_SIZE * N;
+impl<'a, T: FixedSizeData<'a>, const N: usize> FixedSizeData<'a> for [T; N] {
+	const ENCODED_SIZE: u16 = const {
+		assert!(T::ENCODED_SIZE as usize * N < u16::MAX as usize);
+		T::ENCODED_SIZE * N as u16
+	};
 }
 
 struct ArrayInitializer<T: Sized, const N: usize> {

@@ -7,7 +7,7 @@ pub(crate) mod bytestuff;
 pub(crate) mod endian;
 
 mod data;
-pub use data::{Data, FixedSizedData};
+pub use data::{Data, FixedSizeData};
 
 mod packet;
 pub use packet::{Packet, InstructionPacket, StatusPacket};
