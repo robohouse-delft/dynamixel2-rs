@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::bus::endian::write_u16_le;
-use crate::bus::{Data, StatusPacket};
+use crate::bus::{FixedSizeData, StatusPacket};
 use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
 
@@ -14,12 +14,12 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read<'a, T: Data<'a>>(
+	pub fn sync_read<'a, T: FixedSizeData<'a>>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
-		count: u16,
 	) -> Result<SyncRead<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>> {
+		let count = T::ENCODED_SIZE;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
@@ -60,7 +60,7 @@ where
 	/// Read the next motor reply.
 	pub fn next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>>
 	where
-		T: Data<'a>,
+		T: FixedSizeData<'a>,
 	{
 		let response = match self.next_response()? {
 			Ok(x) => x,
@@ -118,7 +118,7 @@ where
 
 impl<'a, T, SerialPort, Buffer> Iterator for SyncRead<'a, T, SerialPort, Buffer>
 where
-	T: Data<'a> + 'static,
+	T: FixedSizeData<'a> + 'static,
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
