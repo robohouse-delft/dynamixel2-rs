@@ -1,7 +1,6 @@
 use core::time::Duration;
 
 use crate::bus::StatusPacket;
-use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, TransferError};
 use super::{instruction_id, packet_id};
 
@@ -37,17 +36,16 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<Ping> {
 	}
 }
 
-impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
+impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Ping a specific motor by ID.
 	///
 	/// This will not work correctly if the motor ID is [`packet_id::BROADCAST`].
 	/// Use [`Self::scan`] or [`Self::scan_cb`] instead.
-	pub fn ping(&mut self, motor_id: u8) -> Result<Response<Ping>, TransferError<T::Error>> {
+	pub fn ping(&mut self, motor_id: u8) -> Result<Response<Ping>, TransferError<SerialPort::Error>> {
 		let response = self.transfer_single(motor_id, instruction_id::PING, 0, 3, |_| ())?;
 		Ok(response.try_into()?)
 	}
@@ -57,7 +55,7 @@ where
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are collected.
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn scan(&mut self) -> Result<Vec<Result<Response<Ping>, ReadError<T::Error>>>, crate::WriteError<T::Error>> {
+	pub fn scan(&mut self) -> Result<Vec<Result<Response<Ping>, ReadError<SerialPort::Error>>>, crate::WriteError<SerialPort::Error>> {
 		let mut result = Vec::with_capacity(253);
 		match self.scan_cb(|x| result.push(Ok(x))) {
 			Ok(()) => (),
@@ -73,7 +71,7 @@ where
 	///
 	/// Only timeouts are filtered out since they indicate a lack of response.
 	/// All other responses (including errors) are passed to the handler.
-	pub fn scan_cb<F>(&mut self, mut on_response: F) -> Result<(), TransferError<T::Error>>
+	pub fn scan_cb<F>(&mut self, mut on_response: F) -> Result<(), TransferError<SerialPort::Error>>
 	where
 		F: FnMut(Response<Ping>),
 	{
@@ -88,7 +86,7 @@ where
 					let response = response.try_into()?;
 					on_response(response);
 				},
-				Err(ReadError::Io(e)) if T::is_timeout_error(&e) => {
+				Err(ReadError::Io(e)) if SerialPort::is_timeout_error(&e) => {
 					trace!("Ping response timed out.");
 					return Ok(());
 				},

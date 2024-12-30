@@ -1,5 +1,4 @@
 use super::{instruction_id, packet_id};
-use crate::serial_port::SerialPort;
 use crate::{Client, Response, TransferError, WriteError};
 
 /// The kind of factory reset to perform.
@@ -16,11 +15,10 @@ pub enum FactoryResetKind {
 	KeepIdAndBaudRate = 0x02,
 }
 
-impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
+impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Reset the settings of a motor to the factory defaults.
 	///
@@ -39,7 +37,7 @@ where
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
 	/// Or use the ID Inspection Tool in the Dynamixel Wizard 2.0
-	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Response<()>, TransferError<T::Error>> {
+	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 	}
@@ -55,7 +53,7 @@ where
 	/// which would cause multiple motors on the bus to have the same ID.
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
-	pub fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), WriteError<T::Error>> {
+	pub fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| {
 			buffer[0] = kind as u8
 		})?;

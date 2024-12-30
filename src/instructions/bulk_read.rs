@@ -1,16 +1,14 @@
 use super::{instruction_id, packet_id, BulkReadData};
 use crate::bus::endian::{write_u16_le, write_u8_le};
-use crate::serial_port::SerialPort;
 use crate::{Client, ReadError, Response, WriteError};
 
 #[cfg(feature = "alloc")]
 use alloc::{vec::Vec, borrow::ToOwned};
 
-impl<ReadBuffer, WriteBuffer, T> Client<ReadBuffer, WriteBuffer, T>
+impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously read arbitrary data ranges from multiple motors in one command.
 	///
@@ -24,10 +22,10 @@ where
 	/// # Panics
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
-	pub fn bulk_read_cb<Read, F>(&mut self, reads: &[Read], mut on_response: F) -> Result<(), WriteError<T::Error>>
+	pub fn bulk_read_cb<Read, F>(&mut self, reads: &[Read], mut on_response: F) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		Read: AsRef<BulkReadData>,
-		F: FnMut(&BulkReadData, Result<Response<&[u8]>, ReadError<T::Error>>),
+		F: FnMut(&BulkReadData, Result<Response<&[u8]>, ReadError<SerialPort::Error>>),
 	{
 		for i in 0..reads.len() {
 			for j in i + 1..reads.len() {
@@ -78,7 +76,7 @@ where
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<T::Error>>
+	pub fn bulk_read<Read>(&mut self, reads: &[Read]) -> Result<Vec<Response<Vec<u8>>>, crate::TransferError<SerialPort::Error>>
 	where
 		Read: AsRef<BulkReadData>,
 	{

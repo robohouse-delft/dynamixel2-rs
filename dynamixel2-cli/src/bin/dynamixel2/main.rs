@@ -152,7 +152,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_client(options: &Options) -> Result<dynamixel2::Client<Vec<u8>, Vec<u8>, SerialPort>, ()> {
+fn open_client(options: &Options) -> Result<dynamixel2::Client<SerialPort>, ()> {
 	let client = dynamixel2::Client::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
@@ -160,7 +160,6 @@ fn open_client(options: &Options) -> Result<dynamixel2::Client<Vec<u8>, Vec<u8>,
 		options.serial_port.display(),
 		options.baud_rate
 	);
-	// log::trace!("{:#?}", client);
 	Ok(client)
 }
 

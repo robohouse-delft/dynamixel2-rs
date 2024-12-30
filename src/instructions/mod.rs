@@ -1,4 +1,5 @@
 //! Types and functions for specific instructions.
+use crate::error::ReadError;
 
 /// Raw instructions IDs.
 #[rustfmt::skip]
@@ -38,7 +39,6 @@ mod sync_read;
 mod sync_write;
 mod write;
 
-use crate::SerialPort;
 pub use factory_reset::FactoryResetKind;
 pub use ping::Ping;
 
@@ -106,14 +106,13 @@ impl AsRef<BulkReadData> for BulkReadData {
 /// Read an empty response from the bus if the motor ID is not the broadcast ID.
 ///
 /// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.
-fn read_response_if_not_broadcast<ReadBuffer, WriteBuffer, T>(
-	client: &mut crate::Client<ReadBuffer, WriteBuffer, T>,
+fn read_response_if_not_broadcast<SerialPort, Buffer>(
+	client: &mut crate::Client<SerialPort, Buffer>,
 	motor_id: u8,
-) -> Result<crate::Response<()>, crate::error::ReadError<T::Error>>
+) -> Result<crate::Response<()>, ReadError<SerialPort::Error>>
 where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	if motor_id == packet_id::BROADCAST {
 		Ok(crate::Response {

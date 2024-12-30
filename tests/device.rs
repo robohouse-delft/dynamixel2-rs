@@ -9,18 +9,13 @@ use std::time::Duration;
 use test_log::test;
 
 mod mock_serial_port;
-use crate::mock_serial_port::MockSerialPort;
+use mock_serial_port::MockSerialPort;
 
-type ReadBuffer = Vec<u8>;
-type WriteBuffer = Vec<u8>;
-type T = MockSerialPort;
-fn setup_bus() -> (Client<ReadBuffer, WriteBuffer, T>, Device<ReadBuffer, WriteBuffer, T>) {
+fn setup_bus() -> (Client<MockSerialPort>, Device<MockSerialPort>) {
 	let serial_port = MockSerialPort::new(56700);
-	let device_serial_port = serial_port.device_port();
-	(
-		Client::with_buffers(serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
-		Device::with_buffers(device_serial_port, vec![0; 1024], vec![0; 1024]).unwrap(),
-	)
+	let_assert!(Ok(device) = Device::new(serial_port.device_port()));
+	let_assert!(Ok(client) = Client::new(serial_port));
+	(client, device)
 }
 
 const DEVICE_ID: u8 = 1;
@@ -73,7 +68,7 @@ fn test_packet_response() {
 			while !kill_device.load(Relaxed) {
 				let packet = device.read(Duration::from_millis(50));
 				let packet = match packet {
-					Err(ReadError::Io(e)) if T::is_timeout_error(&e) => continue,
+					Err(ReadError::Io(e)) if MockSerialPort::is_timeout_error(&e) => continue,
 					x => x,
 				};
 				let_assert!(Ok(packet) = packet);
