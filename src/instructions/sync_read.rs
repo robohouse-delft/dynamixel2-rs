@@ -1,5 +1,7 @@
+use core::marker::PhantomData;
+
 use crate::bus::endian::write_u16_le;
-use crate::bus::StatusPacket;
+use crate::bus::{Data, StatusPacket};
 use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
 
@@ -12,12 +14,12 @@ where
 	///
 	/// The `on_response` function is called for the reply from each motor.
 	/// If the function fails to write the instruction, an error is returned and the function is not called.
-	pub fn sync_read<'a>(
+	pub fn sync_read<'a, T: Data<'a>>(
 		&'a mut self,
 		motor_ids: &'a [u8],
 		address: u16,
 		count: u16,
-	) -> Result<SyncRead<'a, SerialPort, Buffer>, WriteError<SerialPort::Error>> {
+	) -> Result<SyncRead<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
@@ -29,6 +31,7 @@ where
 			count,
 			motor_ids,
 			index: 0,
+			data: PhantomData,
 		})
 	}
 }
@@ -37,7 +40,7 @@ where
 ///
 /// Used to retrieve the responses of the different motors.
 #[derive(Debug)]
-pub struct SyncRead<'a, SerialPort, Buffer>
+pub struct SyncRead<'a, T, SerialPort, Buffer>
 where
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
@@ -46,15 +49,39 @@ where
 	count: u16,
 	motor_ids: &'a [u8],
 	index: usize,
+	data: PhantomData<fn() -> T>,
 }
 
-impl<SerialPort, Buffer> SyncRead<'_, SerialPort, Buffer>
+impl<'a, T, SerialPort, Buffer> SyncRead<'a, T, SerialPort, Buffer>
 where
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Read the next motor reply.
-	pub fn next(&mut self) -> Option<Result<Response<&[u8]>, ReadError<SerialPort::Error>>>{
+	pub fn next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>>
+	where
+		T: Data<'a>,
+	{
+		let response = match self.next_response()? {
+			Ok(x) => x,
+			Err(e) => return Some(Err(e)),
+		};
+		let (data, used) = match T::decode(response.data) {
+			Ok(x) => x,
+			Err(e) => return Some(Err(e.into())),
+		};
+		if let Err(e) = crate::error::InvalidParameterCount::check(response.data.len(), used) {
+			return Some(Err(e.into()));
+		}
+		Some(Ok(Response {
+			motor_id: response.motor_id,
+			alert: response.alert,
+			data,
+		}))
+	}
+
+	/// Read the next response without parsing the parameters.
+	pub fn next_response(&mut self) -> Option<Result<Response<&[u8]>, ReadError<SerialPort::Error>>>{
 		let motor_id = self.pop_motor_id()?;
 		match self.next_status_packet(motor_id) {
 			Ok(status) => Some(Ok(status.into())),
@@ -79,12 +106,29 @@ where
 	}
 }
 
-impl<SerialPort, Buffer> Drop for SyncRead<'_, SerialPort, Buffer>
+impl<T, SerialPort, Buffer> Drop for SyncRead<'_, T, SerialPort, Buffer>
 where
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn drop(&mut self) {
-		while self.next().is_some() {}
+		while self.next_response().is_some() {}
+	}
+}
+
+impl<'a, T, SerialPort, Buffer> Iterator for SyncRead<'a, T, SerialPort, Buffer>
+where
+	T: Data<'a> + 'static,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	type Item = Result<Response<T>, crate::error::ReadError<SerialPort::Error>>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		Self::next(self)
+	}
+
+	fn size_hint(&self) -> (usize, Option<usize>) {
+		(0, Some(self.motor_ids.len() - self.index))
 	}
 }
