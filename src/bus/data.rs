@@ -1,56 +1,35 @@
 use core::mem::MaybeUninit;
 
-/// A type that can be read or written over the bus.
-pub trait Data<'a>: Sized {
-	/// Encode the value into the given buffer.
-	///
-	/// On success, returns the number of bytes written to the buffer.
-	fn encode(&self, buffer: &mut [u8]) -> Result<usize, crate::error::BufferTooSmallError>;
-
-	/// Decode the value from the given buffer.
-	///
-	/// On success, returns the parsed value and the amount of bytes that were parsed from the buffer.
-	fn decode(buffer: &[u8]) -> Result<(Self, usize), crate::InvalidMessage>;
-
-	/// Get the size of the value when encoded.
-	fn encoded_size(&self) -> usize;
-}
-
-/// A fized-size type that can be read or written over the bus.
-pub trait FixedSizeData<'a>: Data<'a> {
+/// A fixed-size type that can be read or written over the bus.
+pub trait Data: Sized {
 	/// The size in bytes of the encoded value.
 	const ENCODED_SIZE: u16;
+
+	/// Encode the value into the given buffer.
+	fn encode(&self, buffer: &mut [u8]) -> Result<(), crate::error::BufferTooSmallError>;
+
+	/// Decode the value from the given buffer.
+	fn decode(buffer: &[u8]) -> Result<Self, crate::InvalidMessage>;
 }
 
 macro_rules! impl_data_for_number {
 	($type:ty) => {
-		impl Data<'_> for $type {
-			fn encode(&self, buffer: &mut [u8]) -> Result<usize, crate::error::BufferTooSmallError> {
+		impl Data for $type {
+			const ENCODED_SIZE: u16 = to_u16(core::mem::size_of::<Self>());
+
+			fn encode(&self, buffer: &mut [u8]) -> Result<(), crate::error::BufferTooSmallError> {
 				const N: usize = core::mem::size_of::<$type>();
 				crate::error::BufferTooSmallError::check(N, buffer.len())?;
 				buffer[..N].copy_from_slice(&self.to_le_bytes());
-				Ok(N)
+				Ok(())
 			}
 
-			fn decode(buffer: &[u8]) -> Result<(Self, usize), crate::error::InvalidMessage> {
+			fn decode(buffer: &[u8]) -> Result<Self, crate::error::InvalidMessage> {
 				const N: usize = core::mem::size_of::<$type>();
-				if buffer.len() < N {
-					todo!();
-				}
+				crate::error::InvalidParameterCount::check(buffer.len(), N)?;
 				let value = Self::from_le_bytes(buffer[0..N].try_into().unwrap());
-				Ok((value, N))
+				Ok(value)
 			}
-
-			fn encoded_size(&self) -> usize {
-				core::mem::size_of::<Self>()
-			}
-		}
-
-		impl FixedSizeData<'_> for $type {
-			const ENCODED_SIZE: u16 = const {
-				assert!(core::mem::size_of::<Self>() <= u16::MAX as usize);
-				core::mem::size_of::<Self>() as u16
-			};
 		}
 	};
 }
@@ -66,23 +45,23 @@ impl_data_for_number!(i32);
 impl_data_for_number!(i64);
 impl_data_for_number!(i128);
 
-impl<'a, T: FixedSizeData<'a>, const N: usize> Data<'a> for [T; N] {
-	fn encode(&self, buffer: &mut [u8]) -> Result<usize, crate::error::BufferTooSmallError> {
+impl<T: Data, const N: usize> Data for [T; N] {
+	const ENCODED_SIZE: u16 = T::ENCODED_SIZE.checked_mul(to_u16(N)).unwrap();
+
+	fn encode(&self, buffer: &mut [u8]) -> Result<(), crate::error::BufferTooSmallError> {
 		let encoded_size = T::ENCODED_SIZE as usize;
 		crate::BufferTooSmallError::check(encoded_size * N, buffer.len())?;
 		for (i, value) in self.iter().enumerate() {
-			let size = value.encode(&mut buffer[i * encoded_size..][..encoded_size])?;
-			debug_assert!(size == encoded_size);
+			value.encode(&mut buffer[i * encoded_size..][..encoded_size])?;
 		}
-		Ok(encoded_size * N)
+		Ok(())
 	}
 
-	fn decode(buffer: &[u8]) -> Result<(Self, usize), crate::InvalidMessage> {
+	fn decode(buffer: &[u8]) -> Result<Self, crate::InvalidMessage> {
 		let encoded_size = T::ENCODED_SIZE as usize;
 		let mut output = ArrayInitializer::new();
 		for i in 0..N {
-			let (value, size) = T::decode(&buffer[i * encoded_size..][..encoded_size])?;
-			debug_assert!(size == encoded_size);
+			let value = T::decode(&buffer[i * encoded_size..][..encoded_size])?;
 			// SAFETY: We loop over 0..N, so we can not call `push()` more than `N` times.
 			unsafe {
 				output.push(value);
@@ -90,24 +69,9 @@ impl<'a, T: FixedSizeData<'a>, const N: usize> Data<'a> for [T; N] {
 		}
 		unsafe {
 			// SAFETY: We looped over 0..N, so we called `push()` exactly `N` times.
-			Ok((output.finish(), encoded_size * N))
+			Ok(output.finish())
 		}
 	}
-
-	fn encoded_size(&self) -> usize {
-		let mut encoded_size = 0;
-		for elem in self {
-			encoded_size += elem.encoded_size();
-		}
-		encoded_size
-	}
-}
-
-impl<'a, T: FixedSizeData<'a>, const N: usize> FixedSizeData<'a> for [T; N] {
-	const ENCODED_SIZE: u16 = const {
-		assert!(T::ENCODED_SIZE as usize * N < u16::MAX as usize);
-		T::ENCODED_SIZE * N as u16
-	};
 }
 
 struct ArrayInitializer<T: Sized, const N: usize> {
@@ -160,4 +124,9 @@ impl<T, const N: usize> Drop for ArrayInitializer<T, N> {
 		}
 		self.initialized = 0;
 	}
+}
+
+const fn to_u16(input: usize) -> u16 {
+	assert!(input <= u16::MAX as usize);
+	input as u16
 }
