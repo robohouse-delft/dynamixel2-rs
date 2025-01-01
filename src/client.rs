@@ -6,17 +6,34 @@ use crate::bus::{Bus, StatusPacket};
 use crate::instructions::instruction_id;
 use crate::{ReadError, TransferError, WriteError};
 
-
-/// Client for the Dynamixel Protocol 2 communication.
-///
-/// Used to interact with devices on the bus.
-pub struct Client<SerialPort, Buffer = crate::bus::DefaultBuffer>
-where
-	SerialPort: crate::SerialPort,
-	Buffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	bus: Bus<SerialPort, Buffer>,
+macro_rules! make_client_struct {
+	($($DefaultSerialPort:ty)?) => {
+		/// Client for the Dynamixel Protocol 2 communication.
+		///
+		/// Used to interact with devices on the bus.
+		///
+		/// If the `"serial2"` feature is enabled, the `SerialPort` generic type argument defaults to [`serial2::SerialPort`].
+		/// If it is not enabled, the `SerialPort` argument must always be specified.
+		///
+		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
+		/// and to `&'static mut [u8]` otherwise.
+		/// See the [`static_buffer!()`] macro for a way to safely create a mutable static buffer.
+		pub struct Client<SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
+		where
+			SerialPort: crate::SerialPort,
+			Buffer: AsRef<[u8]> + AsMut<[u8]>,
+		{
+			bus: Bus<SerialPort, Buffer>,
+		}
+	};
 }
+
+#[cfg(feature = "serial2")]
+make_client_struct!(serial2::SerialPort);
+
+#[cfg(not(feature = "serial2"))]
+make_client_struct!();
+
 impl<SerialPort, Buffer> core::fmt::Debug for Client<SerialPort, Buffer>
 where
 	SerialPort: crate::SerialPort + core::fmt::Debug,
@@ -118,9 +135,9 @@ where
 		Ok(Self { bus })
 	}
 
-	/// Get a reference to the underlying [`SerialPort`].
+	/// Get a reference to the underlying serial port.
 	///
-	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the bus,
+	/// Note that performing any read or write to the serial port bypasses the read/write buffer of the bus,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the bus manually in between instructions,
 	/// if the response from the motors has already been received.

@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::time::{Duration, Instant};
-use dynamixel2::serial2::SerialPort;
 
 mod logging;
 mod options;
@@ -152,7 +151,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_client(options: &Options) -> Result<dynamixel2::Client<SerialPort>, ()> {
+fn open_client(options: &Options) -> Result<dynamixel2::Client, ()> {
 	let client = dynamixel2::Client::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(

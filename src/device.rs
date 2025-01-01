@@ -4,14 +4,31 @@ use crate::bus::{Bus, InstructionPacket};
 use crate::{InvalidParameterCount, ReadError, WriteError};
 use core::time::Duration;
 
-/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
-pub struct Device<SerialPort, Buffer = crate::bus::DefaultBuffer>
-where
-	SerialPort: crate::SerialPort,
-	Buffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	bus: Bus<SerialPort, Buffer>,
+macro_rules! make_device_struct {
+	($($DefaultSerialPort:ty)?) => {
+		/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
+		///
+		/// If the `"serial2"` feature is enabled, the `SerialPort` generic type argument defaults to [`serial2::SerialPort`].
+		/// If it is not enabled, the `SerialPort` argument must always be specified.
+		///
+		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
+		/// and to `&'static mut [u8]` otherwise.
+		/// See the [`static_buffer!()`] macro for a way to safely create a mutable static buffer.
+		pub struct Device<SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
+		where
+			SerialPort: crate::SerialPort,
+			Buffer: AsRef<[u8]> + AsMut<[u8]>,
+		{
+			bus: Bus<SerialPort, Buffer>,
+		}
+	};
 }
+
+#[cfg(feature = "serial2")]
+make_device_struct!(serial2::SerialPort);
+
+#[cfg(not(feature = "serial2"))]
+make_device_struct!();
 
 impl<SerialPort, Buffer> core::fmt::Debug for Device<SerialPort, Buffer>
 where
@@ -110,9 +127,9 @@ where
 		Ok(Device { bus })
 	}
 
-	/// Get a reference to the underlying [`SerialPort`].
+	/// Get a reference to the underlying serial port.
 	///
-	/// Note that performing any read or write with the [`SerialPort`] bypasses the read/write buffer of the device,
+	/// Note that performing any read or write to the serial port bypasses the read/write buffer of the device,
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
