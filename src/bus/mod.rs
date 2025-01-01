@@ -35,6 +35,44 @@ pub type DefaultBuffer = alloc::vec::Vec<u8>;
 #[cfg(not(feature = "alloc"))]
 pub type DefaultBuffer = &'static mut [u8];
 
+/// Create a mutable static buffer of size N.
+///
+/// This macro returns a `&'mut static [u8]`.
+/// Each occurence of the macro may only be evaluated once,
+/// any subsequent invocation will panic.
+///
+/// The macro is usable as expression in const context.
+///
+/// # Usage:
+/// ```no_run
+/// # fn main() -> Result<(), std::io::Error> {
+/// # let serial_port = serial2::SerialPort::open("/dev/null", 57600)?;
+/// use dynamixel2::{Client, static_buffer};
+/// let client = Client::with_buffers(serial_port, static_buffer!(128), static_buffer!(64))?;
+/// # Ok(())
+/// # }
+/// ```
+#[macro_export]
+macro_rules! static_buffer {
+	($N:literal) => {
+		{
+			use ::core::sync::atomic::{AtomicBool, Ordering};
+			static USED: AtomicBool = AtomicBool::new(false);
+			static mut BUFFER: [u8; $N] = [0; $N];
+			if USED.swap(true, Ordering::Relaxed) {
+				panic!("static buffer already used, each occurence of `static_buffer!()` may only be evaluated once");
+			}
+			unsafe {
+				// Use raw pointer to avoid compiler warning.
+				let buffer = &raw mut BUFFER;
+				// Convert to reference in separate expression to avoid clippy warning.
+				let buffer = &mut *buffer;
+				buffer.as_mut_slice()
+			}
+		}
+	};
+}
+
 /// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 ///
 /// Does not assume anything about the direction of communication.
@@ -386,5 +424,42 @@ mod test {
 
 		assert!(find_header(&[0xFF, 1]) == 2);
 		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
+	}
+
+	#[test]
+	fn test_static_buffer() {
+		let buffer1 = static_buffer!(128);
+		assert!(buffer1.len() == 128);
+		for i in 0..buffer1.len() {
+			assert!(buffer1[i] == 0);
+		}
+
+		let buffer2 = static_buffer!(64);
+		assert!(buffer2.len() == 64);
+		for i in 0..buffer2.len() {
+			assert!(buffer2[i] == 0);
+		}
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_static_buffer_panics_when_evaluated_in_loop() {
+		for _ in 0..2 {
+			let buffer = static_buffer!(128);
+			assert!(buffer.len() == 128);
+		}
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_static_buffer_panics_when_evaluated_in_loop_through_function() {
+		fn make_buffer() -> &'static mut [u8] {
+			static_buffer!(128)
+		}
+
+		for _ in 0..2 {
+			let buffer = make_buffer();
+			assert!(buffer.len() == 128);
+		}
 	}
 }
