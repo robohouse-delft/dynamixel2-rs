@@ -33,6 +33,16 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<()> {
 	}
 }
 
+impl<'a> From<StatusPacket<'a>> for Response<&'a [u8]> {
+	fn from(status_packet: StatusPacket<'a>) -> Self {
+		Self {
+			motor_id: status_packet.packet_id(),
+			alert: status_packet.alert(),
+			data: &status_packet.parameters(),
+		}
+	}
+}
+
 impl<'a, 'b> From<&'b StatusPacket<'a>> for Response<&'b [u8]> {
 	fn from(status_packet: &'b StatusPacket<'a>) -> Self {
 		Self {
