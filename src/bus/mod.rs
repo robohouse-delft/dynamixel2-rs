@@ -1,6 +1,6 @@
 //! Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 
-use crate::{checksum, ReadError, SerialPort, WriteError};
+use crate::{checksum, ReadError, WriteError};
 use core::time::Duration;
 
 pub(crate) mod bytestuff;
@@ -21,19 +21,75 @@ const HEADER_PREFIX: [u8; 4] = [0xFF, 0xFF, 0xFD, 0x00];
 /// Excludes the instruction ID, the error field of status packets, the parameters and the CRC.
 const HEADER_SIZE: usize = 7;
 
+/// Default buffer type.
+///
+/// Defaults to [`Vec<u8>`] if the `"alloc"` or `"std"` feature is enabled.
+/// Otherwise, defaults to `&'mut static [u8]`.
+#[cfg(feature = "alloc")]
+pub type DefaultBuffer = alloc::vec::Vec<u8>;
+
+/// Default buffer type.
+///
+/// Defaults to [`Vec<u8>`] if the `"alloc"` or `"std"` feature is enabled.
+/// Otherwise, defaults to `&'mut static [u8]`.
+#[cfg(not(feature = "alloc"))]
+pub type DefaultBuffer = &'static mut [u8];
+
+/// Create a mutable static buffer of size N.
+///
+/// This macro returns a `&'mut static [u8]`.
+/// Each occurence of the macro may only be evaluated once,
+/// any subsequent invocation will panic.
+///
+/// The macro is usable as expression in const context.
+///
+/// # Usage:
+/// ```no_run
+/// # fn main() -> Result<(), std::io::Error> {
+/// # let serial_port = serial2::SerialPort::open("/dev/null", 57600)?;
+/// use dynamixel2::{Client, static_buffer};
+/// let client = Client::with_buffers(serial_port, static_buffer!(128), static_buffer!(64))?;
+/// # Ok(())
+/// # }
+/// ```
+#[macro_export]
+macro_rules! static_buffer {
+	($N:literal) => {
+		{
+			use ::core::sync::atomic::{AtomicBool, Ordering};
+			static USED: AtomicBool = AtomicBool::new(false);
+			static mut BUFFER: [u8; $N] = [0; $N];
+			if USED.swap(true, Ordering::Relaxed) {
+				panic!("static buffer already used, each occurence of `static_buffer!()` may only be evaluated once");
+			}
+			unsafe {
+				// Use raw pointer to avoid compiler warning.
+				let buffer = &raw mut BUFFER;
+				// Convert to reference in separate expression to avoid clippy warning.
+				let buffer = &mut *buffer;
+				buffer.as_mut_slice()
+			}
+		}
+	};
+}
+
 /// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
 ///
 /// Does not assume anything about the direction of communication.
 /// Used by [`crate::Client`] and [`crate::Device`].
-pub(crate) struct Bus<ReadBuffer, WriteBuffer, T> {
+pub(crate) struct Bus<SerialPort, Buffer>
+where
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
 	/// The underlying stream (normally a serial port).
-	pub(crate) serial_port: T,
+	pub(crate) serial_port: SerialPort,
 
 	/// The baud rate of the serial port, if known.
 	pub(crate) baud_rate: u32,
 
 	/// The buffer for reading incoming messages.
-	pub(crate) read_buffer: ReadBuffer,
+	pub(crate) read_buffer: Buffer,
 
 	/// The total number of valid bytes in the read buffer.
 	pub(crate) read_len: usize,
@@ -42,43 +98,43 @@ pub(crate) struct Bus<ReadBuffer, WriteBuffer, T> {
 	pub(crate) used_bytes: usize,
 
 	/// The buffer for outgoing messages.
-	pub(crate) write_buffer: WriteBuffer,
+	pub(crate) write_buffer: Buffer,
 }
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
+impl<SerialPort, Buffer> Bus<SerialPort, Buffer>
 where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
+	SerialPort: crate::SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Create a new bus using pre-allocated buffers.
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
 	pub fn with_buffers(
-		serial_port: impl Into<T>,
-		read_buffer: ReadBuffer,
-		write_buffer: WriteBuffer,
-	) -> Result<Self, T::Error> {
-		let serial_port = serial_port.into();
+		serial_port: SerialPort,
+		read_buffer: Buffer,
+		write_buffer: Buffer,
+	) -> Result<Self, SerialPort::Error> {
 		let baud_rate = serial_port.baud_rate()?;
 		Ok(Self::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate))
 	}
 
 	/// Create a new bus using pre-allocated buffers.
 	pub fn with_buffers_and_baud_rate(
-		serial_port: impl Into<T>,
-		read_buffer: ReadBuffer,
-		mut write_buffer: WriteBuffer,
+		serial_port: SerialPort,
+		read_buffer: Buffer,
+		write_buffer: Buffer,
 		baud_rate: u32,
 	) -> Self {
+		let mut write_buffer = write_buffer;
+
 		// Pre-fill write buffer with the header prefix.
 		// TODO: return Err instead of panicking.
 		assert!(write_buffer.as_mut().len() >= HEADER_SIZE + 3);
 		write_buffer.as_mut()[..4].copy_from_slice(&HEADER_PREFIX);
 
 		Self {
-			serial_port: serial_port.into(),
+			serial_port,
 			baud_rate,
 			read_buffer,
 			read_len: 0,
@@ -88,7 +144,7 @@ where
 	}
 
 	/// Set the baud rate of the underlying serial port.
-	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), T::Error> {
+	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), SerialPort::Error> {
 		self.serial_port.set_baud_rate(baud_rate)?;
 		self.baud_rate = baud_rate;
 		Ok(())
@@ -101,7 +157,7 @@ where
 		error: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<(), WriteError<T::Error>>
+	) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -119,7 +175,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<(), WriteError<T::Error>>
+	) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -133,7 +189,7 @@ where
 		instruction_id: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<(), WriteError<T::Error>>
+	) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		F: FnOnce(&mut [u8]),
 	{
@@ -176,7 +232,11 @@ where
 	}
 
 	/// Read a raw packet from the bus with the given deadline.
-	pub fn read_packet_deadline(&mut self, deadline: T::Instant) -> Result<Packet<'_>, ReadError<T::Error>> {
+	pub fn read_packet_deadline(
+		&mut self,
+		deadline: SerialPort::Instant,
+	) -> Result<Packet<'_>, ReadError<SerialPort::Error>>
+	{
 		// Check that the read buffer is large enough to hold atleast a instruction packet with 0 parameters.
 		crate::error::BufferTooSmallError::check(HEADER_SIZE + 3, self.read_buffer.as_mut().len())?;
 
@@ -243,14 +303,7 @@ where
 
 		Ok(packet)
 	}
-}
 
-impl<ReadBuffer, WriteBuffer, T> Bus<ReadBuffer, WriteBuffer, T>
-where
-	ReadBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	WriteBuffer: AsRef<[u8]> + AsMut<[u8]>,
-	T: SerialPort,
-{
 	/// Remove leading garbage data from the read buffer.
 	fn remove_garbage(&mut self) {
 		let read_buffer = self.read_buffer.as_mut();
@@ -371,5 +424,42 @@ mod test {
 
 		assert!(find_header(&[0xFF, 1]) == 2);
 		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
+	}
+
+	#[test]
+	fn test_static_buffer() {
+		let buffer1 = static_buffer!(128);
+		assert!(buffer1.len() == 128);
+		for i in 0..buffer1.len() {
+			assert!(buffer1[i] == 0);
+		}
+
+		let buffer2 = static_buffer!(64);
+		assert!(buffer2.len() == 64);
+		for i in 0..buffer2.len() {
+			assert!(buffer2[i] == 0);
+		}
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_static_buffer_panics_when_evaluated_in_loop() {
+		for _ in 0..2 {
+			let buffer = static_buffer!(128);
+			assert!(buffer.len() == 128);
+		}
+	}
+
+	#[test]
+	#[should_panic]
+	fn test_static_buffer_panics_when_evaluated_in_loop_through_function() {
+		fn make_buffer() -> &'static mut [u8] {
+			static_buffer!(128)
+		}
+
+		for _ in 0..2 {
+			let buffer = make_buffer();
+			assert!(buffer.len() == 128);
+		}
 	}
 }
