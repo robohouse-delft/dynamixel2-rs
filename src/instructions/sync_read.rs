@@ -57,19 +57,29 @@ where
 	}
 }
 
-/// A sync read operation that returns unparsed bytes.
-pub struct SyncReadBytes<'a, T, SerialPort, Buffer>
-where
-	T: for<'b> From<&'b [u8]>,
-	SerialPort: crate::SerialPort,
-	Buffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	client: &'a mut Client<SerialPort, Buffer>,
-	count: u16,
-	motor_ids: &'a [u8],
-	index: usize,
-	data: PhantomData<fn() -> T>,
+macro_rules! make_sync_read_bytes_struct {
+	($($DefaultSerialPort:ty)?) => {
+		/// A sync read operation that returns unparsed bytes.
+		pub struct SyncReadBytes<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
+		where
+			T: for<'b> From<&'b [u8]>,
+			SerialPort: crate::SerialPort,
+			Buffer: AsRef<[u8]> + AsMut<[u8]>,
+		{
+			client: &'a mut Client<SerialPort, Buffer>,
+			count: u16,
+			motor_ids: &'a [u8],
+			index: usize,
+			data: PhantomData<fn() -> T>,
+		}
+	}
 }
+
+#[cfg(feature = "serial2")]
+make_sync_read_bytes_struct!(serial2::SerialPort);
+
+#[cfg(not(feature = "serial2"))]
+make_sync_read_bytes_struct!();
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
@@ -157,19 +167,32 @@ where
 		})
 	}
 }
+macro_rules! make_sync_read_struct {
+	($($DefaultSerialPort:ty)?) => {
 
-/// A sync read operation that returns parsed values.
-pub struct SyncRead<'a, T, SerialPort, Buffer>
-where
-	T: Data,
-	SerialPort: crate::SerialPort,
-	Buffer: AsRef<[u8]> + AsMut<[u8]>,
-{
-	client: &'a mut Client<SerialPort, Buffer>,
-	motor_ids: &'a [u8],
-	index: usize,
-	data: PhantomData<fn() -> T>,
+
+		/// A sync read operation that returns parsed values.
+		pub struct SyncRead<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
+		where
+			T: Data,
+			SerialPort: crate::SerialPort,
+			Buffer: AsRef<[u8]> + AsMut<[u8]>,
+		{
+			client: &'a mut Client<SerialPort, Buffer>,
+			motor_ids: &'a [u8],
+			index: usize,
+			data: PhantomData<fn() -> T>,
+		}
+	}
 }
+
+
+#[cfg(feature = "serial2")]
+make_sync_read_struct!(serial2::SerialPort);
+
+#[cfg(not(feature = "serial2"))]
+make_sync_read_struct!();
+
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncRead<'_, T, SerialPort, Buffer>
 where
