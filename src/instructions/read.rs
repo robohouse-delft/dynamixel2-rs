@@ -1,7 +1,4 @@
-#[cfg(feature = "alloc")]
-use alloc::vec::Vec;
-
-use crate::bus::StatusPacket;
+use crate::bus::{decode_status_packet, decode_status_packet_bytes, Data, StatusPacket};
 use crate::bus::endian::write_u16_le;
 use crate::{Client, Response, TransferError};
 use super::instruction_id;
@@ -11,7 +8,6 @@ where
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	/// Read an arbitrary number of bytes from multiple motors.
 	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError<SerialPort::Error>> {
 		let response = self.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
@@ -25,36 +21,26 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn read(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<Vec<u8>>, TransferError<SerialPort::Error>> {
-		let response = self.read_raw(motor_id, address, count)?;
-		Ok(response.into())
+	pub fn read_bytes<T>(&mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
+	where
+		T: for<'b> From<&'b [u8]>
+	{
+		let status = self.read_raw(motor_id, address, count)?;
+		Ok(decode_status_packet_bytes(status))
+
 	}
 
-	/// Read an 8 bit register from a specific motor.
+	/// Read a value from a specific motor.
+	///
+	/// Specify the return type using turbofish: `read::<u8>()`
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u8(&mut self, motor_id: u8, address: u16) -> Result<Response<u8>, TransferError<SerialPort::Error>> {
-		let response = self.read_raw(motor_id, address, 1)?;
-		Ok(response.try_into()?)
-	}
-
-	/// Read 16 bit register from a specific motor.
-	///
-	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
-	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u16(&mut self, motor_id: u8, address: u16) -> Result<Response<u16>, TransferError<SerialPort::Error>> {
-		let response = self.read_raw(motor_id, address, 2)?;
-		Ok(response.try_into()?)
-	}
-
-	/// Read 32 bit register from a specific motor.
-	///
-	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
-	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_u32(&mut self, motor_id: u8, address: u16) -> Result<Response<u32>, TransferError<SerialPort::Error>> {
-		let response = self.read_raw(motor_id, address, 4)?;
-		Ok(response.try_into()?)
+	pub fn read<T>(&mut self, motor_id: u8, address: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
+	where
+	T: Data
+	{
+		let status = self.read_raw(motor_id, address, 1)?;
+		Ok(decode_status_packet(status)?)
 	}
 }
