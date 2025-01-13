@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 
 use crate::bus::endian::write_u16_le;
-use crate::bus::{Data, StatusPacket};
+use crate::bus::{decode_status_packet, decode_status_packet_bytes, Data};
 use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
 
@@ -140,15 +140,7 @@ where
 	/// Read the next motor reply.
 	pub fn read_next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>> {
 		let motor_id = self.pop_motor_id()?;
-		let response: Response<&[u8]> = match self.next_status_packet(motor_id) {
-			Ok(status) => status.into(),
-			Err(e) => return Some(Err(e)),
-		};
-		Some(Ok(Response {
-			motor_id: response.motor_id,
-			alert: response.alert,
-			data: T::from(response.data),
-		}))
+		Some(self.next_response(motor_id))
 	}
 
 	fn pop_motor_id(&mut self) -> Option<u8> {
@@ -157,14 +149,14 @@ where
 		Some(*motor_id)
 	}
 
-	fn next_status_packet(&mut self, motor_id: u8) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
-		self.client.read_status_response(self.count).and_then(|response| {
-			// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
-			// We need to report a timeout or something for the missed motor though.
-			crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-			crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
-			Ok(response)
-		})
+	fn next_response(&mut self, motor_id: u8) -> Result<Response<T>, ReadError<SerialPort::Error>> {
+		let response = self.client.read_status_response(self.count)?;
+		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
+		// We need to report a timeout or something for the missed motor though.
+		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
+		crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
+
+		Ok(decode_status_packet_bytes(response))
 	}
 }
 macro_rules! make_sync_read_struct {
@@ -186,13 +178,11 @@ macro_rules! make_sync_read_struct {
 	}
 }
 
-
 #[cfg(feature = "serial2")]
 make_sync_read_struct!(serial2::SerialPort);
 
 #[cfg(not(feature = "serial2"))]
 make_sync_read_struct!();
-
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncRead<'_, T, SerialPort, Buffer>
 where
@@ -256,19 +246,7 @@ where
 		T: Data,
 	{
 		let motor_id = self.pop_motor_id()?;
-		let response: Response<&[u8]> = match self.next_status_packet(motor_id) {
-			Ok(status) => status.into(),
-			Err(e) => return Some(Err(e)),
-		};
-		let data = match T::decode(response.data) {
-			Ok(x) => x,
-			Err(e) => return Some(Err(e.into())),
-		};
-		Some(Ok(Response {
-			motor_id: response.motor_id,
-			alert: response.alert,
-			data,
-		}))
+		Some(self.next_response(motor_id))
 	}
 
 	fn pop_motor_id(&mut self) -> Option<u8> {
@@ -277,13 +255,13 @@ where
 		Some(*motor_id)
 	}
 
-	fn next_status_packet(&mut self, motor_id: u8) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
-		self.client.read_status_response(T::ENCODED_SIZE).and_then(|response| {
-			// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
-			// We need to report a timeout or something for the missed motor though.
-			crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
-			crate::InvalidParameterCount::check(response.parameters().len(), T::ENCODED_SIZE.into())?;
-			Ok(response)
-		})
+	fn next_response(&mut self, motor_id: u8) -> Result<Response<T>, ReadError<SerialPort::Error>> {
+		let response = self.client.read_status_response(T::ENCODED_SIZE)?;
+		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
+		// We need to report a timeout or something for the missed motor though.
+		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
+		crate::InvalidParameterCount::check(response.parameters().len(), T::ENCODED_SIZE.into())?;
+
+		Ok(decode_status_packet(response)?)
 	}
 }
