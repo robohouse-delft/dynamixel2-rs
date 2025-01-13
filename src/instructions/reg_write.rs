@@ -19,7 +19,8 @@ where
 	pub fn reg_write(&mut self, motor_id: u8, address: u16, data: &[u8]) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::REG_WRITE, 2 + data.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
-			buffer[2..].copy_from_slice(data)
+			buffer[2..].copy_from_slice(data);
+			Ok(())
 		})?;
 		Ok(read_response_if_not_broadcast(self, motor_id)?)
 	}
@@ -37,6 +38,7 @@ where
 		self.write_instruction(motor_id, instruction_id::REG_WRITE, 2 + 1, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			buffer[2] = value;
+			Ok(())
 		})?;
 		Ok(read_response_if_not_broadcast(self, motor_id)?)
 	}
@@ -54,6 +56,7 @@ where
 		self.write_instruction(motor_id, instruction_id::REG_WRITE, 2 + 2, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], value);
+			Ok(())
 		})?;
 		Ok(read_response_if_not_broadcast(self, motor_id)?)
 	}
@@ -71,6 +74,7 @@ where
 		self.write_instruction(motor_id, instruction_id::REG_WRITE, 2 + 4, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u32_le(&mut buffer[2..], value);
+			Ok(())
 		})?;
 		Ok(read_response_if_not_broadcast(self, motor_id)?)
 	}

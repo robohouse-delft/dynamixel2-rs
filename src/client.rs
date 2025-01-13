@@ -179,7 +179,7 @@ where
 		encode_parameters: F,
 	) -> Result<StatusPacket<'_>, TransferError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)?;
 		let response = self.read_status_response(expected_response_parameters)?;
@@ -196,7 +196,7 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.bus
 			.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)

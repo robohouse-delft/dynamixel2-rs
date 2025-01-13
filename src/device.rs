@@ -186,7 +186,7 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.bus
 			.write_status(packet_id, error, parameter_count, encode_parameters)
@@ -198,7 +198,7 @@ where
 		packet_id: u8,
 		error: u8,
 	) -> Result<(), WriteError<SerialPort::Error>> {
-		self.write_status(packet_id, error, 0, |_| {})
+		self.write_status(packet_id, error, 0, |_| Ok(()))
 	}
 
 	/// Write an empty status message.
@@ -206,7 +206,7 @@ where
 		&mut self,
 		packet_id: u8,
 	) -> Result<(), WriteError<SerialPort::Error>> {
-		self.write_status(packet_id, 0, 0, |_| {})
+		self.write_status(packet_id, 0, 0, |_| Ok(()))
 	}
 
 	/// Read a single [`InstructionPacket`].

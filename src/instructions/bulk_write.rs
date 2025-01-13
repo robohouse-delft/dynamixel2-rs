@@ -82,6 +82,7 @@ where
 				write_u16_le(&mut buffer[3..], data.len() as u16);
 				buffer[5..][..data.len()].copy_from_slice(data);
 			}
+			Ok(())
 		})
 	}
 }

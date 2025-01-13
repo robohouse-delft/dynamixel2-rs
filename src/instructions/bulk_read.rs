@@ -48,6 +48,7 @@ where
 				write_u16_le(&mut buffer[1..], read.address);
 				write_u16_le(&mut buffer[3..], read.count);
 			}
+			Ok(())
 		})?;
 		for read in reads {
 			let read = read.as_ref();

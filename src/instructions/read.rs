@@ -12,6 +12,7 @@ where
 		let response = self.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
+			Ok(())
 		})?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into()).map_err(crate::ReadError::from)?;
 		Ok(response)

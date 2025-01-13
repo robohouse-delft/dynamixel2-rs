@@ -38,7 +38,10 @@ where
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
 	/// Or use the ID Inspection Tool in the Dynamixel Wizard 2.0
 	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Response<()>, TransferError<SerialPort::Error>> {
-		self.write_instruction(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| buffer[0] = kind as u8)?;
+		self.write_instruction(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| {
+			buffer[0] = kind as u8;
+			Ok(())
+		})?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 	}
 
@@ -55,7 +58,8 @@ where
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
 	pub fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| {
-			buffer[0] = kind as u8
+			buffer[0] = kind as u8;
+			Ok(())
 		})?;
 		Ok(())
 	}

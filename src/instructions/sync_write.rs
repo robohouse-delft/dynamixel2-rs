@@ -59,6 +59,7 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1..].copy_from_slice(command.data.as_ref());
 			}
+			Ok(())
 		})
 	}
 
@@ -86,6 +87,7 @@ where
 				buffer[0] = command.motor_id;
 				buffer[1] = command.data;
 			}
+			Ok(())
 		})
 	}
 
@@ -113,6 +115,7 @@ where
 				buffer[0] = command.motor_id;
 				write_u16_le(&mut buffer[1..], command.data);
 			}
+			Ok(())
 		})
 	}
 
@@ -140,6 +143,7 @@ where
 				buffer[0] = command.motor_id;
 				write_u32_le(&mut buffer[1..], command.data);
 			}
+			Ok(())
 		})
 	}
 }

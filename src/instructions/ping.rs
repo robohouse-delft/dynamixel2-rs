@@ -43,13 +43,13 @@ where
 	/// This will not work correctly if the motor ID is [`packet_id::BROADCAST`].
 	/// Use [`Self::scan`] instead.
 	pub fn ping(&mut self, motor_id: u8) -> Result<Response<Ping>, TransferError<SerialPort::Error>> {
-		let response = self.transfer_single(motor_id, instruction_id::PING, 0, 3, |_| ())?;
+		let response = self.transfer_single(motor_id, instruction_id::PING, 0, 3, |_| Ok(()))?;
 		Ok(response.try_into()?)
 	}
 
 	/// Scan the bus for motors with a broadcast ping
 	pub fn scan(&mut self) -> Result<Scan<SerialPort, Buffer>, crate::WriteError<SerialPort::Error>> {
-		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| ())?;
+		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| Ok(()))?;
 		Ok(Scan { client: self })
 	}
 }

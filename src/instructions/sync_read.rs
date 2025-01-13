@@ -24,6 +24,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
+			Ok(())
 		})?;
 
 		Ok(SyncReadBytes {
@@ -46,6 +47,7 @@ where
 			write_u16_le(&mut buffer[0..], address);
 			write_u16_le(&mut buffer[2..], count);
 			buffer[4..].copy_from_slice(motor_ids);
+			Ok(())
 		})?;
 
 		Ok(SyncRead {
