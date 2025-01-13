@@ -1,4 +1,6 @@
 use core::mem::MaybeUninit;
+use crate::bus::StatusPacket;
+use crate::Response;
 
 /// A fixed-size type that can be read or written over the bus.
 pub trait Data: Sized {
@@ -10,6 +12,28 @@ pub trait Data: Sized {
 
 	/// Decode the value from the given buffer.
 	fn decode(buffer: &[u8]) -> Result<Self, crate::InvalidMessage>;
+}
+
+pub fn decode_status_packet<T: Data>(status_packet: StatusPacket) -> Result<Response<T>, crate::InvalidMessage> {
+	let response: Response<&[u8]> = status_packet.into();
+	let data = T::decode(response.data)?;
+	Ok(Response {
+		motor_id: response.motor_id,
+		alert: response.alert,
+		data,
+	})
+}
+
+pub fn decode_status_packet_bytes<T>(status_packet: StatusPacket) -> Response<T>
+where
+	T: for<'a> From<&'a [u8]>,
+{
+	let response: Response<&[u8]> = status_packet.into();
+	Response {
+		motor_id: response.motor_id,
+		alert: response.alert,
+		data: T::from(response.data),
+	}
 }
 
 macro_rules! impl_data_for_number {
