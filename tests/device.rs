@@ -57,8 +57,8 @@ fn test_packet_response() {
 	let kill_device = Arc::new(AtomicBool::new(false));
 	let (mut bus, mut device) = setup_bus();
 	let bus_t = thread::spawn(move || {
-		assert!(let Ok(_) = bus.write_u8(1, 5, 1));
-		let_assert!(Ok(response) =  bus.read_u8(1, 5));
+		assert!(let Ok(_) = bus.write(1, 5, &1_u8));
+		let_assert!(Ok(response) =  bus.read::<u8>(1, 5));
 		assert!(response.data == 1);
 	});
 	let device_t = thread::spawn({
@@ -82,6 +82,7 @@ fn test_packet_response() {
 						if let Some(data) = control_table.read(address, length) {
 							assert!(let Ok(()) = device.write_status(DEVICE_ID, 0, length as usize, |buffer| {
 								buffer.copy_from_slice(data);
+								Ok(())
 							}));
 						} else {
 							assert!(let Ok(()) = device.write_status_error(DEVICE_ID, 0x07));
