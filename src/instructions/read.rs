@@ -41,7 +41,7 @@ where
 	where
 	T: Data
 	{
-		let status = self.read_raw(motor_id, address, 1)?;
+		let status = self.read_raw(motor_id, address, T::ENCODED_SIZE)?;
 		Ok(decode_status_packet(status)?)
 	}
 }
