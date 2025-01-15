@@ -35,7 +35,7 @@ where
 	///
 	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
-	pub fn reg_write<T: Data>(&mut self, motor_id: u8, address: u16, value: T) -> Result<Response<()>, TransferError<SerialPort::Error>> {
+	pub fn reg_write<T: Data>(&mut self, motor_id: u8, address: u16, value: &T) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::REG_WRITE, 2 + 1, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
 			value.encode(&mut buffer[2..])
