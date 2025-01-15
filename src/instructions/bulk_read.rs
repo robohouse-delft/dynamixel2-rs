@@ -124,14 +124,14 @@ where
 
 	/// Read the next motor reply.
 	pub fn read_next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>> {
-		let (motor_id, count) = self.pop_motor_id_and_count()?;
+		let BulkReadData {motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response(motor_id, count))
 	}
 
-	fn pop_motor_id_and_count(&mut self) -> Option<(u8, u16)> {
+	fn pop_bulk_read_data(&mut self) -> Option<BulkReadData> {
 		let data = self.bulk_read_data.get(self.index)?;
 		self.index += 1;
-		Some((data.motor_id, data.count))
+		Some(*data)
 	}
 
 	fn next_response(&mut self, motor_id: u8, count: u16) -> Result<Response<T>, ReadError<SerialPort::Error>> {

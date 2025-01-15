@@ -86,7 +86,7 @@ impl<T> AsRef<BulkWriteData<T>> for BulkWriteData<T> {
 }
 
 /// Parameters for a bulk read instruction.
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct BulkReadData {
 	/// The ID of the motor.
 	pub motor_id: u8,
@@ -96,12 +96,6 @@ pub struct BulkReadData {
 
 	/// The length of the data to be read.
 	pub count: u16,
-}
-
-impl AsRef<BulkReadData> for BulkReadData {
-	fn as_ref(&self) -> &Self {
-		self
-	}
 }
 
 /// Read an empty response from the bus if the motor ID is not the broadcast ID.
