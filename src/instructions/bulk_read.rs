@@ -37,7 +37,7 @@ where
 
 		self.write_instruction(packet_id::BROADCAST, instruction_id::BULK_READ, 5 * reads.len(), |buffer| {
 			for (i, read) in reads.iter().enumerate() {
-				let buffer = &mut buffer[i..][..5];
+				let buffer = &mut buffer[i*5..][..5];
 				write_u8_le(&mut buffer[0..], read.motor_id);
 				write_u16_le(&mut buffer[1..], read.address);
 				write_u16_le(&mut buffer[3..], read.count);
