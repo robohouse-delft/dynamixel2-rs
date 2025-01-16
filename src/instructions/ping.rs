@@ -56,7 +56,7 @@ where
 
 macro_rules! make_scan_struct {
 	($($DefaultSerialPort:ty)?) => {
-		/// A scan operation
+		/// A scan operation that returns [`Response<Ping>`] when iterated
 		pub struct Scan<'a,SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
 			SerialPort: crate::SerialPort,

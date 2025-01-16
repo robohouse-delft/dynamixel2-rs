@@ -13,7 +13,7 @@ macro_rules! make_device_struct {
 		///
 		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
 		/// and to `&'static mut [u8]` otherwise.
-		/// See the [`static_buffer!()`] macro for a way to safely create a mutable static buffer.
+		/// See the [`crate::static_buffer!()`] macro for a way to safely create a mutable static buffer.
 		pub struct Device<SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
 			SerialPort: crate::SerialPort,

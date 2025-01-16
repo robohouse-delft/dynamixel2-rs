@@ -33,7 +33,7 @@ where
 
 	/// Read a value from a specific motor.
 	///
-	/// Specify the return type using turbofish: `read::<u8>()`
+	/// Specify the return type using turbofish: `client.read::<u8>`
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
