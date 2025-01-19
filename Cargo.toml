@@ -27,6 +27,7 @@ default = ["std", "serial2"]
 alloc = []
 std = ["alloc"]
 rs4xx = ["serial2/rs4xx"]
+integration_test = []
 
 [workspace]
 members = ["dynamixel2-cli"]
