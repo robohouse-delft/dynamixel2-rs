@@ -1,8 +1,29 @@
+use std::sync::{Arc, Mutex, MutexGuard};
 use dynamixel2::SerialPort;
 use std::time::{Duration, Instant};
 use log::trace;
-use crate::common::SharedBuffer;
 
+#[derive(Clone)]
+pub struct SharedBuffer {
+	buffer: Arc<Mutex<Vec<u8>>>,
+}
+
+impl SharedBuffer {
+	pub fn new() -> SharedBuffer {
+		SharedBuffer {
+			buffer: Arc::new(Mutex::new(Vec::new())),
+		}
+	}
+
+	pub fn read(&self) -> Option<MutexGuard<Vec<u8>>> {
+		self.buffer.try_lock().ok()
+	}
+
+	pub fn write(&self, data: &[u8]) {
+		let mut buffer = self.buffer.lock().ok().unwrap();
+		buffer.extend_from_slice(data);
+	}
+}
 
 #[derive(Clone)]
 pub struct MockSerial {

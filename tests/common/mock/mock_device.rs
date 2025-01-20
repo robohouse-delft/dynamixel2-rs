@@ -1,4 +1,4 @@
-use crate::common::MockSerial;
+use super::mock_serial_port::MockSerial;
 use assert2::let_assert;
 use dynamixel2::{instructions::instruction_id::STATUS, Device, Instruction, Instructions, ReadError, SerialPort};
 use log::{error, trace, warn};

@@ -1,43 +1,10 @@
 use assert2::{assert, let_assert};
 use dynamixel2::instructions::BulkReadData;
-use dynamixel2::Client;
 use test_log::test;
 
 pub mod common;
+use common::run;
 
-const DEVICE_IDS: &'static [u8] = &[1, 2];
-
-#[cfg(feature = "integration_test")]
-static SERIAL_MUTEX: std::sync::LazyLock<std::sync::Mutex<()>> = std::sync::LazyLock::new(std::sync::Mutex::default);
-
-#[cfg(feature = "integration_test")]
-fn run(test: impl FnOnce(&[u8], Client<serial2::SerialPort>)) {
-	// prevent multiple threads trying to use the serial port
-	let _lock = SERIAL_MUTEX.lock();
-	let path = std::env::var("SERIAL_PATH").unwrap_or(String::from("/dev/ttyUSB0"));
-	let baud = std::env::var("SERIAL_BAUD")
-		.map(|s| {
-			let_assert!(Ok(s) = s.parse(), "unable to parse SERIAL_BAUD {} into u32", s);
-			s
-		})
-		.unwrap_or(56700);
-	let_assert!(Ok(client) = Client::open(&path, baud), "unable to open serial port at {}", path);
-	let ids = std::env::var("DEVICE_IDS")
-		.map(|ids| {
-			ids.split(",")
-				.map(|id| {
-					let_assert!(Ok(id) = id.parse(), "unable to parse DEVICE_IDS {} into Vec<u8>", ids);
-					id
-				})
-				.collect()
-		})
-		.unwrap_or(DEVICE_IDS.to_vec());
-	test(&ids, client)
-}
-#[cfg(not(feature = "integration_test"))]
-fn run(test: impl FnOnce(&[u8], Client<common::MockSerial>)) {
-	common::setup_mock_client_device(DEVICE_IDS, test);
-}
 #[test]
 fn test_read() {
 	run(|ids, mut client| {
