@@ -1,14 +1,14 @@
 use assert2::{assert, let_assert};
 use dynamixel2::instructions::BulkReadData;
 use dynamixel2::Client;
-use std::sync::{LazyLock, Mutex};
 use test_log::test;
 
 pub mod common;
 
 const DEVICE_IDS: &'static [u8] = &[1, 2];
 
-static SERIAL_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(Mutex::default);
+#[cfg(feature = "integration_test")]
+static SERIAL_MUTEX: std::sync::LazyLock<std::sync::Mutex<()>> = std::sync::LazyLock::new(std::sync::Mutex::default);
 
 #[cfg(feature = "integration_test")]
 fn run(test: impl FnOnce(&[u8], Client<serial2::SerialPort>)) {
