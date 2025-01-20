@@ -7,7 +7,7 @@ use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;
 use std::thread;
 use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 pub struct ControlTable {
 	data: Vec<u8>,
@@ -40,7 +40,7 @@ impl ControlTable {
 	}
 }
 
-pub(crate) struct MockDevice {
+pub struct MockDevice {
 	id: u8,
 	pub device: Device<MockSerial>,
 	control_table: ControlTable,

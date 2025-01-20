@@ -32,11 +32,11 @@ pub fn new_client_device(device_ids: &[u8]) -> Result<(Client<MockSerial>, Vec<M
 }
 
 
-pub fn setup_mock_client_device<F>(device_ids: &[u8], test: F) where F: FnOnce(Client<MockSerial>) {
+pub fn setup_mock_client_device<F>(device_ids: &[u8], test: F) where F: FnOnce(&[u8], Client<MockSerial>) {
     let kill_device = Arc::new(AtomicBool::new(false));
     let (bus, devices) = new_client_device(device_ids).unwrap();
     let device_t = devices.into_iter().map(|d| d.run(kill_device.clone())).collect::<Vec<_>>();
-    test(bus);
+    test(device_ids, bus);
     kill_device.store(true, Relaxed);
     device_t.into_iter().for_each(|d| d.join().unwrap());
 }
