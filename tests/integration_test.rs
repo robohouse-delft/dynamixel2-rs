@@ -1,3 +1,4 @@
+use std::sync::{LazyLock, Mutex};
 use assert2::{assert, let_assert};
 use dynamixel2::instructions::BulkReadData;
 use test_log::test;
@@ -7,13 +8,25 @@ mod common;
 
 const DEVICE_IDS: &'static [u8] = &[1, 2];
 
+static SERIAL_MUTEX: LazyLock<Mutex<()>> = LazyLock::new(Mutex::default);
+
 
 
 #[cfg(feature = "integration_test")]
 use serial2::SerialPort;
 #[cfg(feature = "integration_test")]
 fn run(_device_ids: &[u8], test: impl FnOnce(Client<serial2::SerialPort>)) {
-	let client = Client::open("/dev/ttyUSB0").unwrap();
+	// prevent multiple threads trying to use the serial port
+	let _lock = SERIAL_MUTEX.lock();
+	let path = std::env::var("SERIAL_PATH").unwrap_or(String::from("/dev/ttyUSB0"));
+	let baud = std::env::var("SERIAL_BAUD")
+		.map(|s|
+				 {
+					 let_assert!(Ok(s) = s.parse(), "unable to parse SERIAL_BAUD {} into u32", s);
+					 s
+				 }
+	).unwrap_or(56700);
+	let_assert!(Ok(client) = Client::open(&path, baud), "unable to open serial port at {}", path);
 	test(client)
 }
 #[cfg(not(feature = "integration_test"))]
