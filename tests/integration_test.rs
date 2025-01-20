@@ -70,6 +70,7 @@ fn test_reg_write() {
 }
 
 #[test]
+#[cfg_attr(not(feature = "integration_test"), should_panic)] // test panics as Mock Serial doesn't currently support sync_read
 fn test_sync_read() {
 	run(DEVICE_IDS, |mut client| {
 		let response = client.sync_read::<u32>(DEVICE_IDS, 132).unwrap();
@@ -85,6 +86,7 @@ fn test_sync_read() {
 }
 
 #[test]
+#[cfg_attr(not(feature = "integration_test"), should_panic)] // test panics as Mock Serial doesn't currently support sync_read
 fn test_sync_read_bytes() {
 	run(DEVICE_IDS, |mut client| {
 		let response = client.sync_read_bytes::<Vec<u8>>(DEVICE_IDS, 132, 4).unwrap();
@@ -100,6 +102,7 @@ fn test_sync_read_bytes() {
 }
 
 #[test]
+#[cfg_attr(not(feature = "integration_test"), should_panic)] // test panics as Mock Serial doesn't currently support bulk_read
 fn test_bulk_read_bytes() {
 	run(DEVICE_IDS, |mut client| {
 		let bulk_read_data: Vec<_> = DEVICE_IDS
