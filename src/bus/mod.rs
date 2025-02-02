@@ -6,9 +6,8 @@ use core::time::Duration;
 pub(crate) mod bytestuff;
 pub(crate) mod endian;
 
-mod data;
+pub(crate) mod data;
 pub use data::Data;
-pub(crate) use data::{decode_status_packet, decode_status_packet_bytes};
 
 mod packet;
 pub use packet::{Packet, InstructionPacket, StatusPacket};

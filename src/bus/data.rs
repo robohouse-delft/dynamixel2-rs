@@ -25,13 +25,26 @@ pub(crate) fn decode_status_packet<T: Data, E>(status_packet: StatusPacket) -> R
 
 pub(crate) fn decode_status_packet_bytes<'a, T>(status_packet: StatusPacket<'a>) -> Result<Response<T>, crate::MotorError>
 where
-	T: for<'a> From<&'a [u8]>,
+	T: From<&'a [u8]>,
 {
 	crate::error::MotorError::check(status_packet.error())?;
 	Ok(Response {
 		motor_id: status_packet.packet_id(),
 		alert: status_packet.alert(),
 		data: T::from(status_packet.parameters()),
+	})
+}
+
+pub(crate) fn decode_status_packet_bytes_borrow<'a, T>(status_packet: StatusPacket<'a>) -> Result<Response<&'a T>, crate::MotorError>
+where
+	T: ?Sized,
+	[u8]: core::borrow::Borrow<T>,
+{
+	crate::error::MotorError::check(status_packet.error())?;
+	Ok(Response {
+		motor_id: status_packet.packet_id(),
+		alert: status_packet.alert(),
+		data: core::borrow::Borrow::borrow(status_packet.parameters()),
 	})
 }
 

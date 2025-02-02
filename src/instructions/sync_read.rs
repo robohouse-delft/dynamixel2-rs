@@ -1,7 +1,8 @@
 use core::marker::PhantomData;
 
 use crate::bus::endian::write_u16_le;
-use crate::bus::{decode_status_packet, decode_status_packet_bytes, Data};
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
+use crate::bus::data::Data;
 use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
 
@@ -19,6 +20,32 @@ where
 	) -> Result<SyncReadBytes<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>>
 	where
 		T: for<'b> From<&'b [u8]>,
+	{
+		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
+			write_u16_le(&mut buffer[0..], address);
+			write_u16_le(&mut buffer[2..], count);
+			buffer[4..].copy_from_slice(motor_ids);
+			Ok(())
+		})?;
+
+		Ok(SyncReadBytes {
+			client: self,
+			count,
+			motor_ids,
+			index: 0,
+			data: PhantomData,
+		})
+	}
+
+	/// Synchronously read a number of bytes from multiple motors in one command.
+	pub fn sync_read_bytes_borrow<'a, T>(
+		&'a mut self,
+		motor_ids: &'a [u8],
+		address: u16,
+		count: u16,
+	) -> Result<SyncReadBytes<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>>
+	where
+		[u8]: core::borrow::Borrow<T>,
 	{
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_READ, 4 + motor_ids.len(), |buffer| {
 			write_u16_le(&mut buffer[0..], address);
@@ -64,7 +91,7 @@ macro_rules! make_sync_read_bytes_struct {
 		/// A sync read operation that returns unparsed bytes.
 		pub struct SyncReadBytes<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
-			T: for<'b> From<&'b [u8]>,
+			T: ?Sized,
 			SerialPort: crate::SerialPort,
 			Buffer: AsRef<[u8]> + AsMut<[u8]>,
 		{
@@ -85,7 +112,6 @@ make_sync_read_bytes_struct!();
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
-	T: for<'b> From<&'b [u8]>,
 	SerialPort: crate::SerialPort + std::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -102,12 +128,14 @@ where
 
 impl<T, SerialPort, Buffer> Drop for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
-	T: for<'b> From<&'b [u8]>,
+	T: ?Sized,
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn drop(&mut self) {
-		while self.next().is_some() {}
+		while self.pop_motor_id().is_some() {
+			self.client.read_status_response(self.count).ok();
+		}
 	}
 }
 
@@ -130,7 +158,7 @@ where
 
 impl<T, SerialPort, Buffer> SyncReadBytes<'_, T, SerialPort, Buffer>
 where
-	T: for<'b> From<&'b [u8]>,
+	T: ?Sized,
 	SerialPort: crate::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -140,9 +168,21 @@ where
 	}
 
 	/// Read the next motor reply.
-	pub fn read_next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>> {
+	pub fn read_next<'a>(&'a mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>>
+	where
+		T: From<&'a [u8]>,
+	{
 		let motor_id = self.pop_motor_id()?;
 		Some(self.next_response(motor_id))
+	}
+
+	/// Read the next motor reply, borrowing the data from the internal read buffer.
+	pub fn read_next_borrow<'a>(&'a mut self) -> Option<Result<Response<&'a T>, ReadError<SerialPort::Error>>>
+	where
+		[u8]: core::borrow::Borrow<T>,
+	{
+		let motor_id = self.pop_motor_id()?;
+		Some(self.next_response_borrow(motor_id))
 	}
 
 	fn pop_motor_id(&mut self) -> Option<u8> {
@@ -151,7 +191,10 @@ where
 		Some(*motor_id)
 	}
 
-	fn next_response(&mut self, motor_id: u8) -> Result<Response<T>, ReadError<SerialPort::Error>> {
+	fn next_response<'a>(&'a mut self, motor_id: u8) -> Result<Response<T>, ReadError<SerialPort::Error>>
+	where
+		T: From<&'a [u8]>,
+	{
 		let response = self.client.read_status_response(self.count)?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
@@ -160,6 +203,17 @@ where
 		Ok(decode_status_packet_bytes(response)?)
 	}
 
+	fn next_response_borrow<'a>(&'a mut self, motor_id: u8) -> Result<Response<&'a T>, ReadError<SerialPort::Error>>
+	where
+		[u8]: core::borrow::Borrow<T>,
+	{
+		let response = self.client.read_status_response(self.count)?;
+		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
+		// We need to report a timeout or something for the missed motor though.
+		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
+		crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
+		Ok(decode_status_packet_bytes_borrow(response)?)
+	}
 }
 macro_rules! make_sync_read_struct {
 	($($DefaultSerialPort:ty)?) => {
