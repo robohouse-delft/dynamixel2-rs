@@ -91,6 +91,22 @@ fn do_main(options: Options) -> Result<(), ()> {
 				response.data & 0xFFFF
 			);
 		},
+		Command::Read { motor_id, address, count } => {
+			let mut client = open_client(&options)?;
+			log::debug!("Reading a {} bytes from motor {} at address {}", count, motor_id.raw(), address);
+			let start = Instant::now();
+			let response = client
+				.read_bytes::<&[u8]>(motor_id.assume_unicast()?, *address, *count)
+				.map_err(|e| log::error!("Command failed: {}", e))?;
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!(
+				"{:?}: {:?}",
+				start.elapsed(),
+				response.data,
+			);
+		},
 		Command::Write8 { motor_id, address, value } => {
 			let mut client = open_client(&options)?;
 			log::debug!(
@@ -140,6 +156,23 @@ fn do_main(options: Options) -> Result<(), ()> {
 			let start = Instant::now();
 			let response = client
 				.write(motor_id.raw(), *address, value)
+				.map_err(|e| log::error!("Command failed: {}", e))?;
+			if response.alert {
+				log::warn!("Alert bit set in response from motor!")
+			}
+			log::info!("{:?}: Ok", start.elapsed());
+		},
+		Command::Write { motor_id, address, data } => {
+			let mut client = open_client(&options)?;
+			log::debug!(
+				"Writing {} bytes to motor {} at address {}",
+				data.len(),
+				motor_id.raw(),
+				address
+			);
+			let start = Instant::now();
+			let response = client
+				.write_bytes(motor_id.raw(), *address, &data)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
 				log::warn!("Alert bit set in response from motor!")
