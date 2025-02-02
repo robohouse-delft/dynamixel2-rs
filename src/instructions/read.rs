@@ -27,8 +27,7 @@ where
 		T: for<'b> From<&'b [u8]>
 	{
 		let status = self.read_raw(motor_id, address, count)?;
-		Ok(decode_status_packet_bytes(status))
-
+		Ok(decode_status_packet_bytes(status)?)
 	}
 
 	/// Read a value from a specific motor.

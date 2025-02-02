@@ -329,6 +329,12 @@ impl<E> From<InvalidMessage> for TransferError<E> {
 	}
 }
 
+impl<E> From<MotorError> for TransferError<E> {
+	fn from(other: MotorError) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
 impl<E> From<InvalidHeaderPrefix> for TransferError<E> {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::ReadError(other.into())

@@ -14,26 +14,25 @@ pub trait Data: Sized {
 	fn decode(buffer: &[u8]) -> Result<Self, crate::InvalidMessage>;
 }
 
-pub fn decode_status_packet<T: Data>(status_packet: StatusPacket) -> Result<Response<T>, crate::InvalidMessage> {
-	let response: Response<&[u8]> = status_packet.into();
-	let data = T::decode(response.data)?;
+pub(crate) fn decode_status_packet<T: Data, E>(status_packet: StatusPacket) -> Result<Response<T>, crate::error::ReadError<E>> {
+	crate::error::MotorError::check(status_packet.error())?;
 	Ok(Response {
-		motor_id: response.motor_id,
-		alert: response.alert,
-		data,
+		motor_id: status_packet.packet_id(),
+		alert: status_packet.alert(),
+		data: T::decode(status_packet.parameters())?,
 	})
 }
 
-pub fn decode_status_packet_bytes<T>(status_packet: StatusPacket) -> Response<T>
+pub(crate) fn decode_status_packet_bytes<'a, T>(status_packet: StatusPacket<'a>) -> Result<Response<T>, crate::MotorError>
 where
 	T: for<'a> From<&'a [u8]>,
 {
-	let response: Response<&[u8]> = status_packet.into();
-	Response {
-		motor_id: response.motor_id,
-		alert: response.alert,
-		data: T::from(response.data),
-	}
+	crate::error::MotorError::check(status_packet.error())?;
+	Ok(Response {
+		motor_id: status_packet.packet_id(),
+		alert: status_packet.alert(),
+		data: T::from(status_packet.parameters()),
+	})
 }
 
 macro_rules! impl_data_for_number {

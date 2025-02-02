@@ -141,6 +141,6 @@ where
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
 
-		Ok(decode_status_packet_bytes(response))
+		Ok(decode_status_packet_bytes(response)?)
 	}
 }

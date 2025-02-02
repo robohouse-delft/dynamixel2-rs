@@ -157,14 +157,12 @@ where
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), self.count.into())?;
-
-		Ok(decode_status_packet_bytes(response))
+		Ok(decode_status_packet_bytes(response)?)
 	}
+
 }
 macro_rules! make_sync_read_struct {
 	($($DefaultSerialPort:ty)?) => {
-
-
 		/// A sync read operation that returns parsed values.
 		pub struct SyncRead<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
