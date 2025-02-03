@@ -31,6 +31,15 @@ fn test_write() {
 }
 
 #[test]
+fn test_write_bytes() {
+	run(|ids, mut client| {
+		let data = vec![1, 2, 3, 4];
+		let_assert!(Ok(response) = client.write_bytes(ids[0], 116, &data));
+		assert!(response.motor_id == ids[0]);
+	})
+}
+
+#[test]
 fn test_reg_write() {
 	run(|ids, mut client| {
 		let_assert!(Ok(response) = client.reg_write(ids[0], 65, &1u8));
@@ -38,6 +47,15 @@ fn test_reg_write() {
 		let_assert!(Ok(response) = client.action(ids[0]));
 		assert!(response.motor_id == ids[0]);
 		let _ = client.write(ids[0], 65, &0u8);
+	})
+}
+
+#[test]
+fn test_reg_write_bytes() {
+	run(|ids, mut client| {
+		let data = vec![1, 2, 3, 4];
+		let_assert!(Ok(response) = client.reg_write_bytes(ids[0], 116, &data));
+		assert!(response.motor_id == ids[0]);
 	})
 }
 
