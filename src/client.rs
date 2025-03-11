@@ -17,7 +17,7 @@ macro_rules! make_client_struct {
 		///
 		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
 		/// and to `&'static mut [u8]` otherwise.
-		/// See the [`static_buffer!()`] macro for a way to safely create a mutable static buffer.
+		/// See the [`crate::static_buffer!()`] macro for a way to safely create a mutable static buffer.
 		pub struct Client<SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
 			SerialPort: crate::SerialPort,
@@ -179,7 +179,7 @@ where
 		encode_parameters: F,
 	) -> Result<StatusPacket<'_>, TransferError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)?;
 		let response = self.read_status_response(expected_response_parameters)?;
@@ -196,7 +196,7 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.bus
 			.write_instruction(packet_id, instruction_id, parameter_count, encode_parameters)

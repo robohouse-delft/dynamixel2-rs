@@ -1,4 +1,4 @@
-/// A status response that is currently in the read buffer of a client.
+/// A packet (either an instruction packet or a status packet) in the buffer of the client/device
 #[derive(Debug, Copy, Clone)]
 pub struct Packet<'a> {
 	/// Message data (with byte-stuffing already undone).
@@ -37,7 +37,10 @@ impl<'a> Packet<'a> {
 	}
 }
 
-/// A status response that is currently in the read buffer of a client.
+/// A [`StatusPacket`] contains an error byte and response parameters to an [`InstructionPacket`]
+///
+/// Sent by a device to the client.
+
 #[derive(Debug, Copy, Clone)]
 pub struct StatusPacket<'a> {
 	packet: Packet<'a>,

@@ -1,5 +1,4 @@
 use crate::bus::StatusPacket;
-use crate::bus::endian::{read_u16_le, read_u32_le, read_u8_le};
 
 /// A response from a motor.
 ///
@@ -33,62 +32,12 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<()> {
 	}
 }
 
-impl<'a, 'b> From<&'b StatusPacket<'a>> for Response<&'b [u8]> {
-	fn from(status_packet: &'b StatusPacket<'a>) -> Self {
+impl<'a> From<StatusPacket<'a>> for Response<&'a [u8]> {
+	fn from(status_packet: StatusPacket<'a>) -> Self {
 		Self {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
 			data: status_packet.parameters(),
 		}
-	}
-}
-
-#[cfg(any(feature = "alloc", feature = "std"))]
-impl<'a> From<StatusPacket<'a>> for Response<Vec<u8>> {
-	fn from(status_packet: StatusPacket<'a>) -> Self {
-		Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: status_packet.parameters().to_owned(),
-		}
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u8> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 1)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u8_le(status_packet.parameters()),
-		})
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u16> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 2)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u16_le(status_packet.parameters()),
-		})
-	}
-}
-
-impl<'a> TryFrom<StatusPacket<'a>> for Response<u32> {
-	type Error = crate::InvalidParameterCount;
-
-	fn try_from(status_packet: StatusPacket<'a>) -> Result<Self, Self::Error> {
-		crate::InvalidParameterCount::check(status_packet.parameters().len(), 4)?;
-		Ok(Self {
-			motor_id: status_packet.packet_id(),
-			alert: status_packet.alert(),
-			data: read_u32_le(status_packet.parameters()),
-		})
 	}
 }

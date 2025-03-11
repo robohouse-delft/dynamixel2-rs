@@ -40,11 +40,12 @@ mod sync_write;
 mod write;
 
 pub use factory_reset::FactoryResetKind;
-pub use ping::Ping;
+pub use ping::{Ping, Scan};
+pub use sync_read::SyncRead;
 
-/// Data from or for a specific motor.
+/// Sync data for a specific motor.
 ///
-/// Used by synchronous write commands.
+/// Used by [`crate::Client::sync_write`] and [`crate::Client::sync_write_bytes`]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SyncWriteData<T> {
 	/// The ID of the motor.
@@ -65,16 +66,16 @@ impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
 /// This struct is similar to [`SyncWriteData`],
 /// but it supports reads and writes of different sizes and to different addresses for each motor.
 ///
-/// Used by bulk write commands.
+/// Used with [`crate::Client::bulk_write`].
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BulkWriteData<T> {
 	/// The ID of the motor.
 	pub motor_id: u8,
 
-	/// The address for the read or write.
+	/// The address to be written to
 	pub address: u16,
 
-	/// The data read from or to be written to the motor.
+	/// The data to be written
 	pub data: T,
 }
 
@@ -85,22 +86,18 @@ impl<T> AsRef<BulkWriteData<T>> for BulkWriteData<T> {
 }
 
 /// Parameters for a bulk read instruction.
-#[derive(Debug, Clone, Eq, PartialEq)]
+///
+/// Use with [`crate::Client::bulk_read_bytes`].
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct BulkReadData {
 	/// The ID of the motor.
 	pub motor_id: u8,
 
-	/// The address for the read or write.
+	/// The address of the data to be read
 	pub address: u16,
 
 	/// The length of the data to be read.
 	pub count: u16,
-}
-
-impl AsRef<BulkReadData> for BulkReadData {
-	fn as_ref(&self) -> &Self {
-		self
-	}
 }
 
 /// Read an empty response from the bus if the motor ID is not the broadcast ID.

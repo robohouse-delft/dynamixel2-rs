@@ -73,10 +73,12 @@ where
 	}
 }
 
-fn clear_revolution_count_parameters(buffer: &mut [u8]) {
-	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT)
+fn clear_revolution_count_parameters(buffer: &mut [u8]) -> Result<(), crate::error::BufferTooSmallError> {
+	buffer.copy_from_slice(&CLEAR_REVOLUTION_COUNT);
+	Ok(())
 }
 
-fn clear_error_parameters(buffer: &mut [u8]) {
-	buffer.copy_from_slice(&CLEAR_ERROR)
+fn clear_error_parameters(buffer: &mut [u8]) -> Result<(), crate::error::BufferTooSmallError> {
+	buffer.copy_from_slice(&CLEAR_ERROR);
+	Ok(())
 }

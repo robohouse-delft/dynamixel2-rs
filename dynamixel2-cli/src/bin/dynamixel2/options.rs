@@ -82,6 +82,21 @@ pub enum Command {
 		address: u16,
 	},
 
+	/// Read an arbitrary number of bytes from a motor.
+	Read {
+		/// The motor to read from (no broadcast ID allowed).
+		#[clap(value_name = "MOTOR_ID")]
+		motor_id: MotorId,
+
+		/// The address to read from.
+		#[clap(value_name = "ADDRESS")]
+		address: u16,
+
+		/// The number of bytes to read.
+		#[clap(value_name = "COUNT")]
+		count: u16,
+	},
+
 	/// Write an 8-bit value to a motor.
 	Write8 {
 		/// The motor to write to.
@@ -125,6 +140,23 @@ pub enum Command {
 		/// The value to write.
 		#[clap(value_name = "VALUE")]
 		value: u32,
+	},
+
+	/// Write an arbitrary number of bytes to a motor.
+	///
+	/// Keep in mind that registers on Dynamixel motors are little endian.
+	Write {
+		/// The motor to write to.
+		#[clap(value_name = "MOTOR_ID")]
+		motor_id: MotorId,
+
+		/// The address to write to.
+		#[clap(value_name = "ADDRESS")]
+		address: u16,
+
+		/// The data to write.
+		#[clap(value_name = "DATA")]
+		data: Vec<u8>,
 	},
 
 	/// Write shell completions to standard output or a file.

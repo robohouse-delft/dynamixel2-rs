@@ -6,6 +6,9 @@ use core::time::Duration;
 pub(crate) mod bytestuff;
 pub(crate) mod endian;
 
+pub(crate) mod data;
+pub use data::Data;
+
 mod packet;
 pub use packet::{Packet, InstructionPacket, StatusPacket};
 
@@ -159,12 +162,12 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		crate::error::BufferTooSmallError::check(StatusPacket::message_len(parameter_count), self.write_buffer.as_ref().len())?;
 		self.write_packet(packet_id, crate::instructions::instruction_id::STATUS, parameter_count + 1, |buffer| {
 			buffer[0] = error;
-			encode_parameters(&mut buffer[1..]);
+			encode_parameters(&mut buffer[1..])
 		})
 	}
 
@@ -177,7 +180,7 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		self.write_packet(packet_id, instruction_id, parameter_count, encode_parameters)
 	}
@@ -191,7 +194,7 @@ where
 		encode_parameters: F,
 	) -> Result<(), WriteError<SerialPort::Error>>
 	where
-		F: FnOnce(&mut [u8]),
+		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		let buffer = self.write_buffer.as_mut();
 
@@ -203,7 +206,7 @@ where
 		buffer[5] = 0;
 		buffer[6] = 0;
 		buffer[7] = instruction_id;
-		encode_parameters(&mut buffer[8..][..parameter_count]);
+		encode_parameters(&mut buffer[8..][..parameter_count])?;
 
 		// Perform bitstuffing on the body.
 		// The header never needs stuffing.
