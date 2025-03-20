@@ -9,9 +9,9 @@ pub struct SharedBuffer {
 }
 
 impl Default for SharedBuffer {
-    fn default() -> Self {
-        Self::new()
-    }
+	fn default() -> Self {
+		Self::new()
+	}
 }
 
 impl SharedBuffer {
