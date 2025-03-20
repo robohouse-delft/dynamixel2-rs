@@ -63,8 +63,8 @@ where
 ///
 /// # Panic
 /// Panics if multiple read operation use the same motor ID.
-fn write_bulk_read_instruction<'a, SerialPort, Buffer>(
-	client: &'a mut Client<SerialPort, Buffer>,
+fn write_bulk_read_instruction<SerialPort, Buffer>(
+	client: &mut Client<SerialPort, Buffer>,
 	reads: &[BulkReadData],
 ) -> Result<(), WriteError<SerialPort::Error>>
 where

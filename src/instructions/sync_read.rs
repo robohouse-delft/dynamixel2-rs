@@ -177,7 +177,7 @@ where
 	}
 
 	/// Read the next motor reply, borrowing the data from the internal read buffer.
-	pub fn read_next_borrow<'a>(&'a mut self) -> Option<Result<Response<&'a T>, ReadError<SerialPort::Error>>>
+	pub fn read_next_borrow(&mut self) -> Option<Result<Response<&T>, ReadError<SerialPort::Error>>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -203,7 +203,7 @@ where
 		Ok(decode_status_packet_bytes(response)?)
 	}
 
-	fn next_response_borrow<'a>(&'a mut self, motor_id: u8) -> Result<Response<&'a T>, ReadError<SerialPort::Error>>
+	fn next_response_borrow(&mut self, motor_id: u8) -> Result<Response<&T>, ReadError<SerialPort::Error>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -316,6 +316,6 @@ where
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), T::ENCODED_SIZE.into())?;
 
-		Ok(decode_status_packet(response)?)
+		decode_status_packet(response)
 	}
 }

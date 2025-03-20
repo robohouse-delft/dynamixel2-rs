@@ -8,6 +8,12 @@ pub struct SharedBuffer {
 	buffer: Arc<Mutex<Vec<u8>>>,
 }
 
+impl Default for SharedBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SharedBuffer {
 	pub fn new() -> SharedBuffer {
 		SharedBuffer {
