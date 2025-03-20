@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 
-use crate::bus::endian::write_u16_le;
-use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
-use crate::bus::data::Data;
-use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
+use crate::bus::data::Data;
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
+use crate::bus::endian::write_u16_le;
+use crate::{Client, ReadError, Response, WriteError};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where

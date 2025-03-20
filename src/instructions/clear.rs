@@ -25,7 +25,12 @@ where
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_clear_revolution_counter()`] instead.
 	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
-		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_REVOLUTION_COUNT.len(), clear_revolution_count_parameters)?;
+		self.write_instruction(
+			motor_id,
+			instruction_id::CLEAR,
+			CLEAR_REVOLUTION_COUNT.len(),
+			clear_revolution_count_parameters,
+		)?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
 	}
 
@@ -53,14 +58,13 @@ where
 	pub fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)?;
 		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
-
 	}
 
 	/// Try to clear the error of all motors on the bus.
 	///
 	/// This will reset the "error code" register to 0 if the error can be cleared
 	/// and if the instruction is supported by the motor.
-    ///
+	///
 	/// This instruction is currently only implemented on the Dynamixel Y series.
 	pub fn broadcast_clear_error(&mut self) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(

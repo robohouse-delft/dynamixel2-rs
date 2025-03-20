@@ -1,6 +1,6 @@
+use super::{instruction_id, packet_id, SyncWriteData};
 use crate::bus::endian::write_u16_le;
 use crate::{Client, WriteError};
-use super::{instruction_id, packet_id, SyncWriteData};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
@@ -38,7 +38,12 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn sync_write_bytes<'a, Iter, Data, Buf>(&mut self, address: u16, count: u16, data: Iter) -> Result<(), WriteError<SerialPort::Error>>
+	pub fn sync_write_bytes<'a, Iter, Data, Buf>(
+		&mut self,
+		address: u16,
+		count: u16,
+		data: Iter,
+	) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: ExactSizeIterator,

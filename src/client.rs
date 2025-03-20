@@ -55,12 +55,7 @@ impl Client<serial2::SerialPort, Vec<u8>> {
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
-		let bus = Bus::with_buffers_and_baud_rate(
-			serial_port,
-			vec![0; 128],
-			vec![0; 128],
-			baud_rate
-		);
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
 		Ok(Self { bus })
 	}
 }
@@ -73,19 +68,9 @@ where
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
-	pub fn open_with_buffers(
-		path: impl AsRef<Path>,
-		baud_rate: u32,
-		read_buffer: Buffer,
-		write_buffer: Buffer,
-	) -> std::io::Result<Self> {
+	pub fn open_with_buffers(path: impl AsRef<Path>, baud_rate: u32, read_buffer: Buffer, write_buffer: Buffer) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
-		let bus = Bus::with_buffers_and_baud_rate(
-			serial_port,
-			read_buffer,
-			write_buffer,
-			baud_rate,
-		);
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
 		Ok(Self { bus })
 	}
 }
@@ -104,11 +89,7 @@ where
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	#[cfg(feature = "alloc")]
 	pub fn new(serial_port: SerialPort) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(
-			serial_port,
-			vec![0; 128],
-			vec![0; 128],
-		)?;
+		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
 		Ok(Self { bus })
 	}
 }
@@ -122,16 +103,8 @@ where
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
-	pub fn with_buffers(
-		serial_port: SerialPort,
-		read_buffer: Buffer,
-		write_buffer: Buffer,
-	) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(
-			serial_port,
-			read_buffer,
-			write_buffer,
-		)?;
+	pub fn with_buffers(serial_port: SerialPort, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, SerialPort::Error> {
+		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
 		Ok(Self { bus })
 	}
 
@@ -203,19 +176,18 @@ where
 	}
 
 	/// Read a raw status response from the bus with the given deadline.
-	pub fn read_status_response_timeout(
-		&mut self,
-		timeout: Duration,
-	) -> Result<StatusPacket, ReadError<SerialPort::Error>>
-	{
+	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
 		let deadline = self.serial_port().make_deadline(timeout);
 		let packet = self.bus.read_packet_deadline(deadline)?;
 		let status = match packet.as_status() {
 			Some(status) => status,
-			None => return Err(crate::InvalidInstruction {
-				actual: packet.instruction_id(),
-				expected: instruction_id::STATUS,
-			}.into()),
+			None => {
+				return Err(crate::InvalidInstruction {
+					actual: packet.instruction_id(),
+					expected: instruction_id::STATUS,
+				}
+				.into())
+			},
 		};
 
 		crate::MotorError::check(status.error())?;
@@ -225,10 +197,7 @@ where
 	/// Read a raw status response with an automatically calculated timeout.
 	///
 	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
-	pub fn read_status_response(
-		&mut self,
-		expected_parameters: u16,
-	) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
+	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = crate::bus::StatusPacket::message_len(expected_parameters as usize) as u32;
 		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);

@@ -10,7 +10,7 @@ pub(crate) mod data;
 pub use data::Data;
 
 mod packet;
-pub use packet::{Packet, InstructionPacket, StatusPacket};
+pub use packet::{InstructionPacket, Packet, StatusPacket};
 
 /// Prefix of a packet.
 ///
@@ -57,23 +57,21 @@ pub type DefaultBuffer = &'static mut [u8];
 /// ```
 #[macro_export]
 macro_rules! static_buffer {
-	($N:literal) => {
-		{
-			use ::core::sync::atomic::{AtomicBool, Ordering};
-			static USED: AtomicBool = AtomicBool::new(false);
-			static mut BUFFER: [u8; $N] = [0; $N];
-			if USED.swap(true, Ordering::Relaxed) {
-				panic!("static buffer already used, each occurence of `static_buffer!()` may only be evaluated once");
-			}
-			unsafe {
-				// Use raw pointer to avoid compiler warning.
-				let buffer = &raw mut BUFFER;
-				// Convert to reference in separate expression to avoid clippy warning.
-				let buffer = &mut *buffer;
-				buffer.as_mut_slice()
-			}
+	($N:literal) => {{
+		use ::core::sync::atomic::{AtomicBool, Ordering};
+		static USED: AtomicBool = AtomicBool::new(false);
+		static mut BUFFER: [u8; $N] = [0; $N];
+		if USED.swap(true, Ordering::Relaxed) {
+			panic!("static buffer already used, each occurence of `static_buffer!()` may only be evaluated once");
 		}
-	};
+		unsafe {
+			// Use raw pointer to avoid compiler warning.
+			let buffer = &raw mut BUFFER;
+			// Convert to reference in separate expression to avoid clippy warning.
+			let buffer = &mut *buffer;
+			buffer.as_mut_slice()
+		}
+	}};
 }
 
 /// Low level interface to a DYNAMIXEL Protocol 2.0 bus.
@@ -113,22 +111,13 @@ where
 	///
 	/// The serial port must already be configured in raw mode with the correct baud rate,
 	/// character size (8), parity (disabled) and stop bits (1).
-	pub fn with_buffers(
-		serial_port: SerialPort,
-		read_buffer: Buffer,
-		write_buffer: Buffer,
-	) -> Result<Self, SerialPort::Error> {
+	pub fn with_buffers(serial_port: SerialPort, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, SerialPort::Error> {
 		let baud_rate = serial_port.baud_rate()?;
 		Ok(Self::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate))
 	}
 
 	/// Create a new bus using pre-allocated buffers.
-	pub fn with_buffers_and_baud_rate(
-		serial_port: SerialPort,
-		read_buffer: Buffer,
-		write_buffer: Buffer,
-		baud_rate: u32,
-	) -> Self {
+	pub fn with_buffers_and_baud_rate(serial_port: SerialPort, read_buffer: Buffer, write_buffer: Buffer, baud_rate: u32) -> Self {
 		let mut write_buffer = write_buffer;
 
 		// Pre-fill write buffer with the header prefix.
@@ -165,10 +154,15 @@ where
 		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		crate::error::BufferTooSmallError::check(StatusPacket::message_len(parameter_count), self.write_buffer.as_ref().len())?;
-		self.write_packet(packet_id, crate::instructions::instruction_id::STATUS, parameter_count + 1, |buffer| {
-			buffer[0] = error;
-			encode_parameters(&mut buffer[1..])
-		})
+		self.write_packet(
+			packet_id,
+			crate::instructions::instruction_id::STATUS,
+			parameter_count + 1,
+			|buffer| {
+				buffer[0] = error;
+				encode_parameters(&mut buffer[1..])
+			},
+		)
 	}
 
 	/// Write an instruction message to the bus.
@@ -235,11 +229,7 @@ where
 	}
 
 	/// Read a raw packet from the bus with the given deadline.
-	pub fn read_packet_deadline(
-		&mut self,
-		deadline: SerialPort::Instant,
-	) -> Result<Packet<'_>, ReadError<SerialPort::Error>>
-	{
+	pub fn read_packet_deadline(&mut self, deadline: SerialPort::Instant) -> Result<Packet<'_>, ReadError<SerialPort::Error>> {
 		// Check that the read buffer is large enough to hold atleast a instruction packet with 0 parameters.
 		crate::error::BufferTooSmallError::check(HEADER_SIZE + 3, self.read_buffer.as_mut().len())?;
 
@@ -263,7 +253,9 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
+			let new_data = self
+				.serial_port
+				.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
 				.map_err(ReadError::Io)?;
 
 			self.read_len += new_data;
@@ -299,7 +291,8 @@ where
 			return Err(crate::InvalidMessage::InvalidParameterCount(crate::InvalidParameterCount {
 				actual: 0,
 				expected: crate::ExpectedCount::Min(1),
-			}).into());
+			})
+			.into());
 		}
 
 		Ok(packet)

@@ -1,6 +1,6 @@
-use core::mem::MaybeUninit;
 use crate::bus::StatusPacket;
 use crate::Response;
+use core::mem::MaybeUninit;
 
 /// A fixed-size type that can be read or written over the bus.
 pub trait Data: Sized {
@@ -130,9 +130,7 @@ impl<T: Sized, const N: usize> ArrayInitializer<T, N> {
 	pub unsafe fn push(&mut self, value: T) {
 		debug_assert!(self.initialized < N);
 		// SAFETY: The caller must ensure `push` is called at most N times.
-		let slot = unsafe {
-			self.data.get_unchecked_mut(self.initialized)
-		};
+		let slot = unsafe { self.data.get_unchecked_mut(self.initialized) };
 		slot.write(value);
 		self.initialized += 1;
 	}

@@ -1,7 +1,7 @@
-use std::sync::{Arc, Mutex, MutexGuard};
 use dynamixel2::SerialPort;
-use std::time::{Duration, Instant};
 use log::trace;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::{Duration, Instant};
 
 #[derive(Clone)]
 pub struct SharedBuffer {
@@ -50,7 +50,6 @@ impl MockSerial {
 
 impl SerialPort for MockSerial {
 	type Error = std::io::Error;
-
 	type Instant = std::time::Instant;
 
 	fn baud_rate(&self) -> Result<u32, Self::Error> {
@@ -73,7 +72,7 @@ impl SerialPort for MockSerial {
 			}
 			if let Some(mut data) = self.read_buffer.read() {
 				if data.is_empty() {
-					continue
+					continue;
 				}
 				let len = data.len();
 				if len > buffer.len() {
@@ -84,9 +83,9 @@ impl SerialPort for MockSerial {
 				if !buffer[..len].is_empty() {
 					trace!("{} read: {:?}", self.name, &buffer[..len]);
 				}
-				return Ok(len)
+				return Ok(len);
 			}
-		};
+		}
 	}
 
 	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
@@ -103,5 +102,4 @@ impl SerialPort for MockSerial {
 	fn is_timeout_error(error: &Self::Error) -> bool {
 		error.kind() == std::io::ErrorKind::TimedOut
 	}
-
 }

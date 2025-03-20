@@ -309,15 +309,13 @@ impl std::error::Error for InvalidInstruction {}
 #[cfg(feature = "std")]
 impl std::error::Error for InvalidParameterCount {}
 
-impl<E> From<WriteError<E>> for TransferError<E>
-{
+impl<E> From<WriteError<E>> for TransferError<E> {
 	fn from(other: WriteError<E>) -> Self {
 		Self::WriteError(other)
 	}
 }
 
-impl<E> From<ReadError<E>> for TransferError<E>
-{
+impl<E> From<ReadError<E>> for TransferError<E> {
 	fn from(other: ReadError<E>) -> Self {
 		Self::ReadError(other)
 	}
@@ -556,11 +554,7 @@ impl Display for InvalidPacketId {
 
 impl Display for InvalidInstruction {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
-		write!(
-			f,
-			"invalid instruction ID, expected {:?}, got {:?}",
-			self.expected, self.actual
-		)
+		write!(f, "invalid instruction ID, expected {:?}, got {:?}", self.expected, self.actual)
 	}
 }
 
