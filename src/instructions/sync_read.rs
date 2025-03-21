@@ -112,7 +112,7 @@ make_sync_read_bytes_struct!();
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort + std::fmt::Debug,
+	SerialPort: crate::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -241,7 +241,7 @@ make_sync_read_struct!();
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncRead<'_, T, SerialPort, Buffer>
 where
 	T: Data,
-	SerialPort: crate::SerialPort + std::fmt::Debug,
+	SerialPort: crate::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {

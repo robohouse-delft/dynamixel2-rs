@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use super::{instruction_id, packet_id, BulkReadData};
 use crate::bus::data::{decode_status_packet_bytes, decode_status_packet_bytes_borrow};
 use crate::bus::endian::{write_u16_le, write_u8_le};
@@ -30,7 +28,7 @@ where
 			client: self,
 			bulk_read_data: reads,
 			index: 0,
-			data: PhantomData,
+			data: core::marker::PhantomData,
 		})
 	}
 
@@ -54,7 +52,7 @@ where
 			client: self,
 			bulk_read_data: reads,
 			index: 0,
-			data: PhantomData,
+			data: core::marker::PhantomData,
 		})
 	}
 }
@@ -101,12 +99,12 @@ where
 	client: &'a mut Client<SerialPort, Buffer>,
 	bulk_read_data: &'a [BulkReadData],
 	index: usize,
-	data: PhantomData<fn() -> T>,
+	data: core::marker::PhantomData<fn() -> T>,
 }
 
 impl<T, SerialPort, Buffer> core::fmt::Debug for BulkReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort + std::fmt::Debug,
+	SerialPort: crate::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
