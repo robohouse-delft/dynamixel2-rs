@@ -1,6 +1,6 @@
 use crate::bus::endian::read_u16_le;
-use crate::instructions::instruction_id;
 use crate::bus::{Bus, InstructionPacket};
+use crate::instructions::instruction_id;
 use crate::{InvalidParameterCount, ReadError, WriteError};
 use core::time::Duration;
 
@@ -51,12 +51,7 @@ impl Device<serial2::SerialPort, Vec<u8>> {
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
-		let bus = Bus::with_buffers_and_baud_rate(
-			serial_port,
-			vec![0; 128],
-			vec![0; 128],
-			baud_rate,
-		);
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
 		Ok(Self { bus })
 	}
 }
@@ -76,12 +71,7 @@ where
 		write_buffer: Buffer,
 	) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
-		let bus = Bus::with_buffers_and_baud_rate(
-			serial_port,
-			read_buffer,
-			write_buffer,
-			baud_rate,
-		);
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
 		Ok(Self { bus })
 	}
 }
@@ -99,11 +89,7 @@ where
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	pub fn new(serial_port: SerialPort) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(
-			serial_port,
-			vec![0; 128],
-			vec![0; 128],
-		)?;
+		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
 		Ok(Self { bus })
 	}
 }
@@ -114,16 +100,8 @@ where
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Create a new device using pre-allocated buffers.
-	pub fn with_buffers(
-		serial_port: SerialPort,
-		read_buffer: Buffer,
-		write_buffer: Buffer,
-	) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(
-			serial_port,
-			read_buffer,
-			write_buffer,
-		)?;
+	pub fn with_buffers(serial_port: SerialPort, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, SerialPort::Error> {
+		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
 		Ok(Device { bus })
 	}
 
@@ -167,11 +145,7 @@ where
 
 	/// Read a single [`Instruction`] with borrowed data
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn read_owned(
-		&mut self,
-		timeout: Duration,
-	) -> Result<Instruction<Vec<u8>>, ReadError<SerialPort::Error>>
-	{
+	pub fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<Vec<u8>>, ReadError<SerialPort::Error>> {
 		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
@@ -188,24 +162,16 @@ where
 	where
 		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
-		self.bus
-			.write_status(packet_id, error, parameter_count, encode_parameters)
+		self.bus.write_status(packet_id, error, parameter_count, encode_parameters)
 	}
 
 	/// Write an empty status message with an error code.
-	pub fn write_status_error(
-		&mut self,
-		packet_id: u8,
-		error: u8,
-	) -> Result<(), WriteError<SerialPort::Error>> {
+	pub fn write_status_error(&mut self, packet_id: u8, error: u8) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_status(packet_id, error, 0, |_| Ok(()))
 	}
 
 	/// Write an empty status message.
-	pub fn write_status_ok(
-		&mut self,
-		packet_id: u8,
-	) -> Result<(), WriteError<SerialPort::Error>> {
+	pub fn write_status_ok(&mut self, packet_id: u8) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_status(packet_id, 0, 0, |_| Ok(()))
 	}
 
@@ -213,8 +179,7 @@ where
 	pub fn read_raw_instruction_timeout(
 		&mut self,
 		timeout: Duration,
-	) -> Result<crate::bus::InstructionPacket<'_>, ReadError<SerialPort::Error>>
-	{
+	) -> Result<crate::bus::InstructionPacket<'_>, ReadError<SerialPort::Error>> {
 		let deadline = SerialPort::make_deadline(self.serial_port(), timeout);
 		loop {
 			// SAFETY: This is a workaround for a limitation in the borrow checker.
@@ -222,10 +187,10 @@ where
 			// So each loop iteration tries to borrow the same field mutably, with the a lifetime that outlives the current function.
 			// Borrow checker says no.
 			// TODO: Remove this workaround when the borrow checker can validate this.
-			let bus: &mut Bus<SerialPort, Buffer> = unsafe { &mut * (&mut self.bus as *mut _) };
+			let bus: &mut Bus<SerialPort, Buffer> = unsafe { &mut *(&mut self.bus as *mut _) };
 			let packet = bus.read_packet_deadline(deadline)?;
 			if let Some(instruction) = packet.as_instruction() {
-				return Ok(instruction)
+				return Ok(instruction);
 			}
 		}
 	}

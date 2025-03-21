@@ -101,11 +101,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			if response.alert {
 				log::warn!("Alert bit set in response from motor!")
 			}
-			log::info!(
-				"{:?}: {:?}",
-				start.elapsed(),
-				response.data,
-			);
+			log::info!("{:?}: {:?}", start.elapsed(), response.data,);
 		},
 		Command::Write8 { motor_id, address, value } => {
 			let mut client = open_client(&options)?;
@@ -164,12 +160,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 		},
 		Command::Write { motor_id, address, data } => {
 			let mut client = open_client(&options)?;
-			log::debug!(
-				"Writing {} bytes to motor {} at address {}",
-				data.len(),
-				motor_id.raw(),
-				address
-			);
+			log::debug!("Writing {} bytes to motor {} at address {}", data.len(), motor_id.raw(), address);
 			let start = Instant::now();
 			let response = client
 				.write_bytes(motor_id.raw(), *address, &data)

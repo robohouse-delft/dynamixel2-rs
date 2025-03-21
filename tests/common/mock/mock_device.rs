@@ -207,7 +207,7 @@ impl MockDevice {
 						Err(e) => {
 							error!("aborting sync/bulk read due to read error {e}");
 							return;
-						}
+						},
 					}
 				}
 			}

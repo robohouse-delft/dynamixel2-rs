@@ -1,7 +1,7 @@
-use crate::bus::endian::write_u16_le;
-use crate::{Client, Response, TransferError};
-use crate::bus::Data;
 use super::{instruction_id, read_response_if_not_broadcast};
+use crate::bus::endian::write_u16_le;
+use crate::bus::Data;
+use crate::{Client, Response, TransferError};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where

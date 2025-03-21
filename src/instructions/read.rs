@@ -1,8 +1,8 @@
-use crate::bus::data::{decode_status_packet, decode_status_packet_bytes};
-use crate::bus::{Data, StatusPacket};
-use crate::bus::endian::write_u16_le;
-use crate::{Client, Response, TransferError};
 use super::instruction_id;
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes};
+use crate::bus::endian::write_u16_le;
+use crate::bus::{Data, StatusPacket};
+use crate::{Client, Response, TransferError};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
@@ -25,7 +25,7 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read_bytes<'a, T>(&'a mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
 	where
-		T: From<&'a [u8]>
+		T: From<&'a [u8]>,
 	{
 		let status = self.read_raw(motor_id, address, count)?;
 		Ok(decode_status_packet_bytes(status)?)
@@ -39,7 +39,7 @@ where
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub fn read<T>(&mut self, motor_id: u8, address: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
 	where
-	T: Data
+		T: Data,
 	{
 		let status = self.read_raw(motor_id, address, T::ENCODED_SIZE)?;
 		Ok(decode_status_packet(status)?)

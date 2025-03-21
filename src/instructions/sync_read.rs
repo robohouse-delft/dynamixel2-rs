@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 
-use crate::bus::endian::write_u16_le;
-use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
-use crate::bus::data::Data;
-use crate::{Client, ReadError, Response, WriteError};
 use super::{instruction_id, packet_id};
+use crate::bus::data::Data;
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
+use crate::bus::endian::write_u16_le;
+use crate::{Client, ReadError, Response, WriteError};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
@@ -177,7 +177,7 @@ where
 	}
 
 	/// Read the next motor reply, borrowing the data from the internal read buffer.
-	pub fn read_next_borrow<'a>(&'a mut self) -> Option<Result<Response<&'a T>, ReadError<SerialPort::Error>>>
+	pub fn read_next_borrow(&mut self) -> Option<Result<Response<&T>, ReadError<SerialPort::Error>>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -203,7 +203,7 @@ where
 		Ok(decode_status_packet_bytes(response)?)
 	}
 
-	fn next_response_borrow<'a>(&'a mut self, motor_id: u8) -> Result<Response<&'a T>, ReadError<SerialPort::Error>>
+	fn next_response_borrow(&mut self, motor_id: u8) -> Result<Response<&T>, ReadError<SerialPort::Error>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -316,6 +316,6 @@ where
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), T::ENCODED_SIZE.into())?;
 
-		Ok(decode_status_packet(response)?)
+		decode_status_packet(response)
 	}
 }

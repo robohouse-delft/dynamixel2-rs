@@ -1,7 +1,7 @@
+use super::{instruction_id, packet_id, BulkReadData};
 use crate::bus::data::{decode_status_packet_bytes, decode_status_packet_bytes_borrow};
 use crate::bus::endian::{write_u16_le, write_u8_le};
 use crate::{Client, ReadError, Response, WriteError};
-use super::{instruction_id, packet_id, BulkReadData};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
@@ -61,8 +61,8 @@ where
 ///
 /// # Panic
 /// Panics if multiple read operation use the same motor ID.
-fn write_bulk_read_instruction<'a, SerialPort, Buffer>(
-	client: &'a mut Client<SerialPort, Buffer>,
+fn write_bulk_read_instruction<SerialPort, Buffer>(
+	client: &mut Client<SerialPort, Buffer>,
 	reads: &[BulkReadData],
 ) -> Result<(), WriteError<SerialPort::Error>>
 where
@@ -79,9 +79,9 @@ where
 			}
 		}
 	}
-    client.write_instruction(packet_id::BROADCAST, instruction_id::BULK_READ, 5 * reads.len(), |buffer| {
+	client.write_instruction(packet_id::BROADCAST, instruction_id::BULK_READ, 5 * reads.len(), |buffer| {
 		for (i, read) in reads.iter().enumerate() {
-			let buffer = &mut buffer[i*5..][..5];
+			let buffer = &mut buffer[i * 5..][..5];
 			write_u8_le(&mut buffer[0..], read.motor_id);
 			write_u16_le(&mut buffer[1..], read.address);
 			write_u16_le(&mut buffer[3..], read.count);
@@ -161,7 +161,7 @@ where
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
-		let BulkReadData {motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response(motor_id, count))
 	}
 
@@ -170,7 +170,7 @@ where
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
-		let BulkReadData {motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response_borrow(motor_id, count))
 	}
 

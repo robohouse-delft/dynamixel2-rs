@@ -1,5 +1,5 @@
-use crate::{Client, Response, TransferError, WriteError};
 use super::{instruction_id, packet_id};
+use crate::{Client, Response, TransferError, WriteError};
 
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
