@@ -74,7 +74,7 @@ make_scan_struct!(serial2::SerialPort);
 make_scan_struct!();
 impl<SerialPort, Buffer> core::fmt::Debug for Scan<'_, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort + std::fmt::Debug,
+	SerialPort: crate::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
