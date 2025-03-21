@@ -33,7 +33,7 @@ fn test_write() {
 #[test]
 fn test_write_bytes() {
 	run(|ids, mut client| {
-		let data = vec![1, 2, 3, 4];
+		let data = [1, 2, 3, 4];
 		let_assert!(Ok(response) = client.write_bytes(ids[0], 116, &data));
 		assert!(response.motor_id == ids[0]);
 	})
@@ -53,7 +53,7 @@ fn test_reg_write() {
 #[test]
 fn test_reg_write_bytes() {
 	run(|ids, mut client| {
-		let data = vec![1, 2, 3, 4];
+		let data = [1, 2, 3, 4];
 		let_assert!(Ok(response) = client.reg_write_bytes(ids[0], 116, &data));
 		assert!(response.motor_id == ids[0]);
 	})
