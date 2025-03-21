@@ -424,14 +424,14 @@ mod test {
 	fn test_static_buffer() {
 		let buffer1 = static_buffer!(128);
 		assert!(buffer1.len() == 128);
-		for e in buffer1 {
-			assert!(*e == 0);
+		for i in 0..buffer1.len() {
+			assert!(buffer1[i] == 0, "i: {i}");
 		}
 
 		let buffer2 = static_buffer!(64);
 		assert!(buffer2.len() == 64);
-		for e in buffer2 {
-			assert!(*e == 0);
+		for i in 0..buffer2.len() {
+			assert!(buffer2[i] == 0, "i: {i}");
 		}
 	}
 
