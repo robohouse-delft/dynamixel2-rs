@@ -6,7 +6,15 @@ on:
 jobs:
   build_and_test:
     name: Build and test
+    strategy:
+      matrix:
+       features:
+         - --no-default-features
+         - --no-default-features --features serial2,rs4xx
+         - --features log
     runs-on: ubuntu-latest
+    env:
+      RUSTFLAGS: -Dwarnings
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,21 +27,11 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-cargo
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --workspace --all-targets --all-features --color=always
-        env:
-          RUSTFLAGS: -Dwarnings
+        run: cargo build --workspace --color always --all-targets ${{ matrix.features }}
       - name: Clippy
         uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace --all-targets --all-features
+          args: --workspace --all-targets ${{ matrix.features }}
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace --all-targets --color=always
-        env:
-          RUSTFLAGS: -Dwarnings
+        run: cargo test --workspace --all-targets --color=always ${{ matrix.features }}
