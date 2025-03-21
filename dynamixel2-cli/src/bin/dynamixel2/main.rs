@@ -163,7 +163,7 @@ fn do_main(options: Options) -> Result<(), ()> {
 			log::debug!("Writing {} bytes to motor {} at address {}", data.len(), motor_id.raw(), address);
 			let start = Instant::now();
 			let response = client
-				.write_bytes(motor_id.raw(), *address, &data)
+				.write_bytes(motor_id.raw(), *address, data)
 				.map_err(|e| log::error!("Command failed: {}", e))?;
 			if response.alert {
 				log::warn!("Alert bit set in response from motor!")
