@@ -253,8 +253,9 @@ where
 				let body_len = endian::read_u16_le(&read_buffer[5..]) as usize;
 
 				// Check if the read buffer is large enough for the entire message.
-				// We don't have to remove the read bytes, because `write_instruction()` already clears the read buffer.
-				crate::error::BufferTooSmallError::check(HEADER_SIZE + body_len, self.read_buffer.as_mut().len())?;
+				crate::error::BufferTooSmallError::check(HEADER_SIZE + body_len, self.read_buffer.as_mut().len()).inspect_err(|_| {
+					self.consume_read_bytes(HEADER_SIZE);
+				})?;
 
 				if self.read_len >= HEADER_SIZE + body_len {
 					break HEADER_SIZE + body_len;
@@ -264,9 +265,6 @@ where
 			// Try to read more data into the buffer.
 			let new_data = self.serial_port.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
 				.map_err(ReadError::Io)?;
-			if new_data == 0 {
-				continue;
-			}
 
 			self.read_len += new_data;
 		};
@@ -464,5 +462,77 @@ mod test {
 			let buffer = make_buffer();
 			assert!(buffer.len() == 128);
 		}
+	}
+
+	#[test]
+	fn test_buffer_too_small() {
+		let read_buffer = static_buffer!(128);
+		let write_buffer = static_buffer!(128);
+
+		// Dummy serial port used to feed packages
+		// It does not support writing them etc.
+		struct DummySerial {}
+
+		impl crate::SerialPort for DummySerial {
+			type Error = std::io::Error;
+			type Instant = std::time::Instant;
+
+			fn baud_rate(&self) -> Result<u32, Self::Error> {
+				Ok(115_200)
+			}
+
+			fn set_baud_rate(&mut self, _baud_rate: u32) -> Result<(), Self::Error> {
+				unimplemented!("not used in this test")
+			}
+
+			fn discard_input_buffer(&mut self) -> Result<(), Self::Error> {
+				unimplemented!("not used in this test")
+			}
+
+			fn read(&mut self, _buffer: &mut [u8], _deadline: &Self::Instant) -> Result<usize, Self::Error> {
+				// Packet 1
+				// Build a package header with a (wrong) length of 10000 in the header
+				_buffer[..4].copy_from_slice(&HEADER_PREFIX);
+				_buffer[4] = 0;
+				endian::write_u16_le(&mut _buffer[5..], 10000);
+
+				// Packet 2
+				// Build a normal packet
+				let offset = 8;
+				let packet_2_length = 10;
+				_buffer[offset..offset + 4].copy_from_slice(&HEADER_PREFIX);
+				_buffer[offset + 4] = 0;
+				endian::write_u16_le(&mut _buffer[offset + 5..], packet_2_length as u16);
+				let checksum_len = 2;
+				let checksum_index = HEADER_SIZE + packet_2_length - checksum_len;
+				let checksum = checksum::calculate_checksum(0, &_buffer[offset..offset + checksum_index]);
+				endian::write_u16_le(&mut _buffer[offset + checksum_index..], checksum);
+				Ok(50)
+			}
+
+			fn write_all(&mut self, _buffer: &[u8]) -> Result<(), Self::Error> {
+				unimplemented!("not used in this test")
+			}
+
+			fn make_deadline(&self, _timeout: Duration) -> Self::Instant {
+				std::time::Instant::now() + _timeout
+			}
+
+			fn is_timeout_error(_error: &Self::Error) -> bool {
+				unimplemented!("not used in this test")
+			}
+		}
+
+		// Setup the bus with a dummy serial interface
+		let mut bus = Bus::with_buffers(DummySerial {}, read_buffer, write_buffer).unwrap();
+
+		// Read the corrupt package
+		let deadline = std::time::Instant::now() + Duration::from_secs(1);
+		let result = bus.read_packet_deadline(deadline);
+		assert!(matches!(result.unwrap_err(), crate::ReadError::BufferFull(_)));
+
+		// Check that the next read works normally again (buffer is partially flushed)
+		let result = bus.read_packet_deadline(deadline);
+		assert!(result.is_ok());
 	}
 }
