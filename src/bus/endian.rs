@@ -17,14 +17,14 @@ pub fn read_u8_le(buffer: &[u8]) -> u8 {
 /// Write a u16 to a buffer in little endian format.
 pub fn write_u16_le(buffer: &mut [u8], value: u16) {
 	buffer[0] = (value & 0xFF) as u8;
-	buffer[1] = (value >> 8 & 0xFF) as u8;
+	buffer[1] = ((value >> 8) & 0xFF) as u8;
 }
 
 /// Read a u16 in little endian format from a buffer.
 pub fn read_u16_le(buffer: &[u8]) -> u16 {
 	let low = buffer[0] as u16;
 	let high = buffer[1] as u16;
-	low | high << 8
+	low | (high << 8)
 }
 
 #[cfg(test)]

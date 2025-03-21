@@ -421,6 +421,7 @@ mod test {
 	}
 
 	#[test]
+	#[allow(clippy::needless_range_loop, reason = "indexing gives better error messsage on failed assertion")]
 	fn test_static_buffer() {
 		let buffer1 = static_buffer!(128);
 		assert!(buffer1.len() == 128);

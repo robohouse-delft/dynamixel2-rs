@@ -5,6 +5,7 @@ static SERIAL_MUTEX: std::sync::LazyLock<std::sync::Mutex<()>> = std::sync::Lazy
 const DEFAULT_SERIAL_PATH: &str = "/dev/ttyUSB0";
 const DEFAULT_BAUD: u32 = 56_700;
 const DEFAULT_IDS: &[u8] = &[1, 2];
+
 pub fn run(test: impl FnOnce(&[u8], Client<serial2::SerialPort>)) {
 	// prevent multiple threads trying to use the serial port
 	let _lock = SERIAL_MUTEX.lock();

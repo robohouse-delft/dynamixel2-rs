@@ -7,6 +7,7 @@ mod mock_serial_port;
 
 use mock_device::MockDevice;
 use mock_serial_port::MockSerial;
+
 pub fn new_client_device(device_ids: &[u8]) -> Result<(Client<MockSerial>, Vec<MockDevice>), std::io::Error> {
 	let mut client_serial = MockSerial::new("Client");
 	let device_ports: Vec<_> = device_ids
