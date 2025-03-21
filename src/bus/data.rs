@@ -35,7 +35,7 @@ where
 	})
 }
 
-pub(crate) fn decode_status_packet_bytes_borrow<'a, T>(status_packet: StatusPacket<'a>) -> Result<Response<&'a T>, crate::MotorError>
+pub(crate) fn decode_status_packet_bytes_borrow<T>(status_packet: StatusPacket<'_>) -> Result<Response<&T>, crate::MotorError>
 where
 	T: ?Sized,
 	[u8]: core::borrow::Borrow<T>,
