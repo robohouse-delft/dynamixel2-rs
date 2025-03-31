@@ -11,6 +11,7 @@ jobs:
        features:
          - --no-default-features
          - --no-default-features --features serial2,rs4xx
+         - --no-default-features --features alloc
          - --features log
     runs-on: ubuntu-latest
     env:
