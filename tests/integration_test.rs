@@ -118,10 +118,7 @@ fn test_bulk_read_bytes() {
 #[test]
 fn test_sync_write() {
 	run(|ids, mut client| {
-		let sync_writes = ids.iter().copied().map(|motor_id| SyncWriteData {
-			motor_id,
-			data: 2000_u32
-		});
+		let sync_writes = ids.iter().copied().map(|motor_id| SyncWriteData { motor_id, data: 2000_u32 });
 		let_assert!(Ok(_) = client.sync_write(116, sync_writes));
 	})
 }
