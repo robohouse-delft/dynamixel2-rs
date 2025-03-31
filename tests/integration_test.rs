@@ -1,5 +1,5 @@
 use assert2::{assert, let_assert};
-use dynamixel2::instructions::BulkReadData;
+use dynamixel2::instructions::{BulkReadData, SyncWriteData};
 use test_log::test;
 
 pub mod common;
@@ -33,7 +33,7 @@ fn test_write() {
 #[test]
 fn test_write_bytes() {
 	run(|ids, mut client| {
-		let data = [1, 2, 3, 4];
+		let data = 2000_u32.to_le_bytes();
 		let_assert!(Ok(response) = client.write_bytes(ids[0], 116, &data));
 		assert!(response.motor_id == ids[0]);
 	})
@@ -53,7 +53,7 @@ fn test_reg_write() {
 #[test]
 fn test_reg_write_bytes() {
 	run(|ids, mut client| {
-		let data = [1, 2, 3, 4];
+		let data = 2000_u32.to_le_bytes();
 		let_assert!(Ok(response) = client.reg_write_bytes(ids[0], 116, &data));
 		assert!(response.motor_id == ids[0]);
 	})
@@ -112,6 +112,14 @@ fn test_bulk_read_bytes() {
 				},
 			}
 		}
+	})
+}
+
+#[test]
+fn test_sync_write() {
+	run(|ids, mut client| {
+		let sync_writes = ids.iter().copied().map(|motor_id| SyncWriteData { motor_id, data: 2000_u32 });
+		let_assert!(Ok(_) = client.sync_write(116, sync_writes));
 	})
 }
 

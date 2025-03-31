@@ -80,13 +80,13 @@ where
 		T: crate::bus::Data,
 	{
 		let data = data.into_iter();
-		let count = core::mem::size_of::<u8>();
+		let count = T::ENCODED_SIZE;
 		let motors = data.len();
-		let stride = 1 + count;
+		let stride = 1 + count as usize;
 		let parameter_count = 4 + motors * stride;
 		self.write_instruction(packet_id::BROADCAST, instruction_id::SYNC_WRITE, parameter_count, |buffer| {
 			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count as u16);
+			write_u16_le(&mut buffer[2..], count);
 			for (i, command) in data.enumerate() {
 				let command = command.as_ref();
 				let buffer = &mut buffer[4 + i * stride..][..stride];
