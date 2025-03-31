@@ -1,6 +1,4 @@
 use core::time::Duration;
-#[cfg(feature = "serial2")]
-use std::path::Path;
 
 use crate::bus::{Bus, StatusPacket};
 use crate::instructions::instruction_id;
@@ -53,7 +51,7 @@ impl Client<serial2::SerialPort, Vec<u8>> {
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
-	pub fn open(path: impl AsRef<Path>, baud_rate: u32) -> std::io::Result<Self> {
+	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
 		Ok(Self { bus })
@@ -68,7 +66,7 @@ where
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
-	pub fn open_with_buffers(path: impl AsRef<Path>, baud_rate: u32, read_buffer: Buffer, write_buffer: Buffer) -> std::io::Result<Self> {
+	pub fn open_with_buffers(path: impl AsRef<std::path::Path>, baud_rate: u32, read_buffer: Buffer, write_buffer: Buffer) -> std::io::Result<Self> {
 		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
 		Ok(Self { bus })
@@ -76,7 +74,7 @@ where
 }
 
 #[cfg(feature = "alloc")]
-impl<SerialPort> Client<SerialPort, Vec<u8>>
+impl<SerialPort> Client<SerialPort, alloc::vec::Vec<u8>>
 where
 	SerialPort: crate::SerialPort,
 {
@@ -89,7 +87,7 @@ where
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	#[cfg(feature = "alloc")]
 	pub fn new(serial_port: SerialPort) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
+		let bus = Bus::with_buffers(serial_port, alloc::vec![0; 128], alloc::vec![0; 128])?;
 		Ok(Self { bus })
 	}
 }

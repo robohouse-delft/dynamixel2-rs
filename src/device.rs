@@ -4,6 +4,9 @@ use crate::instructions::instruction_id;
 use crate::{InvalidParameterCount, ReadError, WriteError};
 use core::time::Duration;
 
+#[cfg(feature = "alloc")]
+use alloc::borrow::ToOwned;
+
 macro_rules! make_device_struct {
 	($($DefaultSerialPort:ty)?) => {
 		/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
@@ -77,7 +80,7 @@ where
 }
 
 #[cfg(feature = "alloc")]
-impl<SerialPort> Device<SerialPort, Vec<u8>>
+impl<SerialPort> Device<SerialPort, alloc::vec::Vec<u8>>
 where
 	SerialPort: crate::SerialPort,
 {
@@ -89,7 +92,7 @@ where
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
 	pub fn new(serial_port: SerialPort) -> Result<Self, SerialPort::Error> {
-		let bus = Bus::with_buffers(serial_port, vec![0; 128], vec![0; 128])?;
+		let bus = Bus::with_buffers(serial_port, alloc::vec![0; 128], alloc::vec![0; 128])?;
 		Ok(Self { bus })
 	}
 }
@@ -145,7 +148,7 @@ where
 
 	/// Read a single [`Instruction`] with borrowed data
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<Vec<u8>>, ReadError<SerialPort::Error>> {
+	pub fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<alloc::vec::Vec<u8>>, ReadError<SerialPort::Error>> {
 		let packet = self.read_raw_instruction_timeout(timeout)?;
 		let packet = packet.try_into()?;
 		Ok(packet)
@@ -332,7 +335,7 @@ impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<&'a [u8]> {
 }
 
 #[cfg(any(feature = "std", feature = "alloc"))]
-impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<Vec<u8>> {
+impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<alloc::vec::Vec<u8>> {
 	type Error = InvalidParameterCount;
 
 	fn try_from(packet: InstructionPacket<'a>) -> Result<Self, Self::Error> {
