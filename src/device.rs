@@ -184,16 +184,8 @@ where
 		timeout: Duration,
 	) -> Result<crate::bus::InstructionPacket<'_>, ReadError<SerialPort::Error>> {
 		let deadline = SerialPort::make_deadline(self.serial_port(), timeout);
-		loop {
-			// SAFETY: This is a workaround for a limitation in the borrow checker.
-			// Even though `packet` is dropped inside the loop body, it has lifetime 'a, which outlives the current function.
-			// So each loop iteration tries to borrow the same field mutably, with the a lifetime that outlives the current function.
-			// Borrow checker says no.
-			// TODO: Remove this workaround when the borrow checker can validate this.
-			let bus: &mut Bus<SerialPort, Buffer> = unsafe { &mut *(&mut self.bus as *mut _) };
-			let packet = bus.read_packet_deadline(deadline)?;
-			return Ok(packet.as_instruction());
-		}
+		let packet = self.bus.read_packet_deadline(deadline)?;
+		Ok(packet.as_instruction())
 	}
 }
 
