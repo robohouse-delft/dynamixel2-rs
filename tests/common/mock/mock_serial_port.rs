@@ -37,6 +37,7 @@ pub struct MockSerial {
 	other_device_buffers: Vec<SharedBuffer>,
 	pub read_buffer: SharedBuffer,
 	baud_rate: u32,
+	extra_timeout: Duration,
 }
 
 impl MockSerial {
@@ -46,6 +47,11 @@ impl MockSerial {
 			other_device_buffers: Vec::new(),
 			read_buffer: SharedBuffer::new(),
 			baud_rate: 56700,
+			extra_timeout: Duration::from_millis(
+				option_env!("MOCK_SERIAL_EXTRA_TIMEOUT_MS")
+					.and_then(|s| s.parse().ok())
+					.unwrap_or_default(),
+			),
 		}
 	}
 
@@ -102,7 +108,7 @@ impl SerialPort for MockSerial {
 	}
 
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant {
-		Instant::now() + timeout
+		Instant::now() + timeout + self.extra_timeout
 	}
 
 	fn is_timeout_error(error: &Self::Error) -> bool {
