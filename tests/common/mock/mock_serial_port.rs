@@ -21,7 +21,7 @@ impl SharedBuffer {
 		}
 	}
 
-	pub fn read(&self) -> Option<MutexGuard<Vec<u8>>> {
+	pub fn read<'a>(&'a self) -> Option<MutexGuard<'a, Vec<u8>>> {
 		self.buffer.try_lock().ok()
 	}
 

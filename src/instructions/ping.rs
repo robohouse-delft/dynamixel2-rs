@@ -48,7 +48,7 @@ where
 	}
 
 	/// Scan the bus for motors with a broadcast ping
-	pub fn scan(&mut self) -> Result<Scan<SerialPort, Buffer>, crate::WriteError<SerialPort::Error>> {
+	pub fn scan<'a>(&'a mut self) -> Result<Scan<'a, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::PING, 0, |_| Ok(()))?;
 		Ok(Scan { client: self })
 	}

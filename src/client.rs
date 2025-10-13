@@ -179,7 +179,7 @@ where
 	}
 
 	/// Read a raw status response from the bus with the given deadline.
-	pub fn read_status_response_timeout(&mut self, timeout: Duration) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
+	pub fn read_status_response_timeout<'a>(&'a mut self, timeout: Duration) -> Result<StatusPacket<'a>, ReadError<SerialPort::Error>> {
 		let deadline = self.serial_port().make_deadline(timeout);
 		let packet = self.bus.read_packet_deadline(deadline)?;
 		let status = match packet.as_status() {
@@ -200,7 +200,7 @@ where
 	/// Read a raw status response with an automatically calculated timeout.
 	///
 	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
-	pub fn read_status_response(&mut self, expected_parameters: u16) -> Result<StatusPacket, ReadError<SerialPort::Error>> {
+	pub fn read_status_response<'a>(&'a mut self, expected_parameters: u16) -> Result<StatusPacket<'a>, ReadError<SerialPort::Error>> {
 		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = crate::bus::StatusPacket::message_len(expected_parameters as usize) as u32;
 		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
