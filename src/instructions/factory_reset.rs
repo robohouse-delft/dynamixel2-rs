@@ -31,7 +31,7 @@ where
 			Ok(())
 		})
 		.await?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast( motor_id).await?)
 	}
 
 	/// Reset the settings of all connected motors to the factory defaults.

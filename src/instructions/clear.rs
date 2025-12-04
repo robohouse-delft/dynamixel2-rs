@@ -34,7 +34,7 @@ where
 			clear_revolution_count_parameters,
 		)
 		.await?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast(motor_id).await?)
 	}
 
 	/// Clear the revolution counter of all connected motors.
@@ -62,7 +62,7 @@ where
 	pub async fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)
 			.await?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast( motor_id).await?)
 	}
 
 	/// Try to clear the error of all motors on the bus.

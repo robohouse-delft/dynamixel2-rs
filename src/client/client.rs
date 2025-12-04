@@ -210,4 +210,19 @@ where
 		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
 		self.read_status_response_timeout(timeout).await
 	}
+
+	/// Read an empty response from the bus if the motor ID is not the broadcast ID.
+	///
+	/// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.
+	async fn read_response_if_not_broadcast(&mut self, motor_id: u8) -> Result<crate::Response<()>, ReadError<Port::Error>> {
+		if motor_id == crate::packet_id::BROADCAST {
+			Ok(crate::Response {
+				motor_id: crate::packet_id::BROADCAST,
+				alert: false,
+				data: (),
+			})
+		} else {
+			Ok(self.read_status_response(0).await?.try_into()?)
+		}
+	}
 }

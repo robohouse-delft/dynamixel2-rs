@@ -36,6 +36,9 @@ pub mod bus;
 mod common;
 pub use common::*;
 
+mod client;
+pub use client::*;
+
 #[path = "."]
 /// asynchronous dynamixel2 Bus
 pub mod asynch {
@@ -49,9 +52,6 @@ pub mod asynch {
 	pub mod instructions;
 
 	use crate::bus::asynch::Bus;
-
-	mod client;
-	pub use client::*;
 
 	mod device;
 	pub use device::*;
@@ -75,9 +75,6 @@ use serial2::SerialPort as Serial2Port;
 
 pub mod instructions;
 use crate::bus::sync::Bus;
-
-mod client;
-pub use client::*;
 
 mod device;
 pub use device::*;

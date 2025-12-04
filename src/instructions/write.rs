@@ -1,4 +1,3 @@
-use super::read_response_if_not_broadcast;
 use super::Client;
 use crate::bus::endian::write_u16_le;
 use crate::bus::Data;
@@ -22,7 +21,7 @@ where
 			Ok(())
 		})
 		.await?;
-		Ok(read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast( motor_id).await?)
 	}
 
 	/// Write an arbitrary amount of bytes to a specific motor.
@@ -36,6 +35,6 @@ where
 			Ok(())
 		})
 		.await?;
-		Ok(read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast(motor_id).await?)
 	}
 }

@@ -20,7 +20,7 @@ where
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_reboot()`] instead.
 	pub async fn reboot(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::REBOOT, 0, |_| Ok(())).await?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
+		Ok(self.read_response_if_not_broadcast( motor_id).await?)
 	}
 
 	/// Broadcast an reboot command to all connected motors to trigger a previously registered instruction.
