@@ -1,8 +1,10 @@
 //! Trait implementation using the `serial2` crate.
 
+use super::Serial2Port;
 use std::time::{Duration, Instant};
 
-impl crate::SerialPort for serial2::SerialPort {
+#[super::super::bisync]
+impl super::SerialPort for Serial2Port {
 	type Error = std::io::Error;
 	type Instant = std::time::Instant;
 
@@ -18,19 +20,30 @@ impl crate::SerialPort for serial2::SerialPort {
 	}
 
 	fn discard_input_buffer(&mut self) -> Result<(), Self::Error> {
-		serial2::SerialPort::discard_input_buffer(self)
+		Serial2Port::discard_input_buffer(self)
 	}
 
+	#[super::super::only_sync]
 	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
 		let timeout = deadline
 			.checked_duration_since(Instant::now())
 			.ok_or(std::io::ErrorKind::TimedOut)?;
 		self.set_read_timeout(timeout)?;
-		serial2::SerialPort::read(self, buffer)
+		Serial2Port::read(self, buffer)
 	}
 
-	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
-		serial2::SerialPort::write_all(self, buffer)
+	#[super::super::only_async]
+	async fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
+		let timeout = deadline
+			.checked_duration_since(Instant::now())
+			.ok_or(std::io::ErrorKind::TimedOut)?;
+		tokio::time::timeout(timeout, Serial2Port::read(self, buffer))
+			.await
+			.map_err(|_| std::io::ErrorKind::TimedOut)?
+	}
+
+	async fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
+		Serial2Port::write_all(self, buffer).await
 	}
 
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant {

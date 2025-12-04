@@ -1,5 +1,6 @@
-use super::{instruction_id, packet_id};
-use crate::{Client, Response, TransferError, WriteError};
+use super::Client;
+use crate::{instruction_id, packet_id};
+use crate::{Response, TransferError, WriteError};
 
 /// The parameters for the CLEAR command to clear the revolution counter.
 const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
@@ -9,9 +10,10 @@ const CLEAR_REVOLUTION_COUNT: [u8; 5] = [0x01, 0x44, 0x58, 0x4C, 0x22];
 /// This is only supported on some motors.
 const CLEAR_ERROR: [u8; 5] = [0x01, 0x45, 0x52, 0x43, 0x4C];
 
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Clear the multi-revolution counter of a motor.
@@ -24,14 +26,15 @@ where
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_clear_revolution_counter()`] instead.
-	pub fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
+	pub async fn clear_revolution_counter(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(
 			motor_id,
 			instruction_id::CLEAR,
 			CLEAR_REVOLUTION_COUNT.len(),
 			clear_revolution_count_parameters,
-		)?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
+		)
+		.await?;
+		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
 	}
 
 	/// Clear the revolution counter of all connected motors.
@@ -39,13 +42,14 @@ where
 	/// This will reset the "present position" register to a value between 0 and a whole revolution.
 	/// It is not possible to clear the mutli-revolution counter of a motor while it is moving.
 	/// Doing so will cause the motor to return an error, and the revolution counter will not be reset.
-	pub fn broadcast_clear_revolution_counter(&mut self) -> Result<(), WriteError<SerialPort::Error>> {
+	pub async fn broadcast_clear_revolution_counter(&mut self) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(
 			packet_id::BROADCAST,
 			instruction_id::CLEAR,
 			CLEAR_REVOLUTION_COUNT.len(),
 			clear_revolution_count_parameters,
-		)?;
+		)
+		.await?;
 		Ok(())
 	}
 
@@ -55,9 +59,10 @@ where
 	/// If the error cannot be cleared, the function returns a [`MotorError`](crate::MotorError) with error code `0x01`.
 	///
 	/// This instruction is currently only implemented on the Dynamixel Y series.
-	pub fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
-		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
+	pub async fn clear_error(&mut self, motor_id: u8) -> Result<Response<()>, TransferError<SerialPort::Error>> {
+		self.write_instruction(motor_id, instruction_id::CLEAR, CLEAR_ERROR.len(), clear_error_parameters)
+			.await?;
+		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
 	}
 
 	/// Try to clear the error of all motors on the bus.
@@ -66,13 +71,14 @@ where
 	/// and if the instruction is supported by the motor.
 	///
 	/// This instruction is currently only implemented on the Dynamixel Y series.
-	pub fn broadcast_clear_error(&mut self) -> Result<(), WriteError<SerialPort::Error>> {
+	pub async fn broadcast_clear_error(&mut self) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(
 			packet_id::BROADCAST,
 			instruction_id::CLEAR,
 			CLEAR_ERROR.len(),
 			clear_error_parameters,
-		)?;
+		)
+		.await?;
 		Ok(())
 	}
 }

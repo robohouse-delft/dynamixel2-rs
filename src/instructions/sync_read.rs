@@ -1,14 +1,18 @@
+#![allow(unused_imports)]
+
 use core::marker::PhantomData;
 
-use super::{instruction_id, packet_id};
-use crate::bus::data::Data;
-use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
-use crate::bus::endian::write_u16_le;
-use crate::{Client, ReadError, Response, WriteError};
+use super::Client;
+use crate::bus_types::data::Data;
+use crate::bus_types::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
+use crate::bus_types::endian::write_u16_le;
+use crate::{instruction_id, packet_id};
+use crate::{ReadError, Response, WriteError};
 
+#[super::only_sync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously read a number of bytes from multiple motors in one command.
@@ -86,13 +90,14 @@ where
 	}
 }
 
+#[super::only_sync]
 macro_rules! make_sync_read_bytes_struct {
 	($($DefaultSerialPort:ty)?) => {
 		/// A sync read operation that returns unparsed bytes.
 		pub struct SyncReadBytes<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
 			T: ?Sized,
-			SerialPort: crate::SerialPort,
+			SerialPort: super::SerialPort,
 			Buffer: AsRef<[u8]> + AsMut<[u8]>,
 		{
 			client: &'a mut Client<SerialPort, Buffer>,
@@ -105,14 +110,17 @@ macro_rules! make_sync_read_bytes_struct {
 }
 
 #[cfg(feature = "serial2")]
+#[super::only_sync]
 make_sync_read_bytes_struct!(serial2::SerialPort);
 
 #[cfg(not(feature = "serial2"))]
+#[super::only_sync]
 make_sync_read_bytes_struct!();
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort + core::fmt::Debug,
+	SerialPort: super::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -126,10 +134,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Drop for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
 	T: ?Sized,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn drop(&mut self) {
@@ -139,10 +148,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Iterator for SyncReadBytes<'_, T, SerialPort, Buffer>
 where
 	T: for<'b> From<&'b [u8]>,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	type Item = Result<Response<T>, crate::error::ReadError<SerialPort::Error>>;
@@ -156,10 +166,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> SyncReadBytes<'_, T, SerialPort, Buffer>
 where
 	T: ?Sized,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Get the number of responses that should still be received.
@@ -215,13 +226,14 @@ where
 		Ok(decode_status_packet_bytes_borrow(response)?)
 	}
 }
+#[super::only_sync]
 macro_rules! make_sync_read_struct {
 	($($DefaultSerialPort:ty)?) => {
 		/// A sync read operation that returns parsed values.
 		pub struct SyncRead<'a, T, SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
 			T: Data,
-			SerialPort: crate::SerialPort,
+			SerialPort: super::SerialPort,
 			Buffer: AsRef<[u8]> + AsMut<[u8]>,
 		{
 			client: &'a mut Client<SerialPort, Buffer>,
@@ -233,15 +245,18 @@ macro_rules! make_sync_read_struct {
 }
 
 #[cfg(feature = "serial2")]
+#[super::only_sync]
 make_sync_read_struct!(serial2::SerialPort);
 
 #[cfg(not(feature = "serial2"))]
+#[super::only_sync]
 make_sync_read_struct!();
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> core::fmt::Debug for SyncRead<'_, T, SerialPort, Buffer>
 where
 	T: Data,
-	SerialPort: crate::SerialPort + core::fmt::Debug,
+	SerialPort: super::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -255,10 +270,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Drop for SyncRead<'_, T, SerialPort, Buffer>
 where
 	T: Data,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn drop(&mut self) {
@@ -266,10 +282,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Iterator for SyncRead<'_, T, SerialPort, Buffer>
 where
 	T: Data,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	type Item = Result<Response<T>, crate::error::ReadError<SerialPort::Error>>;
@@ -283,10 +300,11 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> SyncRead<'_, T, SerialPort, Buffer>
 where
 	T: Data,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Get the number of responses that should still be received.

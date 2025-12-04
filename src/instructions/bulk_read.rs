@@ -1,11 +1,7 @@
-use super::{instruction_id, packet_id, BulkReadData};
-use crate::bus::data::{decode_status_packet_bytes, decode_status_packet_bytes_borrow};
-use crate::bus::endian::{write_u16_le, write_u8_le};
-use crate::{Client, ReadError, Response, WriteError};
-
-impl<SerialPort, Buffer> Client<SerialPort, Buffer>
+#[super::only_sync]
+impl<SerialPort, Buffer> super::Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously read arbitrary data ranges from multiple motors.
@@ -17,8 +13,8 @@ where
 	/// This function panics if the same motor ID is used for more than one read.
 	pub fn bulk_read_bytes<'a, T>(
 		&'a mut self,
-		reads: &'a [BulkReadData],
-	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>>
+		reads: &'a [crate::BulkReadData],
+	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>>
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
@@ -41,8 +37,8 @@ where
 	/// This function panics if the same motor ID is used for more than one read.
 	pub fn bulk_read_bytes_borrow<'a, T>(
 		&'a mut self,
-		reads: &'a [BulkReadData],
-	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, WriteError<SerialPort::Error>>
+		reads: &'a [crate::BulkReadData],
+	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -61,12 +57,13 @@ where
 ///
 /// # Panic
 /// Panics if multiple read operation use the same motor ID.
+#[super::only_sync]
 fn write_bulk_read_instruction<SerialPort, Buffer>(
-	client: &mut Client<SerialPort, Buffer>,
-	reads: &[BulkReadData],
-) -> Result<(), WriteError<SerialPort::Error>>
+	client: &mut super::Client<SerialPort, Buffer>,
+	reads: &[crate::BulkReadData],
+) -> Result<(), crate::WriteError<SerialPort::Error>>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	for i in 0..reads.len() {
@@ -79,32 +76,39 @@ where
 			}
 		}
 	}
-	client.write_instruction(packet_id::BROADCAST, instruction_id::BULK_READ, 5 * reads.len(), |buffer| {
-		for (i, read) in reads.iter().enumerate() {
-			let buffer = &mut buffer[i * 5..][..5];
-			write_u8_le(&mut buffer[0..], read.motor_id);
-			write_u16_le(&mut buffer[1..], read.address);
-			write_u16_le(&mut buffer[3..], read.count);
-		}
-		Ok(())
-	})
+	client.write_instruction(
+		crate::packet_id::BROADCAST,
+		crate::instruction_id::BULK_READ,
+		5 * reads.len(),
+		|buffer| {
+			for (i, read) in reads.iter().enumerate() {
+				let buffer = &mut buffer[i * 5..][..5];
+				crate::endian::write_u8_le(&mut buffer[0..], read.motor_id);
+				crate::endian::write_u16_le(&mut buffer[1..], read.address);
+				crate::endian::write_u16_le(&mut buffer[3..], read.count);
+			}
+			Ok(())
+		},
+	)
 }
 
 /// A bulk read operation that returns unparsed bytes.
+#[super::only_sync]
 pub struct BulkReadBytes<'a, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	client: &'a mut Client<SerialPort, Buffer>,
-	bulk_read_data: &'a [BulkReadData],
+	client: &'a mut super::Client<SerialPort, Buffer>,
+	bulk_read_data: &'a [crate::BulkReadData],
 	index: usize,
 	data: core::marker::PhantomData<fn() -> T>,
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> core::fmt::Debug for BulkReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort + core::fmt::Debug,
+	SerialPort: super::SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -117,9 +121,10 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Drop for BulkReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn drop(&mut self) {
@@ -129,13 +134,14 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> Iterator for BulkReadBytes<'_, T, SerialPort, Buffer>
 where
 	T: for<'b> From<&'b [u8]>,
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	type Item = Result<Response<T>, crate::error::ReadError<SerialPort::Error>>;
+	type Item = Result<crate::Response<T>, crate::error::ReadError<SerialPort::Error>>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		self.read_next()
@@ -146,9 +152,10 @@ where
 	}
 }
 
+#[super::only_sync]
 impl<T, SerialPort, Buffer> BulkReadBytes<'_, T, SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Get the number of responses that should still be received.
@@ -157,30 +164,30 @@ where
 	}
 
 	/// Read the next motor reply.
-	pub fn read_next(&mut self) -> Option<Result<Response<T>, ReadError<SerialPort::Error>>>
+	pub fn read_next(&mut self) -> Option<Result<crate::Response<T>, crate::ReadError<SerialPort::Error>>>
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
-		let BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let crate::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response(motor_id, count))
 	}
 
 	/// Read the next motor reply, borrowing the data from the internal read buffer.
-	pub fn read_next_borrow(&mut self) -> Option<Result<Response<&T>, ReadError<SerialPort::Error>>>
+	pub fn read_next_borrow(&mut self) -> Option<Result<crate::Response<&T>, crate::ReadError<SerialPort::Error>>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
-		let BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let crate::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response_borrow(motor_id, count))
 	}
 
-	fn pop_bulk_read_data(&mut self) -> Option<BulkReadData> {
+	fn pop_bulk_read_data(&mut self) -> Option<crate::BulkReadData> {
 		let data = self.bulk_read_data.get(self.index)?;
 		self.index += 1;
 		Some(*data)
 	}
 
-	fn next_response(&mut self, motor_id: u8, count: u16) -> Result<Response<T>, ReadError<SerialPort::Error>>
+	fn next_response(&mut self, motor_id: u8, count: u16) -> Result<crate::Response<T>, crate::ReadError<SerialPort::Error>>
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
@@ -190,10 +197,10 @@ where
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
 
-		Ok(decode_status_packet_bytes(response)?)
+		Ok(crate::data::decode_status_packet_bytes(response)?)
 	}
 
-	fn next_response_borrow(&mut self, motor_id: u8, count: u16) -> Result<Response<&T>, ReadError<SerialPort::Error>>
+	fn next_response_borrow(&mut self, motor_id: u8, count: u16) -> Result<crate::Response<&T>, crate::ReadError<SerialPort::Error>>
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
@@ -202,6 +209,6 @@ where
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
-		Ok(decode_status_packet_bytes_borrow(response)?)
+		Ok(crate::data::decode_status_packet_bytes_borrow(response)?)
 	}
 }

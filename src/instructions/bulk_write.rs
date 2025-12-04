@@ -1,10 +1,12 @@
-use super::{instruction_id, packet_id, BulkWriteData};
-use crate::bus::endian::{write_u16_le, write_u8_le};
-use crate::{Client, WriteError};
+use super::Client;
+use crate::bus_types::endian::{write_u16_le, write_u8_le};
+use crate::WriteError;
+use crate::{instruction_id, packet_id, BulkWriteData};
 
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously write arbitrary data ranges to multiple motors.
@@ -45,7 +47,7 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<SerialPort::Error>>
+	pub async fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		&'a I: IntoIterator,
 		<&'a I as IntoIterator>::IntoIter: Clone,
@@ -84,6 +86,7 @@ where
 			}
 			Ok(())
 		})
+		.await
 	}
 }
 

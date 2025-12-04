@@ -1,23 +1,11 @@
-use super::{instruction_id, packet_id};
-use crate::{Client, Response, TransferError, WriteError};
+use super::Client;
+use crate::{instruction_id, packet_id};
+use crate::{FactoryResetKind, Response, TransferError, WriteError};
 
-/// The kind of factory reset to perform.
-#[repr(u8)]
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum FactoryResetKind {
-	/// Reset all settings, including the motor ID and baud rate.
-	ResetAll = 0xFF,
-
-	/// Reset all settings except for the motor ID.
-	KeepId = 0x01,
-
-	/// Reset all settings except for the motor ID and baud rate.
-	KeepIdAndBaudRate = 0x02,
-}
-
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Reset the settings of a motor to the factory defaults.
@@ -37,12 +25,13 @@ where
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
 	/// Or use the ID Inspection Tool in the Dynamixel Wizard 2.0
-	pub fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Response<()>, TransferError<SerialPort::Error>> {
+	pub async fn factory_reset(&mut self, motor_id: u8, kind: FactoryResetKind) -> Result<Response<()>, TransferError<SerialPort::Error>> {
 		self.write_instruction(motor_id, instruction_id::FACTORY_RESET, 1, |buffer| {
 			buffer[0] = kind as u8;
 			Ok(())
-		})?;
-		Ok(super::read_response_if_not_broadcast(self, motor_id)?)
+		})
+		.await?;
+		Ok(super::read_response_if_not_broadcast(self, motor_id).await?)
 	}
 
 	/// Reset the settings of all connected motors to the factory defaults.
@@ -56,11 +45,12 @@ where
 	/// which would cause multiple motors on the bus to have the same ID.
 	/// At that point, communication with those motors is not possible anymore.
 	/// The only way to restore communication is to physically disconnect all but one motor at a time and re-assign unique IDs.
-	pub fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), WriteError<SerialPort::Error>> {
+	pub async fn broadcast_factory_reset(&mut self, kind: FactoryResetKind) -> Result<(), WriteError<SerialPort::Error>> {
 		self.write_instruction(packet_id::BROADCAST, instruction_id::FACTORY_RESET, 1, |buffer| {
 			buffer[0] = kind as u8;
 			Ok(())
-		})?;
+		})
+		.await?;
 		Ok(())
 	}
 }

@@ -1,20 +1,24 @@
-use super::instruction_id;
-use crate::bus::data::{decode_status_packet, decode_status_packet_bytes};
-use crate::bus::endian::write_u16_le;
-use crate::bus::{Data, StatusPacket};
-use crate::{Client, Response, TransferError};
+use super::Client;
+use crate::bus_types::data::{decode_status_packet, decode_status_packet_bytes};
+use crate::bus_types::endian::write_u16_le;
+use crate::bus_types::{Data, StatusPacket};
+use crate::instruction_id;
+use crate::{Response, TransferError};
 
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
-	fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError<SerialPort::Error>> {
-		let response = self.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
-			write_u16_le(&mut buffer[0..], address);
-			write_u16_le(&mut buffer[2..], count);
-			Ok(())
-		})?;
+	async fn read_raw(&mut self, motor_id: u8, address: u16, count: u16) -> Result<StatusPacket<'_>, TransferError<SerialPort::Error>> {
+		let response = self
+			.transfer_single(motor_id, instruction_id::READ, 4, count, |buffer| {
+				write_u16_le(&mut buffer[0..], address);
+				write_u16_le(&mut buffer[2..], count);
+				Ok(())
+			})
+			.await?;
 		crate::error::InvalidParameterCount::check(response.parameters().len(), count.into()).map_err(crate::ReadError::from)?;
 		Ok(response)
 	}
@@ -23,11 +27,16 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read_bytes<'a, T>(&'a mut self, motor_id: u8, address: u16, count: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
+	pub async fn read_bytes<'a, T>(
+		&'a mut self,
+		motor_id: u8,
+		address: u16,
+		count: u16,
+	) -> Result<Response<T>, TransferError<SerialPort::Error>>
 	where
 		T: From<&'a [u8]>,
 	{
-		let status = self.read_raw(motor_id, address, count)?;
+		let status = self.read_raw(motor_id, address, count).await?;
 		Ok(decode_status_packet_bytes(status)?)
 	}
 
@@ -37,11 +46,11 @@ where
 	///
 	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
-	pub fn read<T>(&mut self, motor_id: u8, address: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
+	pub async fn read<T>(&mut self, motor_id: u8, address: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
 	where
 		T: Data,
 	{
-		let status = self.read_raw(motor_id, address, T::ENCODED_SIZE)?;
+		let status = self.read_raw(motor_id, address, T::ENCODED_SIZE).await?;
 		Ok(decode_status_packet(status)?)
 	}
 }

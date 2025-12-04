@@ -1,4 +1,4 @@
-use crate::bus::StatusPacket;
+use crate::bus_types::StatusPacket;
 
 /// A response from a motor.
 ///
