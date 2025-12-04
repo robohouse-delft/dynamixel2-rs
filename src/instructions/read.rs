@@ -1,7 +1,7 @@
 use super::Client;
-use crate::bus_types::data::{decode_status_packet, decode_status_packet_bytes};
-use crate::bus_types::endian::write_u16_le;
-use crate::bus_types::{Data, StatusPacket};
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes};
+use crate::bus::endian::write_u16_le;
+use crate::bus::{Data, StatusPacket};
 use crate::instruction_id;
 use crate::{Response, TransferError};
 

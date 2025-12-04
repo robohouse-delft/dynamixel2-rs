@@ -3,9 +3,9 @@
 use core::marker::PhantomData;
 
 use super::Client;
-use crate::bus_types::data::Data;
-use crate::bus_types::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
-use crate::bus_types::endian::write_u16_le;
+use crate::bus::data::Data;
+use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
+use crate::bus::endian::write_u16_le;
 use crate::{instruction_id, packet_id};
 use crate::{ReadError, Response, WriteError};
 

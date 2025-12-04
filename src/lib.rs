@@ -31,8 +31,7 @@ mod log;
 
 pub mod checksum;
 
-pub(crate) mod bus_types;
-pub use bus_types::*;
+pub mod bus;
 
 mod common;
 pub use common::*;
@@ -49,6 +48,8 @@ pub mod asynch {
 	use serial2_tokio::SerialPort as Serial2Port;
 	pub mod instructions;
 
+	use crate::bus::asynch::Bus;
+
 	mod client;
 	pub use client::*;
 
@@ -63,8 +64,6 @@ pub mod asynch {
 
 	// mod response;
 	// pub use response::*;
-
-	pub mod bus;
 }
 use bisync::synchronous::*;
 
@@ -75,6 +74,7 @@ pub use serial2;
 use serial2::SerialPort as Serial2Port;
 
 pub mod instructions;
+use crate::bus::sync::Bus;
 
 mod client;
 pub use client::*;
@@ -90,5 +90,3 @@ pub use error::*;
 
 mod response;
 pub use response::*;
-
-pub mod bus;

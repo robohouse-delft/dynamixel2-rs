@@ -1,4 +1,4 @@
-use crate::bus_types::StatusPacket;
+use crate::bus::StatusPacket;
 
 use crate::Response;
 use core::mem::MaybeUninit;

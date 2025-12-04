@@ -1,4 +1,6 @@
-use super::bus::Bus;
+use super::Bus;
+use super::Serial2Port;
+use super::SerialPort;
 use crate::{Instruction, ReadError, WriteError};
 use core::time::Duration;
 
@@ -12,25 +14,25 @@ macro_rules! make_device_struct {
 		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
 		/// and to `&'static mut [u8]` otherwise.
 		/// See the [`crate::static_buffer!()`] macro for a way to safely create a mutable static buffer.
-		pub struct Device<SerialPort $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
+		pub struct Device<Port $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
 		where
-			SerialPort: super::SerialPort,
+			Port: SerialPort,
 			Buffer: AsRef<[u8]> + AsMut<[u8]>,
 		{
-			bus: Bus<SerialPort, Buffer>,
+			bus: Bus<Port, Buffer>,
 		}
 	};
 }
 
 #[cfg(feature = "serial2")]
-make_device_struct!(super::Serial2Port);
+make_device_struct!(Serial2Port);
 
 #[cfg(not(feature = "serial2"))]
 make_device_struct!();
 
-impl<SerialPort, Buffer> core::fmt::Debug for Device<SerialPort, Buffer>
+impl<Port, Buffer> core::fmt::Debug for Device<Port, Buffer>
 where
-	SerialPort: super::SerialPort + core::fmt::Debug,
+	Port: SerialPort + core::fmt::Debug,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -42,20 +44,20 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Device<super::Serial2Port, Vec<u8>> {
+impl Device<Serial2Port, Vec<u8>> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
-		let serial_port = super::Serial2Port::open(path, baud_rate)?;
+		let serial_port = Serial2Port::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
 		Ok(Self { bus })
 	}
 }
 
 #[cfg(feature = "serial2")]
-impl<Buffer> Device<super::Serial2Port, Buffer>
+impl<Buffer> Device<Serial2Port, Buffer>
 where
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -68,16 +70,16 @@ where
 		read_buffer: Buffer,
 		write_buffer: Buffer,
 	) -> std::io::Result<Self> {
-		let serial_port = super::Serial2Port::open(path, baud_rate)?;
+		let serial_port = Serial2Port::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
 		Ok(Self { bus })
 	}
 }
 
 #[cfg(feature = "alloc")]
-impl<SerialPort> Device<SerialPort, alloc::vec::Vec<u8>>
+impl<Port> Device<Port, alloc::vec::Vec<u8>>
 where
-	SerialPort: super::SerialPort,
+	Port: SerialPort,
 {
 	/// Create a new device for an open serial port.
 	///
@@ -86,20 +88,20 @@ where
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::with_buffers()`] if you want to use a custom buffers.
-	pub fn new(serial_port: SerialPort) -> Result<Self, SerialPort::Error> {
+	pub fn new(serial_port: Port) -> Result<Self, Port::Error> {
 		let bus = Bus::with_buffers(serial_port, alloc::vec![0; 128], alloc::vec![0; 128])?;
 		Ok(Self { bus })
 	}
 }
 
 #[super::bisync]
-impl<SerialPort, Buffer> Device<SerialPort, Buffer>
+impl<Port, Buffer> Device<Port, Buffer>
 where
-	SerialPort: super::SerialPort,
+	Port: SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Create a new device using pre-allocated buffers.
-	pub fn with_buffers(serial_port: SerialPort, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, SerialPort::Error> {
+	pub fn with_buffers(serial_port: Port, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, Port::Error> {
 		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
 		Ok(Device { bus })
 	}
@@ -110,7 +112,7 @@ where
 	/// and may disrupt the communication with the motors.
 	/// In general, it should be safe to read and write to the device manually in between instructions,
 	/// if the response from the motors has already been received.
-	pub fn serial_port(&self) -> &SerialPort {
+	pub fn serial_port(&self) -> &Port {
 		&self.bus.serial_port
 	}
 
@@ -118,7 +120,7 @@ where
 	///
 	/// This discards any data in internal the read buffer of the device object.
 	/// This is normally not a problem, since all data in the read buffer is also discarded when transmitting a new command.
-	pub fn into_serial_port(self) -> SerialPort {
+	pub fn into_serial_port(self) -> Port {
 		self.bus.serial_port
 	}
 
@@ -128,7 +130,7 @@ where
 	}
 
 	/// Set the baud rate of the underlying serial port.
-	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), SerialPort::Error> {
+	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Port::Error> {
 		self.bus.set_baud_rate(baud_rate)?;
 		Ok(())
 	}
@@ -136,7 +138,7 @@ where
 	/// Read a single [`Instruction`] with borrowed data
 	///
 	/// Use [`Device::read_owned`] to received owned data
-	pub async fn read(&mut self, timeout: Duration) -> Result<Instruction<&[u8]>, ReadError<SerialPort::Error>> {
+	pub async fn read(&mut self, timeout: Duration) -> Result<Instruction<&[u8]>, ReadError<Port::Error>> {
 		let packet = self.read_raw_instruction_timeout(timeout).await?;
 		let packet = packet.try_into()?;
 		Ok(packet)
@@ -144,7 +146,7 @@ where
 
 	/// Read a single [`Instruction`] with borrowed data
 	#[cfg(any(feature = "alloc", feature = "std"))]
-	pub async fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<alloc::vec::Vec<u8>>, ReadError<SerialPort::Error>> {
+	pub async fn read_owned(&mut self, timeout: Duration) -> Result<Instruction<alloc::vec::Vec<u8>>, ReadError<Port::Error>> {
 		let packet = self.read_raw_instruction_timeout(timeout).await?;
 		let packet = packet.try_into()?;
 		Ok(packet)
@@ -157,7 +159,7 @@ where
 		error: u8,
 		parameter_count: usize,
 		encode_parameters: F,
-	) -> Result<(), WriteError<SerialPort::Error>>
+	) -> Result<(), WriteError<Port::Error>>
 	where
 		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
@@ -165,12 +167,12 @@ where
 	}
 
 	/// Write an empty status message with an error code.
-	pub async fn write_status_error(&mut self, packet_id: u8, error: u8) -> Result<(), WriteError<SerialPort::Error>> {
+	pub async fn write_status_error(&mut self, packet_id: u8, error: u8) -> Result<(), WriteError<Port::Error>> {
 		self.write_status(packet_id, error, 0, |_| Ok(())).await
 	}
 
 	/// Write an empty status message.
-	pub async fn write_status_ok(&mut self, packet_id: u8) -> Result<(), WriteError<SerialPort::Error>> {
+	pub async fn write_status_ok(&mut self, packet_id: u8) -> Result<(), WriteError<Port::Error>> {
 		self.write_status(packet_id, 0, 0, |_| Ok(())).await
 	}
 
@@ -178,8 +180,8 @@ where
 	pub async fn read_raw_instruction_timeout(
 		&mut self,
 		timeout: Duration,
-	) -> Result<crate::bus_types::InstructionPacket<'_>, ReadError<SerialPort::Error>> {
-		let deadline = SerialPort::make_deadline(self.serial_port(), timeout);
+	) -> Result<crate::bus::InstructionPacket<'_>, ReadError<Port::Error>> {
+		let deadline = Port::make_deadline(self.serial_port(), timeout);
 		let packet = self.bus.read_packet_deadline(deadline).await?;
 		Ok(packet.as_instruction())
 	}

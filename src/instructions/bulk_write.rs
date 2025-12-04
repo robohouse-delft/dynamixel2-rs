@@ -1,5 +1,5 @@
 use super::Client;
-use crate::bus_types::endian::{write_u16_le, write_u8_le};
+use crate::bus::endian::{write_u16_le, write_u8_le};
 use crate::WriteError;
 use crate::{instruction_id, packet_id, BulkWriteData};
 

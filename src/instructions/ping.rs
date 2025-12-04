@@ -78,7 +78,7 @@ where
 	}
 
 	fn next_response(&mut self) -> Result<Response<Ping>, crate::ReadError<SerialPort::Error>> {
-		let response_time = crate::bus_types::message_transfer_time(14, self.client.baud_rate());
+		let response_time = crate::bus::message_transfer_time(14, self.client.baud_rate());
 		let timeout = response_time * 253 + core::time::Duration::from_millis(34);
 
 		let response = self.client.read_status_response_timeout(timeout)?;

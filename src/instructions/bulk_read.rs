@@ -83,9 +83,9 @@ where
 		|buffer| {
 			for (i, read) in reads.iter().enumerate() {
 				let buffer = &mut buffer[i * 5..][..5];
-				crate::endian::write_u8_le(&mut buffer[0..], read.motor_id);
-				crate::endian::write_u16_le(&mut buffer[1..], read.address);
-				crate::endian::write_u16_le(&mut buffer[3..], read.count);
+				crate::bus::endian::write_u8_le(&mut buffer[0..], read.motor_id);
+				crate::bus::endian::write_u16_le(&mut buffer[1..], read.address);
+				crate::bus::endian::write_u16_le(&mut buffer[3..], read.count);
 			}
 			Ok(())
 		},
@@ -197,7 +197,7 @@ where
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
 
-		Ok(crate::data::decode_status_packet_bytes(response)?)
+		Ok(crate::bus::data::decode_status_packet_bytes(response)?)
 	}
 
 	fn next_response_borrow(&mut self, motor_id: u8, count: u16) -> Result<crate::Response<&T>, crate::ReadError<SerialPort::Error>>
@@ -209,6 +209,6 @@ where
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
 		crate::InvalidParameterCount::check(response.parameters().len(), count.into())?;
-		Ok(crate::data::decode_status_packet_bytes_borrow(response)?)
+		Ok(crate::bus::data::decode_status_packet_bytes_borrow(response)?)
 	}
 }

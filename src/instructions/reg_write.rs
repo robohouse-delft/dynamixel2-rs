@@ -1,7 +1,7 @@
 use super::read_response_if_not_broadcast;
 use super::Client;
-use crate::bus_types::endian::write_u16_le;
-use crate::bus_types::Data;
+use crate::bus::endian::write_u16_le;
+use crate::bus::Data;
 use crate::instruction_id;
 use crate::{Response, TransferError};
 

@@ -1,4 +1,4 @@
-use crate::{bus_types::StatusPacket, Response};
+use crate::{bus::StatusPacket, Response};
 
 /// Raw instructions IDs.
 #[rustfmt::skip]
@@ -118,15 +118,15 @@ impl<'a> TryFrom<StatusPacket<'a>> for Response<Ping> {
 			motor_id: status_packet.packet_id(),
 			alert: status_packet.alert(),
 			data: Ping {
-				model: crate::bus_types::endian::read_u16_le(&parameters[0..]),
-				firmware: crate::bus_types::endian::read_u8_le(&parameters[2..]),
+				model: crate::bus::endian::read_u16_le(&parameters[0..]),
+				firmware: crate::bus::endian::read_u8_le(&parameters[2..]),
 			},
 		})
 	}
 }
 
-use crate::bus_types::endian::read_u16_le;
-use crate::bus_types::InstructionPacket;
+use crate::bus::endian::read_u16_le;
+use crate::bus::InstructionPacket;
 use crate::InvalidParameterCount;
 
 #[cfg(feature = "alloc")]

@@ -1,5 +1,5 @@
 use super::Client;
-use crate::bus_types::endian::write_u16_le;
+use crate::bus::endian::write_u16_le;
 use crate::WriteError;
 use crate::{instruction_id, packet_id, SyncWriteData};
 
@@ -80,7 +80,7 @@ where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: ExactSizeIterator,
 		Data: AsRef<SyncWriteData<T>>,
-		T: crate::bus_types::Data,
+		T: crate::bus::Data,
 	{
 		let data = data.into_iter();
 		let count = T::ENCODED_SIZE;
