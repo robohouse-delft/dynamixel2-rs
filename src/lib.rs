@@ -21,6 +21,7 @@
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
+#![allow(clippy::duplicate_mod)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "alloc")]
@@ -49,7 +50,6 @@ pub mod asynch {
 	pub use serial2_tokio;
 	#[cfg(feature = "serial2-tokio")]
 	use serial2_tokio::SerialPort as Serial2Port;
-	pub mod instructions;
 
 	use crate::bus::asynch::Bus;
 
@@ -73,7 +73,6 @@ pub use serial2;
 #[cfg(feature = "serial2")]
 use serial2::SerialPort as Serial2Port;
 
-pub mod instructions;
 use crate::bus::sync::Bus;
 
 mod device;

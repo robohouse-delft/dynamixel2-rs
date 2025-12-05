@@ -1,6 +1,4 @@
 //! Types and functions for specific instructions.
-use crate::error::ReadError;
-
 use super::{bisync, client::Client, only_sync, SerialPort};
 
 mod action;

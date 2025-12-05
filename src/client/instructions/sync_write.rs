@@ -1,7 +1,8 @@
 use super::Client;
 use crate::bus::endian::write_u16_le;
+use crate::bus::{instruction_id, packet_id};
+use crate::SyncWriteData;
 use crate::WriteError;
-use crate::{instruction_id, packet_id, SyncWriteData};
 
 #[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>

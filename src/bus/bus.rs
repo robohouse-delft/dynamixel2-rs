@@ -83,7 +83,7 @@ where
 		F: FnOnce(&mut [u8]) -> Result<(), crate::error::BufferTooSmallError>,
 	{
 		crate::error::BufferTooSmallError::check(StatusPacket::message_len(parameter_count), self.write_buffer.as_ref().len())?;
-		self.write_packet(packet_id, crate::instruction_id::STATUS, parameter_count + 1, |buffer| {
+		self.write_packet(packet_id, crate::bus::instruction_id::STATUS, parameter_count + 1, |buffer| {
 			buffer[0] = error;
 			encode_parameters(&mut buffer[1..])
 		})
@@ -214,7 +214,7 @@ where
 		let packet = Packet { data };
 
 		// Ensure that status packets have an error field (included in parameter_count here).
-		if packet.instruction_id() == crate::instruction_id::STATUS && parameter_count < 1 {
+		if packet.instruction_id() == crate::bus::instruction_id::STATUS && parameter_count < 1 {
 			return Err(crate::InvalidMessage::InvalidParameterCount(crate::InvalidParameterCount {
 				actual: 0,
 				expected: crate::ExpectedCount::Min(1),

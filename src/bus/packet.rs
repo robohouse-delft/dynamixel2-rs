@@ -20,7 +20,7 @@ impl<'a> Packet<'a> {
 
 	/// Get the packet as a [`StatusPacket`], if it is one.
 	pub fn as_status(self) -> Option<StatusPacket<'a>> {
-		if self.instruction_id() == crate::instruction_id::STATUS {
+		if self.instruction_id() == crate::bus::instruction_id::STATUS {
 			Some(StatusPacket { packet: self })
 		} else {
 			None

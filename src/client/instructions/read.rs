@@ -1,8 +1,8 @@
 use super::Client;
 use crate::bus::data::{decode_status_packet, decode_status_packet_bytes};
 use crate::bus::endian::write_u16_le;
+use crate::bus::instruction_id;
 use crate::bus::{Data, StatusPacket};
-use crate::instruction_id;
 use crate::{Response, TransferError};
 
 #[super::bisync]

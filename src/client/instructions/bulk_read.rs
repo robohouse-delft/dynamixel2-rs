@@ -77,8 +77,8 @@ where
 		}
 	}
 	client.write_instruction(
-		crate::packet_id::BROADCAST,
-		crate::instruction_id::BULK_READ,
+		crate::bus::packet_id::BROADCAST,
+		crate::bus::instruction_id::BULK_READ,
 		5 * reads.len(),
 		|buffer| {
 			for (i, read) in reads.iter().enumerate() {

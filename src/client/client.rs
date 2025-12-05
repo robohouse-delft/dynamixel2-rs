@@ -1,7 +1,7 @@
 use super::Bus;
 use super::Serial2Port;
 use super::SerialPort;
-use crate::instruction_id;
+use crate::bus::instruction_id;
 use crate::{bus::StatusPacket, ReadError, TransferError, WriteError};
 use core::time::Duration;
 
@@ -214,10 +214,10 @@ where
 	/// Read an empty response from the bus if the motor ID is not the broadcast ID.
 	///
 	/// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.
-	async fn read_response_if_not_broadcast(&mut self, motor_id: u8) -> Result<crate::Response<()>, ReadError<Port::Error>> {
-		if motor_id == crate::packet_id::BROADCAST {
+	pub(crate) async fn read_response_if_not_broadcast(&mut self, motor_id: u8) -> Result<crate::Response<()>, ReadError<Port::Error>> {
+		if motor_id == crate::bus::packet_id::BROADCAST {
 			Ok(crate::Response {
-				motor_id: crate::packet_id::BROADCAST,
+				motor_id: crate::bus::packet_id::BROADCAST,
 				alert: false,
 				data: (),
 			})

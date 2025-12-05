@@ -1,7 +1,7 @@
 use super::Client;
 use crate::bus::endian::write_u16_le;
+use crate::bus::instruction_id;
 use crate::bus::Data;
-use crate::instruction_id;
 use crate::{Response, TransferError};
 
 #[super::bisync]
@@ -21,7 +21,7 @@ where
 			Ok(())
 		})
 		.await?;
-		Ok(self.read_response_if_not_broadcast( motor_id).await?)
+		Ok(self.read_response_if_not_broadcast(motor_id).await?)
 	}
 
 	/// Write an arbitrary amount of bytes to a specific motor.

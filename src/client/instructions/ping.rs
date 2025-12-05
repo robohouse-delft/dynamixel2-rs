@@ -1,5 +1,6 @@
 use super::Client;
-use crate::{instruction_id, Ping};
+use crate::bus::instruction_id;
+use crate::Ping;
 use crate::{Response, TransferError};
 
 #[super::bisync]
@@ -20,7 +21,7 @@ where
 	/// Scan the bus for motors with a broadcast ping
 	#[super::only_sync]
 	pub fn scan<'a>(&'a mut self) -> Result<Scan<'a, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>> {
-		self.write_instruction(crate::packet_id::BROADCAST, instruction_id::PING, 0, |_| Ok(()))?;
+		self.write_instruction(crate::bus::packet_id::BROADCAST, instruction_id::PING, 0, |_| Ok(()))?;
 		Ok(Scan { client: self })
 	}
 }

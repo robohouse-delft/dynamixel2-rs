@@ -6,7 +6,7 @@ use super::Client;
 use crate::bus::data::Data;
 use crate::bus::data::{decode_status_packet, decode_status_packet_bytes, decode_status_packet_bytes_borrow};
 use crate::bus::endian::write_u16_le;
-use crate::{instruction_id, packet_id};
+use crate::bus::{instruction_id, packet_id};
 use crate::{ReadError, Response, WriteError};
 
 #[super::only_sync]

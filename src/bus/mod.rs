@@ -29,6 +29,31 @@ pub use data::Data;
 mod packet;
 pub use packet::{InstructionPacket, Packet, StatusPacket};
 
+/// Raw instructions IDs.
+#[rustfmt::skip]
+#[allow(missing_docs)]
+pub mod instruction_id {
+	pub const PING          : u8 = 0x01;
+	pub const READ          : u8 = 0x02;
+	pub const WRITE         : u8 = 0x03;
+	pub const REG_WRITE     : u8 = 0x04;
+	pub const ACTION        : u8 = 0x05;
+	pub const FACTORY_RESET : u8 = 0x06;
+	pub const REBOOT        : u8 = 0x08;
+	pub const CLEAR         : u8 = 0x10;
+	pub const SYNC_READ     : u8 = 0x82;
+	pub const SYNC_WRITE    : u8 = 0x83;
+	pub const BULK_READ     : u8 = 0x92;
+	pub const BULK_WRITE    : u8 = 0x93;
+	pub const STATUS        : u8 = 0x55;
+}
+
+/// Special packet IDs.
+pub mod packet_id {
+	/// The broadcast address.
+	pub const BROADCAST: u8 = 0xFE;
+}
+
 /// Prefix of a packet.
 ///
 /// All packets start with this prefix, and they can not contain it in the body.

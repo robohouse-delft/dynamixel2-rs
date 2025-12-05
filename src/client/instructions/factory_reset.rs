@@ -1,5 +1,5 @@
 use super::Client;
-use crate::{instruction_id, packet_id};
+use crate::bus::{instruction_id, packet_id};
 use crate::{FactoryResetKind, Response, TransferError, WriteError};
 
 #[super::bisync]
@@ -31,7 +31,7 @@ where
 			Ok(())
 		})
 		.await?;
-		Ok(self.read_response_if_not_broadcast( motor_id).await?)
+		Ok(self.read_response_if_not_broadcast(motor_id).await?)
 	}
 
 	/// Reset the settings of all connected motors to the factory defaults.
