@@ -121,7 +121,7 @@ mod test {
 	use assert2::{assert, let_assert};
 
 	use super::*;
-	use crate::instruction_id;
+	use crate::bus::instruction_id;
 
 	#[test]
 	fn status_packet() {

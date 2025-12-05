@@ -1,7 +1,7 @@
 use super::Client;
 use crate::bus::endian::write_u16_le;
 use crate::bus::{instruction_id, packet_id};
-use crate::SyncWriteData;
+use crate::client::SyncWriteData;
 use crate::WriteError;
 
 #[super::bisync]

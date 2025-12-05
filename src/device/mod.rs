@@ -1,9 +1,35 @@
+//! [`Device`] and [`AsyncDevice`] are used to receive communication from a client and respond
+
 use crate::bus::endian::read_u16_le;
 use crate::bus::{instruction_id, InstructionPacket};
 use crate::InvalidParameterCount;
 
 #[cfg(feature = "alloc")]
 use alloc::borrow::ToOwned;
+
+#[path = "."]
+pub(crate) mod asynch {
+	use crate::asynch::SerialPort;
+	use crate::bus::asynch::Bus;
+	use bisync::asynchronous::*;
+	#[cfg(feature = "serial2-tokio")]
+	use serial2_tokio::SerialPort as Serial2Port;
+
+	pub(super) mod device;
+}
+#[path = "."]
+pub(super) mod sync {
+	use crate::bus::sync::Bus;
+	use crate::SerialPort;
+	use bisync::synchronous::*;
+	#[cfg(feature = "serial2")]
+	use serial2::SerialPort as Serial2Port;
+
+	pub(super) mod device;
+}
+
+pub use asynch::device::Device as AsyncDevice;
+pub use sync::device::Device;
 
 /// The options for the [Factory Reset](https://emanual.robotis.com/docs/en/dxl/protocol2/#factory-reset-0x06) instruction.
 #[derive(Debug)]

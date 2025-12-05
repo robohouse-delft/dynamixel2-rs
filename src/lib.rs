@@ -34,27 +34,29 @@ pub mod checksum;
 
 pub mod bus;
 
-mod common;
-pub use common::*;
+pub mod client;
 
-mod client;
-pub use client::*;
+mod error;
+pub use error::*;
+
+mod response;
+pub use response::*;
+
+pub mod device;
+
+#[cfg(feature = "serial2")]
+/// Public re-export of the serial2 crate.
+pub use serial2;
+#[cfg(feature = "serial2-tokio")]
+/// Public re-export of the serial2 crate.
+pub use serial2_tokio;
 
 #[path = "."]
-/// asynchronous dynamixel2 Bus
-pub mod asynch {
+mod asynch {
 	use bisync::asynchronous::*;
 
 	#[cfg(feature = "serial2-tokio")]
-	/// Public re-export of the serial2 crate.
-	pub use serial2_tokio;
-	#[cfg(feature = "serial2-tokio")]
 	use serial2_tokio::SerialPort as Serial2Port;
-
-	use crate::bus::asynch::Bus;
-
-	mod device;
-	pub use device::*;
 
 	mod serial_port;
 	pub use serial_port::SerialPort;
@@ -65,24 +67,14 @@ pub mod asynch {
 	// mod response;
 	// pub use response::*;
 }
+
+// SYNC
+
 use bisync::synchronous::*;
 
 #[cfg(feature = "serial2")]
-/// Public re-export of the serial2 crate.
-pub use serial2;
-#[cfg(feature = "serial2")]
 use serial2::SerialPort as Serial2Port;
 
-use crate::bus::sync::Bus;
-
-mod device;
-pub use device::*;
-
 mod serial_port;
+pub use asynch::SerialPort as AsyncSerialPort;
 pub use serial_port::SerialPort;
-
-mod error;
-pub use error::*;
-
-mod response;
-pub use response::*;

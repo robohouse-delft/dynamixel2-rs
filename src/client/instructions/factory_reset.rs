@@ -1,6 +1,6 @@
 use super::Client;
 use crate::bus::{instruction_id, packet_id};
-use crate::{FactoryResetKind, Response, TransferError, WriteError};
+use crate::{client::FactoryResetKind, Response, TransferError, WriteError};
 
 #[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>

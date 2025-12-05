@@ -1,7 +1,8 @@
 use super::Bus;
 use super::Serial2Port;
 use super::SerialPort;
-use crate::{Instruction, ReadError, WriteError};
+use crate::device::Instruction;
+use crate::{ReadError, WriteError};
 use core::time::Duration;
 
 macro_rules! make_device_struct {

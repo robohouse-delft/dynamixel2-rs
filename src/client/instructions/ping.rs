@@ -1,6 +1,6 @@
 use super::Client;
 use crate::bus::instruction_id;
-use crate::Ping;
+use crate::client::Ping;
 use crate::{Response, TransferError};
 
 #[super::bisync]

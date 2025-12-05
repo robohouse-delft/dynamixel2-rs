@@ -1,3 +1,7 @@
+//! [`Client`] and [`AsyncClient`] are used to communicate with devices
+
+use crate::{bus::StatusPacket, Response};
+
 #[path = "."]
 pub(crate) mod asynch {
 	use crate::asynch::SerialPort;
@@ -7,7 +11,7 @@ pub(crate) mod asynch {
 	use serial2_tokio::SerialPort as Serial2Port;
 
 	mod client;
-	pub(crate) use client::Client;
+	pub use client::Client;
 	mod instructions;
 }
 #[path = "."]
@@ -19,11 +23,14 @@ pub(crate) mod sync {
 	use serial2::SerialPort as Serial2Port;
 
 	mod client;
-	pub(crate) use client::Client;
-	mod instructions;
+	pub use client::Client;
+	pub(crate) mod instructions;
 }
-use crate::{bus::StatusPacket, Response};
 
+pub use asynch::Client as AsyncClient;
+
+pub use sync::instructions::{ping::Scan, sync_read::SyncRead, sync_read::SyncReadBytes};
+pub use sync::Client;
 
 /// Sync data for a specific motor.
 ///

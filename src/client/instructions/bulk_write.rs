@@ -1,7 +1,7 @@
 use super::Client;
 use crate::bus::endian::{write_u16_le, write_u8_le};
 use crate::bus::{instruction_id, packet_id};
-use crate::BulkWriteData;
+use crate::client::BulkWriteData;
 use crate::WriteError;
 
 #[super::bisync]
@@ -95,7 +95,7 @@ where
 mod tests {
 	use super::*;
 
-	type Client = crate::Client<serial2::SerialPort>;
+	type Client = crate::client::Client<serial2::SerialPort>;
 
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///

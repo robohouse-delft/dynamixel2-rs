@@ -13,7 +13,7 @@ where
 	/// This function panics if the same motor ID is used for more than one read.
 	pub fn bulk_read_bytes<'a, T>(
 		&'a mut self,
-		reads: &'a [crate::BulkReadData],
+		reads: &'a [crate::client::BulkReadData],
 	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>>
 	where
 		T: for<'b> From<&'b [u8]>,
@@ -37,7 +37,7 @@ where
 	/// This function panics if the same motor ID is used for more than one read.
 	pub fn bulk_read_bytes_borrow<'a, T>(
 		&'a mut self,
-		reads: &'a [crate::BulkReadData],
+		reads: &'a [crate::client::BulkReadData],
 	) -> Result<BulkReadBytes<'a, T, SerialPort, Buffer>, crate::WriteError<SerialPort::Error>>
 	where
 		[u8]: core::borrow::Borrow<T>,
@@ -60,7 +60,7 @@ where
 #[super::only_sync]
 fn write_bulk_read_instruction<SerialPort, Buffer>(
 	client: &mut super::Client<SerialPort, Buffer>,
-	reads: &[crate::BulkReadData],
+	reads: &[crate::client::BulkReadData],
 ) -> Result<(), crate::WriteError<SerialPort::Error>>
 where
 	SerialPort: super::SerialPort,
@@ -100,7 +100,7 @@ where
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	client: &'a mut super::Client<SerialPort, Buffer>,
-	bulk_read_data: &'a [crate::BulkReadData],
+	bulk_read_data: &'a [crate::client::BulkReadData],
 	index: usize,
 	data: core::marker::PhantomData<fn() -> T>,
 }
@@ -168,7 +168,7 @@ where
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
-		let crate::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let crate::client::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response(motor_id, count))
 	}
 
@@ -177,11 +177,11 @@ where
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
-		let crate::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
+		let crate::client::BulkReadData { motor_id, count, .. } = self.pop_bulk_read_data()?;
 		Some(self.next_response_borrow(motor_id, count))
 	}
 
-	fn pop_bulk_read_data(&mut self) -> Option<crate::BulkReadData> {
+	fn pop_bulk_read_data(&mut self) -> Option<crate::client::BulkReadData> {
 		let data = self.bulk_read_data.get(self.index)?;
 		self.index += 1;
 		Some(*data)
