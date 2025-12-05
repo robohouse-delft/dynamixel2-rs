@@ -22,8 +22,8 @@ where
 	/// # Example
 	/// ```no_run
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-	/// use dynamixel2::Client;
-	/// use dynamixel2::instructions::SyncWriteData;
+	/// use dynamixel2::client::Client;
+	/// use dynamixel2::client::SyncWriteData;
 	/// use std::time::Duration;
 	///
 	/// let mut client = Client::open("/dev/ttyUSB0", 57600)?;

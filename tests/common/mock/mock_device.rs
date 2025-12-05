@@ -1,6 +1,7 @@
 use super::mock_serial_port::MockSerial;
 use assert2::let_assert;
-use dynamixel2::{Device, Instruction, Instructions, ReadError, SerialPort};
+use dynamixel2::device::{Device, Instruction, Instructions};
+use dynamixel2::{ReadError, SerialPort};
 use log::{error, trace, warn};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;

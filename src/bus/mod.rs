@@ -92,7 +92,7 @@ pub type DefaultBuffer = &'static mut [u8];
 /// ```no_run
 /// # fn main() -> Result<(), std::io::Error> {
 /// # let serial_port = serial2::SerialPort::open("/dev/null", 57600)?;
-/// use dynamixel2::{Client, static_buffer};
+/// use dynamixel2::{client::Client, static_buffer};
 /// let client = Client::with_buffers(serial_port, static_buffer!(128), static_buffer!(64))?;
 /// # Ok(())
 /// # }

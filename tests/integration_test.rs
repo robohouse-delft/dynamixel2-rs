@@ -1,5 +1,5 @@
 use assert2::{assert, let_assert};
-use dynamixel2::instructions::{BulkReadData, SyncWriteData};
+use dynamixel2::client::{BulkReadData, SyncWriteData};
 use test_log::test;
 
 pub mod common;

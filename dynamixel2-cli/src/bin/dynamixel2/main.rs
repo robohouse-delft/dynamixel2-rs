@@ -178,8 +178,8 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_client(options: &Options) -> Result<dynamixel2::Client, ()> {
-	let client = dynamixel2::Client::open(&options.serial_port, options.baud_rate)
+fn open_client(options: &Options) -> Result<dynamixel2::client::Client, ()> {
+	let client = dynamixel2::client::Client::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
 		"Using serial port {} with baud rate {}",
@@ -189,7 +189,7 @@ fn open_client(options: &Options) -> Result<dynamixel2::Client, ()> {
 	Ok(client)
 }
 
-fn log_ping_response(response: &dynamixel2::Response<dynamixel2::instructions::Ping>, elapsed: Duration) {
+fn log_ping_response(response: &dynamixel2::Response<dynamixel2::client::Ping>, elapsed: Duration) {
 	log::info!("Motor ID: {}", response.motor_id);
 	log::info!(" ├─ Response time: {:?}", elapsed);
 	if response.alert {
