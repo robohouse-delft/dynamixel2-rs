@@ -2,7 +2,7 @@
 
 #[path = "."]
 pub(crate) mod asynch {
-	use crate::asynch::SerialPort;
+	use crate::AsyncSerialPort as SerialPort;
 	use bisync::asynchronous::*;
 	mod bus;
 	pub(crate) use bus::Bus;
@@ -254,7 +254,6 @@ mod test {
 		assert!(find_header(&[0, 1, 2, 3, 4, 0xFF, 6]) == 7);
 	}
 
-	#[super::super::only_sync]
 	#[test]
 	fn test_buffer_too_small() {
 		let read_buffer = crate::static_buffer!(128);

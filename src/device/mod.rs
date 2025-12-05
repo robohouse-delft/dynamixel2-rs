@@ -9,8 +9,8 @@ use alloc::borrow::ToOwned;
 
 #[path = "."]
 pub(crate) mod asynch {
-	use crate::asynch::SerialPort;
 	use crate::bus::asynch::Bus;
+	use crate::AsyncSerialPort as SerialPort;
 	use bisync::asynchronous::*;
 	#[cfg(feature = "serial2-tokio")]
 	use serial2_tokio::SerialPort as Serial2Port;

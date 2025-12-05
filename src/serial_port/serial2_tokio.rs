@@ -1,9 +1,9 @@
 //! Trait implementation using the `serial2` crate.
 
-use serial2::SerialPort;
+use serial2_tokio::SerialPort;
 use std::time::{Duration, Instant};
 
-impl super::SerialPort for SerialPort {
+impl super::AsyncSerialPort for SerialPort {
 	type Error = std::io::Error;
 	type Instant = std::time::Instant;
 
@@ -22,16 +22,17 @@ impl super::SerialPort for SerialPort {
 		SerialPort::discard_input_buffer(self)
 	}
 
-	fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
+	async fn read(&mut self, buffer: &mut [u8], deadline: &Self::Instant) -> Result<usize, Self::Error> {
 		let timeout = deadline
 			.checked_duration_since(Instant::now())
 			.ok_or(std::io::ErrorKind::TimedOut)?;
-		self.set_read_timeout(timeout)?;
-		SerialPort::read(self, buffer)
+		tokio::time::timeout(timeout, SerialPort::read(self, buffer))
+			.await
+			.map_err(|_| std::io::ErrorKind::TimedOut)?
 	}
 
-	fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
-		SerialPort::write_all(self, buffer)
+	async fn write_all(&mut self, buffer: &[u8]) -> Result<(), Self::Error> {
+		SerialPort::write_all(self, buffer).await
 	}
 
 	fn make_deadline(&self, timeout: Duration) -> Self::Instant {

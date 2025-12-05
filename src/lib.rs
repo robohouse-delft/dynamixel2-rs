@@ -48,34 +48,10 @@ pub mod device;
 #[cfg(feature = "serial2")]
 /// Public re-export of the serial2 crate.
 pub use serial2;
+
 #[cfg(feature = "serial2-tokio")]
 /// Public re-export of the serial2 crate.
 pub use serial2_tokio;
 
-#[path = "."]
-mod asynch {
-	use bisync::asynchronous::*;
-
-	#[cfg(feature = "serial2-tokio")]
-	use serial2_tokio::SerialPort as Serial2Port;
-
-	mod serial_port;
-	pub use serial_port::SerialPort;
-
-	// mod error;
-	// pub use error::*;
-
-	// mod response;
-	// pub use response::*;
-}
-
-// SYNC
-
-use bisync::synchronous::*;
-
-#[cfg(feature = "serial2")]
-use serial2::SerialPort as Serial2Port;
-
 mod serial_port;
-pub use asynch::SerialPort as AsyncSerialPort;
-pub use serial_port::SerialPort;
+pub use serial_port::*;
