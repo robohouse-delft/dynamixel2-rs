@@ -10,7 +10,7 @@ where
 {
 	/// Send an action command to trigger a previously registered instruction.
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_action()`] instead.

@@ -17,7 +17,7 @@ where
 	/// You can have all connected motors execute their registered write using [`Self::broadcast_action`],
 	/// or a single motor using [`Self::action`].
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`crate::bus::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	pub async fn reg_write_bytes(
 		&mut self,
@@ -41,7 +41,7 @@ where
 	/// You can have all connected motors execute their registered write using [`Self::broadcast_action`],
 	/// or a single motor using [`Self::action`].
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`crate::bus::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	pub async fn reg_write<T: Data>(
 		&mut self,

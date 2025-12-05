@@ -177,7 +177,7 @@ where
 		self.write_status(packet_id, 0, 0, |_| Ok(())).await
 	}
 
-	/// Read a single [`InstructionPacket`].
+	/// Read a single [`crate::bus::InstructionPacket`].
 	pub async fn read_raw_instruction_timeout(
 		&mut self,
 		timeout: Duration,

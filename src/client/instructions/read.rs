@@ -25,7 +25,7 @@ where
 
 	/// Read an arbitrary number of bytes from a specific motor.
 	///
-	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::bus::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub async fn read_bytes<'a, T>(
 		&'a mut self,
@@ -44,7 +44,7 @@ where
 	///
 	/// Specify the return type using turbofish: `client.read::<u8>`
 	///
-	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::instructions::packet_id::BROADCAST].
+	/// This function will not work correctly if the motor ID is set to [`packet_id::BROADCAST`][crate::bus::packet_id::BROADCAST].
 	/// Use [`Self::sync_read`] to read from multiple motors with one command.
 	pub async fn read<T>(&mut self, motor_id: u8, address: u16) -> Result<Response<T>, TransferError<SerialPort::Error>>
 	where

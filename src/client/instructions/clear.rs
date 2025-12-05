@@ -22,7 +22,7 @@ where
 	/// It is not possible to clear the revolution counter of a motor while it is moving.
 	/// Doing so will cause the motor to return an error, and the revolution counter will not be reset.
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`crate::bus::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_clear_revolution_counter()`] instead.

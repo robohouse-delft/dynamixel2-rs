@@ -34,7 +34,7 @@ pub use sync::Client;
 
 /// Sync data for a specific motor.
 ///
-/// Used by [`crate::Client::sync_write`] and [`crate::Client::sync_write_bytes`]
+/// Used by [`Client::sync_write`] and [`Client::sync_write_bytes`]
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct SyncWriteData<T> {
 	/// The ID of the motor.
@@ -55,7 +55,7 @@ impl<T> AsRef<SyncWriteData<T>> for SyncWriteData<T> {
 /// This struct is similar to [`SyncWriteData`],
 /// but it supports reads and writes of different sizes and to different addresses for each motor.
 ///
-/// Used with [`crate::Client::bulk_write`].
+/// Used with [`Client::bulk_write`].
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct BulkWriteData<T> {
 	/// The ID of the motor.
@@ -76,7 +76,7 @@ impl<T> AsRef<BulkWriteData<T>> for BulkWriteData<T> {
 
 /// Parameters for a bulk read instruction.
 ///
-/// Use with [`crate::Client::bulk_read_bytes`].
+/// Use with [`Client::bulk_read_bytes`].
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct BulkReadData {
 	/// The ID of the motor.

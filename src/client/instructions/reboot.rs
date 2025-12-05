@@ -14,7 +14,7 @@ where
 	/// When a motor reboots, all volatile (non-EEPROM) registers are reset to their initial value.
 	/// This also has the effect of disabling motor torque and resetting the multi-revolution information.
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`crate::bus::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_reboot()`] instead.

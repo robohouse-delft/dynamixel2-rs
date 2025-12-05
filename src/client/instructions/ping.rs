@@ -11,7 +11,7 @@ where
 {
 	/// Ping a specific motor by ID.
 	///
-	/// This will not work correctly if the motor ID is [`packet_id::BROADCAST`].
+	/// This will not work correctly if the motor ID is [`crate::bus::packet_id::BROADCAST`].
 	/// Use [`Self::scan`] instead.
 	pub async fn ping(&mut self, motor_id: u8) -> Result<Response<Ping>, TransferError<SerialPort::Error>> {
 		let response = self.transfer_single(motor_id, instruction_id::PING, 0, 3, |_| Ok(())).await?;

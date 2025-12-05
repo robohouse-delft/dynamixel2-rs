@@ -13,7 +13,7 @@ where
 	/// This will reset all registers to the factory default, including the EEPROM registers.
 	/// The only exceptions are the ID and baud rate settings, which may be kept depending on the `kind` argument.
 	///
-	/// You may specify [`crate::instructions::packet_id::BROADCAST`] as motor ID.
+	/// You may specify [`crate::bus::packet_id::BROADCAST`] as motor ID.
 	/// If you do, none of the devices will reply with a response, and this function will not wait for any.
 	///
 	/// If you want to broadcast this instruction, it may be more convenient to use [`Self::broadcast_factory_reset()`] instead.
