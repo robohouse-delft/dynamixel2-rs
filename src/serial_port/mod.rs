@@ -14,5 +14,5 @@ pub use sync::serial_port::SerialPort;
 
 #[cfg(feature = "serial2")]
 mod serial2;
-#[cfg(feature = "serial2-tokio")]
+#[cfg(feature = "serial2")]
 mod serial2_tokio;

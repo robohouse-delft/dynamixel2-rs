@@ -1,5 +1,4 @@
 use super::Bus;
-use super::Serial2Port;
 use super::SerialPort;
 use crate::bus::instruction_id;
 use crate::{bus::StatusPacket, ReadError, TransferError, WriteError};
@@ -28,7 +27,7 @@ macro_rules! make_client_struct {
 }
 
 #[cfg(feature = "serial2")]
-make_client_struct!(Serial2Port);
+make_client_struct!(super::Serial2Port);
 
 #[cfg(not(feature = "serial2"))]
 make_client_struct!();
@@ -47,20 +46,20 @@ where
 }
 
 #[cfg(feature = "serial2")]
-impl Client<Serial2Port, Vec<u8>> {
+impl Client<super::Serial2Port, Vec<u8>> {
 	/// Open a serial port with the given baud rate.
 	///
 	/// This will allocate a new read and write buffer of 128 bytes each.
 	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
 	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
-		let serial_port = Serial2Port::open(path, baud_rate)?;
+		let serial_port = super::Serial2Port::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
 		Ok(Self { bus })
 	}
 }
 
 #[cfg(feature = "serial2")]
-impl<Buffer> Client<Serial2Port, Buffer>
+impl<Buffer> Client<super::Serial2Port, Buffer>
 where
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
@@ -73,7 +72,7 @@ where
 		read_buffer: Buffer,
 		write_buffer: Buffer,
 	) -> std::io::Result<Self> {
-		let serial_port = Serial2Port::open(path, baud_rate)?;
+		let serial_port = super::Serial2Port::open(path, baud_rate)?;
 		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
 		Ok(Self { bus })
 	}

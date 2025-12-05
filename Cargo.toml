@@ -26,10 +26,9 @@ alloc = []
 log = ["dep:log"]
 
 # Enable support for the `serial2` crate.
-serial2 = ["dep:serial2", "std", "serial2-tokio"]
+serial2 = ["dep:serial2", "std", "dep:serial2-tokio", "tokio"]
 
-# Enable support for the `serial2-tokio` crate.
-serial2-tokio = ["dep:serial2-tokio", "tokio", "std"]
+serial2-tokio = ["serial2"]
 
 # Enable rs4xx support of the `serial2` and `serial2-tokio` crate.
 rs4xx = ["serial2?/rs4xx", "serial2-tokio?/rs4xx"]
