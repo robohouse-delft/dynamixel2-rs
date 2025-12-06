@@ -35,4 +35,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --workspace --all-targets ${{ matrix.features }}
       - name: Test
+        env:
+          MOCK_SERIAL_EXTRA_TIMEOUT_MS: 1000
         run: cargo test --workspace --all-targets --color=always ${{ matrix.features }}

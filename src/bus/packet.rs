@@ -28,12 +28,8 @@ impl<'a> Packet<'a> {
 	}
 
 	/// Get the packet as a [`InstructionPacket`], if it is one.
-	pub fn as_instruction(self) -> Option<InstructionPacket<'a>> {
-		if self.instruction_id() != crate::instructions::instruction_id::STATUS {
-			Some(InstructionPacket { packet: self })
-		} else {
-			None
-		}
+	pub fn as_instruction(self) -> InstructionPacket<'a> {
+		InstructionPacket { packet: self }
 	}
 }
 
@@ -148,7 +144,7 @@ mod test {
 		};
 		assert!(packet.packet_id() == 0x23);
 		assert!(packet.instruction_id() == instruction_id::WRITE);
-		let_assert!(Some(instruction) = packet.as_instruction());
+		let instruction = packet.as_instruction();
 		assert!(instruction.packet_id() == 0x23);
 		assert!(instruction.instruction_id() == instruction_id::WRITE);
 		assert!(instruction.parameters() == &[]);

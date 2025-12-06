@@ -1,6 +1,6 @@
 use super::mock_serial_port::MockSerial;
 use assert2::let_assert;
-use dynamixel2::{instructions::instruction_id::STATUS, Device, Instruction, Instructions, ReadError, SerialPort};
+use dynamixel2::{Device, Instruction, Instructions, ReadError, SerialPort};
 use log::{error, trace, warn};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
@@ -166,6 +166,7 @@ impl MockDevice {
 					Instructions::FactoryReset(_) => todo!("handle FactoryReset"),
 					Instructions::Reboot => todo!("handle Reboot"),
 					Instructions::Clear(_) => todo!("handle Clear"),
+					Instructions::StatusPacket { .. } => (),
 					Instructions::Unknown { instruction, .. } => error!("Unknown instruction {:?}", instruction),
 				}
 			}
@@ -190,12 +191,11 @@ impl MockDevice {
 			} else {
 				loop {
 					trace!("{} waiting for packet from {}", self.id, next_id);
-					// todo: this currently doesn't work due to status packets not being returned by self.device.read, once resolved remove the #[should_panic] from the tests
 					let packet = self.device.read(Duration::from_millis(10));
 					match packet {
 						Ok(Instruction {
 							id,
-							instruction: Instructions::Unknown { instruction: STATUS, .. },
+							instruction: Instructions::StatusPacket { .. },
 						}) if id == next_id => {
 							break;
 						},

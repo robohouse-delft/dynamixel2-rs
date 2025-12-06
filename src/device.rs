@@ -184,18 +184,8 @@ where
 		timeout: Duration,
 	) -> Result<crate::bus::InstructionPacket<'_>, ReadError<SerialPort::Error>> {
 		let deadline = SerialPort::make_deadline(self.serial_port(), timeout);
-		loop {
-			// SAFETY: This is a workaround for a limitation in the borrow checker.
-			// Even though `packet` is dropped inside the loop body, it has lifetime 'a, which outlives the current function.
-			// So each loop iteration tries to borrow the same field mutably, with the a lifetime that outlives the current function.
-			// Borrow checker says no.
-			// TODO: Remove this workaround when the borrow checker can validate this.
-			let bus: &mut Bus<SerialPort, Buffer> = unsafe { &mut *(&mut self.bus as *mut _) };
-			let packet = bus.read_packet_deadline(deadline)?;
-			if let Some(instruction) = packet.as_instruction() {
-				return Ok(instruction);
-			}
-		}
+		let packet = self.bus.read_packet_deadline(deadline)?;
+		Ok(packet.as_instruction())
 	}
 }
 
@@ -255,6 +245,7 @@ pub enum Instructions<T> {
 	SyncWrite { address: u16, length: u16, parameters: T },
 	BulkRead { parameters: T },
 	BulkWrite { parameters: T },
+	StatusPacket { error: u8, parameters: T },
 	Unknown { instruction: u8, parameters: T },
 }
 
@@ -327,6 +318,16 @@ impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<&'a [u8]> {
 			instruction_id::BULK_READ => Instructions::BulkRead { parameters },
 			instruction_id::BULK_WRITE => Instructions::BulkWrite { parameters },
 
+			instruction_id::STATUS => {
+				InvalidParameterCount::check_min(parameters.len(), 1)?;
+
+				let error = parameters[0];
+				Instructions::StatusPacket {
+					error,
+					parameters: &parameters[1..],
+				}
+			},
+
 			instruction => Instructions::Unknown { instruction, parameters },
 		};
 
@@ -374,6 +375,10 @@ impl<'a> TryFrom<InstructionPacket<'a>> for Instruction<alloc::vec::Vec<u8>> {
 				parameters: parameters.to_owned(),
 			},
 			Instructions::BulkWrite { parameters } => Instructions::BulkRead {
+				parameters: parameters.to_owned(),
+			},
+			Instructions::StatusPacket { error, parameters } => Instructions::StatusPacket {
+				error,
 				parameters: parameters.to_owned(),
 			},
 			Instructions::Unknown { instruction, parameters } => Instructions::Unknown {
