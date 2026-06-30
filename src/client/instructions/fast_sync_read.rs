@@ -24,6 +24,11 @@ where
 	///
 	/// The returned [`FastSyncRead`] is an iterator that yields the [`Response`] of each motor,
 	/// in the same order as `motor_ids`.
+	///
+	/// # Panics
+	/// A status packet can hold at most a `u16` worth of parameters.
+	/// This function panics if the combined response would exceed that
+	/// (`(T::ENCODED_SIZE + 4) * motor_ids.len()`), which requires a pathological number of motors and registers.
 	pub async fn fast_sync_read<'a, T: Data>(
 		&'a mut self,
 		motor_ids: &'a [u8],
@@ -44,8 +49,12 @@ where
 		.await?;
 
 		// Each motor block in the response is: error (1) + motor ID (1) + data (`count`) + CRC (2).
+		// A status packet can never carry more than a `u16` worth of parameters. Exceeding that needs a
+		// pathological number of motors and registers (see the `# Panics` note), so treat it as a caller bug.
 		let expected_parameters = (u32::from(count) + 4) * motor_ids.len() as u32;
-		let response = self.read_status_response(expected_parameters as u16, false).await?;
+		let expected_parameters = u16::try_from(expected_parameters)
+			.expect("fast_sync_read: the requested response is larger than a single status packet can hold");
+		let response = self.read_status_response(expected_parameters, false).await?;
 		crate::InvalidPacketId::check(response.packet_id(), packet_id::BROADCAST)?;
 
 		Ok(FastSyncRead {
@@ -95,7 +104,16 @@ impl<T: Data, E> Iterator for FastSyncRead<'_, T, E> {
 
 		// Split off one motor block: error (1) + motor ID (1) + data (`count`).
 		let block_len = 2 + usize::from(self.count);
-		let (block, rest) = self.parameters.split_at_checked(block_len)?;
+		let Some((block, rest)) = self.parameters.split_at_checked(block_len) else {
+			// The response is shorter than `motor_ids` implies: a motor block is missing or truncated.
+			// Surface an error instead of silently ending iteration with motors unaccounted for.
+			self.remaining = 0;
+			return Some(Err(crate::InvalidParameterCount {
+				actual: self.parameters.len(),
+				expected: crate::ExpectedCount::Min(block_len),
+			}
+			.into()));
+		};
 
 		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
 		// stripped while reading the packet, so it may be absent for the last block.
@@ -125,7 +143,7 @@ fn parse_motor_block<T: Data, E>(block: &[u8]) -> Result<Response<T>, ReadError<
 #[super::only_sync]
 mod test {
 	use super::FastSyncRead;
-	use crate::{ReadError, Response};
+	use crate::{InvalidMessage, ReadError, Response};
 	use assert2::{assert, let_assert};
 	use core::convert::Infallible;
 	use core::marker::PhantomData;
@@ -195,5 +213,17 @@ mod test {
 					data: 0x0007
 				}
 		);
+	}
+
+	#[test]
+	fn errors_on_truncated_response() {
+		// Two motors expected, but the buffer only holds one complete block: the second motor is missing.
+		let parameters = [0x00, 0x01, 0x34, 0x12];
+		let mut iter = fast_sync_read::<u16>(&parameters, 2, 2);
+
+		let_assert!(Some(Ok(_)) = iter.next());
+		// The missing motor surfaces as an error rather than a silent end of iteration.
+		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::InvalidParameterCount(_)))) = iter.next());
+		assert!(let None = iter.next());
 	}
 }

@@ -28,6 +28,10 @@ where
 	/// # Panics
 	/// The protocol forbids specifying the same motor ID multiple times.
 	/// This function panics if the same motor ID is used for more than one read.
+	///
+	/// A status packet can hold at most a `u16` worth of parameters.
+	/// This function also panics if the combined response would exceed that
+	/// (`sum(count + 4)` over all `reads`), which requires a pathological number of motors and registers.
 	pub async fn fast_bulk_read_bytes<'a, T>(
 		&'a mut self,
 		reads: &'a [BulkReadData],
@@ -58,8 +62,12 @@ where
 		.await?;
 
 		// Each motor block in the response is: error (1) + motor ID (1) + data (`count`) + CRC (2).
+		// A status packet can never carry more than a `u16` worth of parameters. Exceeding that needs a
+		// pathological number of motors and registers (see the `# Panics` note), so treat it as a caller bug.
 		let expected_parameters = reads.iter().fold(0u32, |acc, read| acc + u32::from(read.count) + 4);
-		let response = self.read_status_response(expected_parameters as u16, false).await?;
+		let expected_parameters = u16::try_from(expected_parameters)
+			.expect("fast_bulk_read: the requested response is larger than a single status packet can hold");
+		let response = self.read_status_response(expected_parameters, false).await?;
 		crate::InvalidPacketId::check(response.packet_id(), packet_id::BROADCAST)?;
 
 		Ok(FastBulkRead {
@@ -110,7 +118,16 @@ where
 		self.index += 1;
 
 		// Split off one motor block: error (1) + motor ID (1) + data (`count`).
-		let (block, rest) = self.parameters.split_at_checked(2 + count)?;
+		let Some((block, rest)) = self.parameters.split_at_checked(2 + count) else {
+			// The response is shorter than `reads` implies: a motor block is missing or truncated.
+			// Surface an error instead of silently ending iteration with motors unaccounted for.
+			self.index = self.reads.len();
+			return Some(Err(crate::InvalidParameterCount {
+				actual: self.parameters.len(),
+				expected: crate::ExpectedCount::Min(2 + count),
+			}
+			.into()));
+		};
 
 		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
 		// stripped while reading the packet, so it may be absent for the last block.
@@ -144,7 +161,7 @@ where
 mod test {
 	use super::FastBulkRead;
 	use crate::client::BulkReadData;
-	use crate::Response;
+	use crate::{InvalidMessage, ReadError, Response};
 	use alloc::vec;
 	use alloc::vec::Vec;
 	use assert2::{assert, let_assert};
@@ -197,6 +214,35 @@ mod test {
 				}
 		);
 
+		assert!(let None = iter.next());
+	}
+
+	#[test]
+	fn errors_on_truncated_response() {
+		let reads = [
+			BulkReadData {
+				motor_id: 1,
+				address: 0,
+				count: 2,
+			},
+			BulkReadData {
+				motor_id: 2,
+				address: 0,
+				count: 3,
+			},
+		];
+		// Two motors expected, but the buffer only holds the first block: the second motor is missing.
+		let parameters = [0x00, 0x01, 0xAA, 0xBB];
+		let mut iter = FastBulkRead::<Vec<u8>, Infallible> {
+			parameters: &parameters,
+			reads: &reads,
+			index: 0,
+			data: PhantomData,
+		};
+
+		let_assert!(Some(Ok(_)) = iter.next());
+		// The missing motor surfaces as an error rather than a silent end of iteration.
+		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::InvalidParameterCount(_)))) = iter.next());
 		assert!(let None = iter.next());
 	}
 }
