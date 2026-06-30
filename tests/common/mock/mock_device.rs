@@ -102,7 +102,15 @@ impl MockDevice {
 							let_assert!(Ok(()) = self.device.write_status_error(self.id, 0x07));
 						}
 					},
-					Instructions::SyncRead { address, length, ids } => {
+					// NOTE: the fast variants are decoded but not emulated here; the mock device emulates one
+					// motor per instance and writes its own status packet, whereas a fast read expects a single
+					// combined packet for all motors. The fast read parsing is covered by unit tests instead.
+					Instructions::SyncRead {
+						fast: _,
+						address,
+						length,
+						ids,
+					} => {
 						if !ids.contains(&self.id) {
 							continue;
 						}
@@ -120,7 +128,7 @@ impl MockDevice {
 						let parameters = &parameters[id_index + 1..id_index + 1 + length as usize];
 						self.control_table.write(address, parameters);
 					},
-					Instructions::BulkRead { parameters } => {
+					Instructions::BulkRead { fast: _, parameters } => {
 						let ids: Vec<_> = parameters.iter().step_by(5).copied().collect();
 						let Some(id_index) = ids.iter().position(|id| id == &self.id) else {
 							continue;

@@ -180,7 +180,7 @@ where
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
-		let response = self.client.read_status_response(count).await?;
+		let response = self.client.read_status_response(count, true).await?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -192,7 +192,7 @@ where
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
-		let response = self.client.read_status_response(count).await?;
+		let response = self.client.read_status_response(count, true).await?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -230,7 +230,7 @@ where
 {
 	fn drop(&mut self) {
 		for data in &self.bulk_read_data[self.index..] {
-			self.client.read_status_response(data.count).ok();
+			self.client.read_status_response(data.count, true).ok();
 		}
 	}
 }

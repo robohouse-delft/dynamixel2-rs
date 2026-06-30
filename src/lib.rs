@@ -16,7 +16,7 @@
 //! There is also an [`AsyncClient`] for use with an asynchronous serial port,
 //! and a [`Device`] and [`AsyncDevice`] to implement the device side of the protocol.
 //!
-//! The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
+//! The library currently implements all instructions except for the Control Table Backup and Fast Sync Write instructions.
 //!
 //! # Optional features
 //!
