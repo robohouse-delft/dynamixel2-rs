@@ -12,7 +12,7 @@ pub(crate) mod asynch {
 
 	mod client;
 	pub use client::Client;
-	mod instructions;
+	pub(crate) mod instructions;
 }
 #[path = "."]
 pub(crate) mod sync {
@@ -27,9 +27,12 @@ pub(crate) mod sync {
 	pub(crate) mod instructions;
 }
 
+pub use asynch::instructions::bulk_read::BulkReadBytes as AsyncBulkReadBytes;
+pub use asynch::instructions::ping::Scan as AsyncScan;
+pub use asynch::instructions::{sync_read::SyncRead as AsyncSyncRead, sync_read::SyncReadBytes as AsyncSyncReadBytes};
 pub use asynch::Client as AsyncClient;
 
-pub use sync::instructions::{ping::Scan, sync_read::SyncRead, sync_read::SyncReadBytes};
+pub use sync::instructions::{bulk_read::BulkReadBytes, ping::Scan, sync_read::SyncRead, sync_read::SyncReadBytes};
 pub use sync::Client;
 
 /// Sync data for a specific motor.

@@ -2,7 +2,7 @@
 use super::{bisync, client::Client, only_sync, SerialPort};
 
 mod action;
-mod bulk_read;
+pub(crate) mod bulk_read;
 mod bulk_write;
 mod clear;
 mod factory_reset;
