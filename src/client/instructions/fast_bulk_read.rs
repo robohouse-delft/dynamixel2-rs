@@ -39,6 +39,41 @@ where
 	where
 		T: for<'b> From<&'b [u8]>,
 	{
+		self.fast_bulk_read_raw(reads).await
+	}
+
+	/// Read arbitrary data ranges from multiple motors using the fast bulk read instruction, borrowing each
+	/// reply from the read buffer.
+	///
+	/// This is like [`Self::fast_bulk_read_bytes`], except that each reply borrows its data directly from
+	/// the internal read buffer instead of allocating. Consume the replies with
+	/// [`FastBulkRead::read_next_borrow`], which yields a [`Response`] of `&T` (for example `&[u8]`).
+	///
+	/// # Panics
+	/// The protocol forbids specifying the same motor ID multiple times.
+	/// This function panics if the same motor ID is used for more than one read.
+	///
+	/// A status packet can hold at most a `u16` worth of parameters.
+	/// This function also panics if the combined response would exceed that
+	/// (`sum(count + 4)` over all `reads`), which requires a pathological number of motors and registers.
+	pub async fn fast_bulk_read_bytes_borrow<'a, T>(
+		&'a mut self,
+		reads: &'a [BulkReadData],
+	) -> Result<FastBulkRead<'a, T, SerialPort::Error>, TransferError<SerialPort::Error>>
+	where
+		T: ?Sized,
+		[u8]: core::borrow::Borrow<T>,
+	{
+		self.fast_bulk_read_raw(reads).await
+	}
+
+	/// Send a fast bulk read instruction and read the combined status packet into a [`FastBulkRead`].
+	///
+	/// The way the replies are decoded (owned or borrowed) is decided by the caller through `T`.
+	async fn fast_bulk_read_raw<'a, T: ?Sized>(
+		&'a mut self,
+		reads: &'a [BulkReadData],
+	) -> Result<FastBulkRead<'a, T, SerialPort::Error>, TransferError<SerialPort::Error>> {
 		for i in 0..reads.len() {
 			for j in i + 1..reads.len() {
 				if reads[i].motor_id == reads[j].motor_id {
@@ -84,7 +119,7 @@ where
 /// Returned by [`Client::fast_bulk_read_bytes`].
 /// The entire response is read from the bus before this iterator is returned;
 /// iterating it simply splits the response into the per-motor replies.
-pub struct FastBulkRead<'a, T, E> {
+pub struct FastBulkRead<'a, T: ?Sized, E> {
 	/// The unparsed per-motor blocks, starting at the error byte of the first motor.
 	parameters: &'a [u8],
 
@@ -94,16 +129,70 @@ pub struct FastBulkRead<'a, T, E> {
 	/// The index of the next read to yield.
 	index: usize,
 
-	data: PhantomData<fn() -> (T, E)>,
+	data: PhantomData<fn(&T) -> E>,
 }
 
-impl<T, E> core::fmt::Debug for FastBulkRead<'_, T, E> {
+impl<T: ?Sized, E> core::fmt::Debug for FastBulkRead<'_, T, E> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("FastBulkRead")
 			.field("reads", &self.reads)
 			.field("index", &self.index)
 			.field("data", &format_args!("{}", core::any::type_name::<T>()))
 			.finish()
+	}
+}
+
+impl<'a, T: ?Sized, E> FastBulkRead<'a, T, E> {
+	/// The number of motor replies that have not been yielded yet.
+	pub fn remaining(&self) -> usize {
+		self.reads.len() - self.index
+	}
+
+	/// Split the next `error + motor ID + data` block off the front of the buffer, advancing the state.
+	fn next_block(&mut self) -> Option<Result<&'a [u8], ReadError<E>>> {
+		let count = usize::from(self.reads.get(self.index)?.count);
+		self.index += 1;
+
+		// Each motor block is: error (1) + motor ID (1) + data (`count`).
+		let block_len = 2 + count;
+		let Some((block, rest)) = self.parameters.split_at_checked(block_len) else {
+			// The response is shorter than `reads` implies: a motor block is missing or truncated.
+			// Surface an error instead of silently ending iteration with motors unaccounted for.
+			self.index = self.reads.len();
+			return Some(Err(crate::InvalidParameterCount {
+				actual: self.parameters.len(),
+				expected: crate::ExpectedCount::Min(block_len),
+			}
+			.into()));
+		};
+
+		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
+		// stripped while reading the packet, so it may be absent for the last block.
+		self.parameters = rest.get(2..).unwrap_or(&[]);
+
+		Some(Ok(block))
+	}
+
+	/// Read the next motor reply, or [`None`] once every read has been yielded.
+	pub fn read_next(&mut self) -> Option<Result<Response<T>, ReadError<E>>>
+	where
+		T: for<'b> From<&'b [u8]>,
+	{
+		Some(match self.next_block()? {
+			Ok(block) => decode_motor_block(block, |data| T::from(data)),
+			Err(e) => Err(e),
+		})
+	}
+
+	/// Read the next motor reply borrowing the data from the read buffer, or [`None`] once every read has been yielded.
+	pub fn read_next_borrow(&mut self) -> Option<Result<Response<&'a T>, ReadError<E>>>
+	where
+		[u8]: core::borrow::Borrow<T>,
+	{
+		Some(match self.next_block()? {
+			Ok(block) => decode_motor_block(block, core::borrow::Borrow::borrow),
+			Err(e) => Err(e),
+		})
 	}
 }
 
@@ -114,45 +203,28 @@ where
 	type Item = Result<Response<T>, ReadError<E>>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		let count = usize::from(self.reads.get(self.index)?.count);
-		self.index += 1;
-
-		// Split off one motor block: error (1) + motor ID (1) + data (`count`).
-		let Some((block, rest)) = self.parameters.split_at_checked(2 + count) else {
-			// The response is shorter than `reads` implies: a motor block is missing or truncated.
-			// Surface an error instead of silently ending iteration with motors unaccounted for.
-			self.index = self.reads.len();
-			return Some(Err(crate::InvalidParameterCount {
-				actual: self.parameters.len(),
-				expected: crate::ExpectedCount::Min(2 + count),
-			}
-			.into()));
-		};
-
-		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
-		// stripped while reading the packet, so it may be absent for the last block.
-		self.parameters = rest.get(2..).unwrap_or(&[]);
-
-		let error = block[0];
-		Some(parse_motor_block(error, block[1], &block[2..]))
+		self.read_next()
 	}
 
 	fn size_hint(&self) -> (usize, Option<usize>) {
-		let remaining = self.reads.len() - self.index;
-		(0, Some(remaining))
+		(0, Some(self.remaining()))
 	}
 }
 
 /// Build a [`Response`] from a single `error + motor ID + data` block of a fast bulk read response.
-fn parse_motor_block<T, E>(error: u8, motor_id: u8, data: &[u8]) -> Result<Response<T>, ReadError<E>>
+///
+/// `decode` turns the data bytes into the reply value, allowing either an owned (`T: From<&[u8]>`) or a
+/// borrowed (`&T`) result to share the block-parsing logic.
+fn decode_motor_block<'b, D, R, E>(block: &'b [u8], decode: D) -> Result<Response<R>, ReadError<E>>
 where
-	T: for<'b> From<&'b [u8]>,
+	D: FnOnce(&'b [u8]) -> R,
 {
+	let error = block[0];
 	MotorError::check(error)?;
 	Ok(Response {
-		motor_id,
+		motor_id: block[1],
 		alert: error & 0x80 != 0,
-		data: T::from(data),
+		data: decode(&block[2..]),
 	})
 }
 
@@ -167,6 +239,42 @@ mod test {
 	use assert2::{assert, let_assert};
 	use core::convert::Infallible;
 	use core::marker::PhantomData;
+
+	#[test]
+	fn read_next_borrow_yields_slices() {
+		let reads = [
+			BulkReadData {
+				motor_id: 1,
+				address: 0,
+				count: 2,
+			},
+			BulkReadData {
+				motor_id: 2,
+				address: 0,
+				count: 3,
+			},
+		];
+		let parameters = [
+			0x00, 0x01, 0xAA, 0xBB, 0x11, 0x22, // motor 1: 2 data bytes [0xAA, 0xBB] + skipped CRC.
+			0x00, 0x02, 0xCC, 0xDD, 0xEE, // motor 2: 3 data bytes [0xCC, 0xDD, 0xEE], CRC stripped.
+		];
+		let mut iter = FastBulkRead::<[u8], Infallible> {
+			parameters: &parameters,
+			reads: &reads,
+			index: 0,
+			data: PhantomData,
+		};
+
+		let_assert!(Some(Ok(response)) = iter.read_next_borrow());
+		assert!(response.motor_id == 1);
+		assert!(response.data == [0xAA, 0xBB].as_slice());
+
+		let_assert!(Some(Ok(response)) = iter.read_next_borrow());
+		assert!(response.motor_id == 2);
+		assert!(response.data == [0xCC, 0xDD, 0xEE].as_slice());
+
+		assert!(let None = iter.read_next_borrow());
+	}
 
 	#[test]
 	fn parses_variable_length_blocks() {
