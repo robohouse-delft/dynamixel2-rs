@@ -17,7 +17,7 @@ where
 {
 	/// Read a value from multiple motors in one command using the fast sync read instruction.
 	///
-	/// Like [`crate::client::Client::sync_read`], the fast sync read instruction reads the same number of bytes from the same
+	/// Like [`Self::sync_read`], the fast sync read instruction reads the same number of bytes from the same
 	/// address from multiple motors. Unlike the regular sync read, all motors reply with a single status packet.
 	/// This reduces the communication overhead, at the cost of losing the entire response if a single motor
 	/// fails to reply.

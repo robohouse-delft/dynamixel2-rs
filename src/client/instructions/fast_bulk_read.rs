@@ -17,7 +17,7 @@ where
 {
 	/// Read arbitrary data ranges from multiple motors using the fast bulk read instruction.
 	///
-	/// Like [`crate::client::Client::bulk_read_bytes`], a bulk read can read a different amount of data from a different address
+	/// Like [`Self::bulk_read_bytes`], a bulk read can read a different amount of data from a different address
 	/// for each motor. Unlike the regular bulk read, all motors reply with a single status packet.
 	/// This reduces the communication overhead, at the cost of losing the entire response if a single motor
 	/// fails to reply.
