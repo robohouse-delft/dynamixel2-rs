@@ -288,26 +288,16 @@ impl InvalidParameterCount {
 	}
 }
 
-#[cfg(feature = "std")]
-impl<E: Debug + Display> std::error::Error for TransferError<E> {}
-#[cfg(feature = "std")]
-impl<E: Debug + Display> std::error::Error for WriteError<E> {}
-#[cfg(feature = "std")]
-impl<E: Debug + Display> std::error::Error for ReadError<E> {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidMessage {}
-#[cfg(feature = "std")]
-impl std::error::Error for MotorError {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidHeaderPrefix {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidChecksum {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidPacketId {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidInstruction {}
-#[cfg(feature = "std")]
-impl std::error::Error for InvalidParameterCount {}
+impl<E: Debug + Display> core::error::Error for TransferError<E> {}
+impl<E: Debug + Display> core::error::Error for WriteError<E> {}
+impl<E: Debug + Display> core::error::Error for ReadError<E> {}
+impl core::error::Error for InvalidMessage {}
+impl core::error::Error for MotorError {}
+impl core::error::Error for InvalidHeaderPrefix {}
+impl core::error::Error for InvalidChecksum {}
+impl core::error::Error for InvalidPacketId {}
+impl core::error::Error for InvalidInstruction {}
+impl core::error::Error for InvalidParameterCount {}
 
 impl<E> From<WriteError<E>> for TransferError<E> {
 	fn from(other: WriteError<E>) -> Self {
