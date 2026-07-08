@@ -8,8 +8,10 @@ macro_rules! make_device_struct {
 	($($DefaultSerialPort:ty)?) => {
 		/// Dynamixel [`Device`] for implementing the device side of the DYNAMIXEL Protocol 2.0.
 		///
-		/// If the `"serial2"` feature is enabled, the `SerialPort` generic type argument defaults to [`serial2::SerialPort`].
-		/// If it is not enabled, the `SerialPort` argument must always be specified.
+		/// If a serial port backend is enabled, the `Port` generic type argument defaults to that backend's
+		/// serial port type: `serial2::SerialPort` with the `"serial2"` feature, or `serial2_tokio::SerialPort`
+		/// (for the asynchronous device) with the `"serial2-tokio"` feature.
+		/// If neither is enabled, the `Port` argument must always be specified.
 		///
 		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
 		/// and to `&'static mut [u8]` otherwise.

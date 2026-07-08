@@ -30,14 +30,17 @@ serial2 = ["dep:serial2", "std"]
 
 # Enable support for the asynchronous `serial2-tokio` crate.
 #
-# The `serial2-tokio` crate builds on `serial2`, so this also enables the `serial2` feature.
-serial2-tokio = ["serial2", "dep:serial2-tokio", "dep:tokio"]
+# This is independent of the `serial2` feature: enable both to use the synchronous and
+# asynchronous clients together.
+serial2-tokio = ["std", "dep:serial2-tokio", "dep:tokio"]
 
 # Enable rs4xx support of the `serial2` and `serial2-tokio` crate.
 rs4xx = ["serial2?/rs4xx", "serial2-tokio?/rs4xx"]
 
 # Enable integration tests that use a real servo motor.
-integration-tests = []
+#
+# The real-hardware test harness uses the synchronous `serial2` backend.
+integration-tests = ["serial2"]
 
 [dependencies]
 bisync = "0.3.0"

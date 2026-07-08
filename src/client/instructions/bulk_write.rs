@@ -25,7 +25,8 @@ where
 	/// This function also panics if the data length for a motor exceeds the capacity of a `u16`.
 	///
 	/// # Example
-	/// ```no_run
+	#[cfg_attr(feature = "serial2", doc = "```no_run")]
+	#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 	/// use dynamixel2::client::BulkWriteData;
 	/// use std::time::Duration;
@@ -91,7 +92,8 @@ where
 	}
 }
 
-#[cfg(test)]
+// These are compile tests for the synchronous `serial2` client API.
+#[cfg(all(test, feature = "serial2"))]
 mod tests {
 	use super::*;
 

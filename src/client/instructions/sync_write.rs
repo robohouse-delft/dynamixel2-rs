@@ -20,7 +20,8 @@ where
 	/// This function panics if that is not the case.
 	///
 	/// # Example
-	/// ```no_run
+	#[cfg_attr(feature = "serial2", doc = "```no_run")]
+	#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 	/// use dynamixel2::Client;
 	/// use dynamixel2::client::SyncWriteData;
