@@ -30,7 +30,7 @@ where
 	/// use dynamixel2::client::BulkWriteData;
 	/// use std::time::Duration;
 	///
-	/// let mut client = dynamixel2::client::Client::open("/dev/ttyUSB0", 57600)?;
+	/// let mut client = dynamixel2::Client::open("/dev/ttyUSB0", 57600)?;
 	/// client.bulk_write(&[
 	///   // Write a u32 value of 2000 to register 116 of motor 1.
 	///   BulkWriteData {

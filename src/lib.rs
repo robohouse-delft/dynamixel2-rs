@@ -9,9 +9,9 @@
 //! such as moving it to a specific angle or at a specific speed.
 //! Instead, you will have to write the appropriate values to the correct registers yourself.
 //!
-//! The main interface is the [`client::Client`] struct, which can be used to interact with devices on the serial communication bus.
-//! The [`client::Client`] struct exposes functions for all supported instructions such as [`client::Client::ping`], [`client::Client::read`], [`client::Client::write`] and much more.
-//! Additionally, you can also transmit raw commands using [`client::Client::write_instruction`] and [`client::Client::read_status_response`], or [`client::Client::transfer_single`].
+//! The main interface is the [`Client`] struct, which can be used to interact with devices on the serial communication bus.
+//! The [`Client`] struct exposes functions for all supported instructions such as [`Client::ping`], [`Client::read`], [`Client::write`] and much more.
+//! Additionally, you can also transmit raw commands using [`Client::write_instruction`] and [`Client::read_status_response`], or [`Client::transfer_single`].
 //!
 //! The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 //!
@@ -36,6 +36,7 @@ pub mod checksum;
 pub mod bus;
 
 pub mod client;
+pub use client::{AsyncClient, Client};
 
 mod error;
 pub use error::*;
@@ -44,6 +45,7 @@ mod response;
 pub use response::*;
 
 pub mod device;
+pub use device::{AsyncDevice, Device};
 
 #[cfg(feature = "serial2")]
 /// Public re-export of the serial2 crate.

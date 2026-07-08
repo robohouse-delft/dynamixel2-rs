@@ -22,7 +22,7 @@ where
 	/// # Example
 	/// ```no_run
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-	/// use dynamixel2::client::Client;
+	/// use dynamixel2::Client;
 	/// use dynamixel2::client::SyncWriteData;
 	/// use std::time::Duration;
 	///

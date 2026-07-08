@@ -15,9 +15,9 @@ The library does not aim to provide an easy interface to the higher level functi
 such as moving it to a specific angle or at a specific speed.
 Instead, you will have to write the appropriate values to the correct registers yourself.
 
-The main interface is the [`Bus`] struct, which represents the serial communication bus.
-The [`Bus`] struct exposes functions for all supported instructions such as [`Bus::ping`], [`Bus::read`], [`Bus::write`] and much more.
-Additionally, you can also transmit raw commands using [`Bus::write_instruction`] and [`Bus::read_status_response`], or [`Bus::transfer_single`].
+The main interface is the [`Client`] struct, which can be used to interact with devices on the serial communication bus.
+The [`Client`] struct exposes functions for all supported instructions such as [`Client::ping`], [`Client::read`], [`Client::write`] and much more.
+Additionally, you can also transmit raw commands using [`Client::write_instruction`] and [`Client::read_status_response`], or [`Client::transfer_single`].
 
 The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 
@@ -25,10 +25,10 @@ The library currently implements all instructions except for the Control Table B
 
 You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
 
-[`Bus`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html
-[`Bus::ping`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.ping
-[`Bus::read`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read
-[`Bus::write`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write
-[`Bus::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.write_instruction
-[`Bus::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.read_status_response
-[`Bus::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Bus.html#method.transfer_single
+[`Client`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html
+[`Client::ping`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.ping
+[`Client::read`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.read
+[`Client::write`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.write
+[`Client::write_instruction`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.write_instruction
+[`Client::read_status_response`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.read_status_response
+[`Client::transfer_single`]: https://docs.rs/dynamixel2/latest/dynamixel2/struct.Client.html#method.transfer_single
