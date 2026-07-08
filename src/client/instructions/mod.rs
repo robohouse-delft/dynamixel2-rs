@@ -1,5 +1,5 @@
 //! Types and functions for specific instructions.
-use super::{bisync, client::Client, only_sync, SerialPort};
+use super::{bisync, client::Client, only_async, only_sync, SerialPort};
 
 mod action;
 pub(crate) mod bulk_read;

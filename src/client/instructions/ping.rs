@@ -49,9 +49,17 @@ macro_rules! make_scan_struct {
 }
 
 #[cfg(feature = "serial2")]
+#[super::only_sync]
 make_scan_struct!(super::super::Serial2Port);
-
 #[cfg(not(feature = "serial2"))]
+#[super::only_sync]
+make_scan_struct!();
+
+#[cfg(feature = "serial2-tokio")]
+#[super::only_async]
+make_scan_struct!(super::super::Serial2Port);
+#[cfg(not(feature = "serial2-tokio"))]
+#[super::only_async]
 make_scan_struct!();
 
 impl<Port, Buffer> core::fmt::Debug for Scan<'_, Port, Buffer>

@@ -122,9 +122,17 @@ macro_rules! make_sync_read_bytes_struct {
 }
 
 #[cfg(feature = "serial2")]
+#[super::only_sync]
 make_sync_read_bytes_struct!(super::super::Serial2Port);
-
 #[cfg(not(feature = "serial2"))]
+#[super::only_sync]
+make_sync_read_bytes_struct!();
+
+#[cfg(feature = "serial2-tokio")]
+#[super::only_async]
+make_sync_read_bytes_struct!(super::super::Serial2Port);
+#[cfg(not(feature = "serial2-tokio"))]
+#[super::only_async]
 make_sync_read_bytes_struct!();
 
 macro_rules! make_sync_read_struct {
@@ -150,9 +158,17 @@ macro_rules! make_sync_read_struct {
 }
 
 #[cfg(feature = "serial2")]
+#[super::only_sync]
 make_sync_read_struct!(super::super::Serial2Port);
-
 #[cfg(not(feature = "serial2"))]
+#[super::only_sync]
+make_sync_read_struct!();
+
+#[cfg(feature = "serial2-tokio")]
+#[super::only_async]
+make_sync_read_struct!(super::super::Serial2Port);
+#[cfg(not(feature = "serial2-tokio"))]
+#[super::only_async]
 make_sync_read_struct!();
 
 impl<T, Port, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, Port, Buffer>
