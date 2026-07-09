@@ -25,18 +25,29 @@ alloc = []
 # Add logging statements.
 log = ["dep:log"]
 
-# Enable support for the `serial2` crate.
+# Enable support for the synchronous `serial2` crate.
 serial2 = ["dep:serial2", "std"]
 
-# Enable rs4xx support of the `serial2` crate.
-rs4xx = ["serial2?/rs4xx"]
+# Enable support for the asynchronous `serial2-tokio` crate.
+#
+# This is independent of the `serial2` feature: enable both to use the synchronous and
+# asynchronous clients together.
+serial2-tokio = ["std", "dep:serial2-tokio", "dep:tokio"]
+
+# Enable rs4xx support of the `serial2` and `serial2-tokio` crate.
+rs4xx = ["serial2?/rs4xx", "serial2-tokio?/rs4xx"]
 
 # Enable integration tests that use a real servo motor.
-integration-tests = []
+#
+# The real-hardware test harness uses the synchronous `serial2` backend.
+integration-tests = ["serial2"]
 
 [dependencies]
+bisync = "0.3.0"
 log = { version = "0.4.8", optional = true }
 serial2 = { version = "0.2.24", optional = true }
+serial2-tokio = { version = "0.1.19", optional = true }
+tokio = { version = "1.48.0", features = ["time"], optional = true }
 
 [dev-dependencies]
 assert2 = "0.3.3"

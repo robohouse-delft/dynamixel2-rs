@@ -1,10 +1,13 @@
-use super::{instruction_id, packet_id, BulkWriteData};
+use super::Client;
 use crate::bus::endian::{write_u16_le, write_u8_le};
-use crate::{Client, WriteError};
+use crate::bus::{instruction_id, packet_id};
+use crate::client::BulkWriteData;
+use crate::WriteError;
 
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously write arbitrary data ranges to multiple motors.
@@ -22,9 +25,10 @@ where
 	/// This function also panics if the data length for a motor exceeds the capacity of a `u16`.
 	///
 	/// # Example
-	/// ```no_run
+	#[cfg_attr(feature = "serial2", doc = "```no_run")]
+	#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-	/// use dynamixel2::instructions::BulkWriteData;
+	/// use dynamixel2::client::BulkWriteData;
 	/// use std::time::Duration;
 	///
 	/// let mut client = dynamixel2::Client::open("/dev/ttyUSB0", 57600)?;
@@ -45,7 +49,7 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<SerialPort::Error>>
+	pub async fn bulk_write<'a, I, D>(&mut self, writes: &'a I) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		&'a I: IntoIterator,
 		<&'a I as IntoIterator>::IntoIter: Clone,
@@ -84,14 +88,16 @@ where
 			}
 			Ok(())
 		})
+		.await
 	}
 }
 
-#[cfg(test)]
+// These are compile tests for the synchronous `serial2` client API.
+#[cfg(all(test, feature = "serial2"))]
 mod tests {
 	use super::*;
 
-	type Client = crate::Client<serial2::SerialPort>;
+	type Client = crate::client::Client<serial2::SerialPort>;
 
 	/// Ensure that `bulk_write` accepts a slice of `BulkWriteData`.
 	///

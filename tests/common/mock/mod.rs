@@ -1,4 +1,4 @@
-use dynamixel2::{Client, Device};
+use dynamixel2::{client::Client, device::Device};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use std::sync::Arc;

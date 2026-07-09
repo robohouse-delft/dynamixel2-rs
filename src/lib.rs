@@ -18,32 +18,25 @@
 //! # Optional features
 //!
 //! You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
+//!
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]
+#![allow(clippy::duplicate_mod)]
 #![cfg_attr(not(feature = "std"), no_std)]
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-#[cfg(feature = "serial2")]
-/// Public re-export of the serial2 crate.
-pub use serial2;
-
 #[macro_use]
 mod log;
 
 pub mod checksum;
-pub mod instructions;
 
-mod client;
-pub use client::*;
+pub mod bus;
 
-mod device;
-pub use device::*;
-
-mod serial_port;
-pub use serial_port::SerialPort;
+pub mod client;
+pub use client::{AsyncClient, Client};
 
 mod error;
 pub use error::*;
@@ -51,4 +44,16 @@ pub use error::*;
 mod response;
 pub use response::*;
 
-pub mod bus;
+pub mod device;
+pub use device::{AsyncDevice, Device};
+
+#[cfg(feature = "serial2")]
+/// Public re-export of the serial2 crate.
+pub use serial2;
+
+#[cfg(feature = "serial2-tokio")]
+/// Public re-export of the serial2 crate.
+pub use serial2_tokio;
+
+mod serial_port;
+pub use serial_port::*;

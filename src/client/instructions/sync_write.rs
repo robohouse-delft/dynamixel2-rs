@@ -1,10 +1,13 @@
-use super::{instruction_id, packet_id, SyncWriteData};
+use super::Client;
 use crate::bus::endian::write_u16_le;
-use crate::{Client, WriteError};
+use crate::bus::{instruction_id, packet_id};
+use crate::client::SyncWriteData;
+use crate::WriteError;
 
+#[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
 where
-	SerialPort: crate::SerialPort,
+	SerialPort: super::SerialPort,
 	Buffer: AsRef<[u8]> + AsMut<[u8]>,
 {
 	/// Synchronously write an arbitrary number of bytes to multiple motors.
@@ -17,10 +20,11 @@ where
 	/// This function panics if that is not the case.
 	///
 	/// # Example
-	/// ```no_run
+	#[cfg_attr(feature = "serial2", doc = "```no_run")]
+	#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 	/// use dynamixel2::Client;
-	/// use dynamixel2::instructions::SyncWriteData;
+	/// use dynamixel2::client::SyncWriteData;
 	/// use std::time::Duration;
 	///
 	/// let mut client = Client::open("/dev/ttyUSB0", 57600)?;
@@ -38,7 +42,7 @@ where
 	/// # Ok(())
 	/// # }
 	/// ```
-	pub fn sync_write_bytes<'a, Iter, Data, Buf>(
+	pub async fn sync_write_bytes<'a, Iter, Data, Buf>(
 		&mut self,
 		address: u16,
 		count: u16,
@@ -66,13 +70,14 @@ where
 			}
 			Ok(())
 		})
+		.await
 	}
 
 	/// Synchronously write a value to multiple motors.
 	///
 	/// Each motor will perform the write as soon as it receives the command.
 	/// This gives much shorter delays than executing a regular [`Self::write`] for each motor individually.
-	pub fn sync_write<Iter, Data, T>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<SerialPort::Error>>
+	pub async fn sync_write<Iter, Data, T>(&mut self, address: u16, data: Iter) -> Result<(), WriteError<SerialPort::Error>>
 	where
 		Iter: IntoIterator<Item = Data>,
 		Iter::IntoIter: ExactSizeIterator,
@@ -95,5 +100,6 @@ where
 			}
 			Ok(())
 		})
+		.await
 	}
 }

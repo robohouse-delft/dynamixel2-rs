@@ -180,7 +180,7 @@ impl MotorId {
 	pub fn raw(self) -> u8 {
 		match self {
 			Self::Id(raw) => raw,
-			Self::Broadcast => dynamixel2::instructions::packet_id::BROADCAST,
+			Self::Broadcast => dynamixel2::bus::packet_id::BROADCAST,
 		}
 	}
 
@@ -202,7 +202,7 @@ impl std::str::FromStr for MotorId {
 		if data.eq_ignore_ascii_case("broadcast") {
 			Ok(Self::Broadcast)
 		} else if let Ok(id) = data.parse() {
-			if id == dynamixel2::instructions::packet_id::BROADCAST {
+			if id == dynamixel2::bus::packet_id::BROADCAST {
 				Ok(Self::Broadcast)
 			} else {
 				Ok(Self::Id(id))

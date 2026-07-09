@@ -1,4 +1,4 @@
-use crate::instructions::packet_id::BROADCAST;
+use crate::bus::packet_id::BROADCAST;
 use core::fmt::{Debug, Display, Formatter, Result as FmtResult};
 
 /// An error that can occur during a read/write transfer.

@@ -1,5 +1,5 @@
 use assert2::let_assert;
-use dynamixel2::Client;
+use dynamixel2::client::Client;
 
 static SERIAL_MUTEX: std::sync::LazyLock<std::sync::Mutex<()>> = std::sync::LazyLock::new(std::sync::Mutex::default);
 const DEFAULT_SERIAL_PATH: &str = "/dev/ttyUSB0";
