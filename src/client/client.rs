@@ -1,8 +1,17 @@
+use core::time::Duration;
+
+use crate::ReadError;
+use crate::TransferError;
+use crate::WriteError;
+use crate::bus::StatusPacket;
+use crate::bus::instruction_id;
 use super::Bus;
 use super::SerialPort;
-use crate::bus::instruction_id;
-use crate::{bus::StatusPacket, ReadError, TransferError, WriteError};
-use core::time::Duration;
+
+/// The default additional time added to the automatically calculated read timeout of a status response.
+///
+/// The official SDK adds a flat 34 milliseconds, so we mimic that.
+const DEFAULT_RESPONSE_TIMEOUT_PADDING: Duration = Duration::from_millis(34);
 
 macro_rules! make_client_struct {
 	($($DefaultSerialPort:ty)?) => {
@@ -24,6 +33,9 @@ macro_rules! make_client_struct {
 			Buffer: AsRef<[u8]> + AsMut<[u8]>,
 		{
 			bus: Bus<Port, Buffer>,
+
+			/// Additional time added to the automatically calculated read timeout of a status response.
+			response_timeout_padding: Duration,
 		}
 	};
 }
@@ -68,7 +80,10 @@ macro_rules! make_serial2_client_impls {
 			pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
 				let serial_port = <$DefaultSerialPort>::open(path, baud_rate)?;
 				let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
-				Ok(Self { bus })
+				Ok(Self {
+					bus,
+					response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+				})
 			}
 		}
 
@@ -87,7 +102,10 @@ macro_rules! make_serial2_client_impls {
 			) -> std::io::Result<Self> {
 				let serial_port = <$DefaultSerialPort>::open(path, baud_rate)?;
 				let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
-				Ok(Self { bus })
+				Ok(Self {
+					bus,
+					response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+				})
 			}
 		}
 	};
@@ -116,7 +134,10 @@ where
 	#[cfg(feature = "alloc")]
 	pub fn new(serial_port: Port) -> Result<Self, Port::Error> {
 		let bus = Bus::with_buffers(serial_port, alloc::vec![0; 128], alloc::vec![0; 128])?;
-		Ok(Self { bus })
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
 	}
 }
 
@@ -132,7 +153,10 @@ where
 	/// character size (8), parity (disabled) and stop bits (1).
 	pub fn with_buffers(serial_port: Port, read_buffer: Buffer, write_buffer: Buffer) -> Result<Self, Port::Error> {
 		let bus = Bus::with_buffers(serial_port, read_buffer, write_buffer)?;
-		Ok(Self { bus })
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
 	}
 
 	/// Get a reference to the underlying serial port.
@@ -161,6 +185,23 @@ where
 	/// Set the baud rate of the underlying serial port.
 	pub fn set_baud_rate(&mut self, baud_rate: u32) -> Result<(), Port::Error> {
 		self.bus.set_baud_rate(baud_rate)
+	}
+
+	/// Get the additional time added to the automatically calculated read timeout of a status response.
+	///
+	/// This padding is added on top of the transfer time computed from the expected response size and baud rate by [`Self::read_status_response`].
+	/// It defaults to 34 milliseconds, mimicking the official SDK.
+	///
+	/// Be aware that reducing this too much could cause unnecessary timeout errors.
+	pub fn response_timeout_padding(&self) -> Duration {
+		self.response_timeout_padding
+	}
+
+	/// Set the additional time added to the automatically calculated read timeout of a status response.
+	///
+	/// See [`Self::response_timeout_padding`] for more details.
+	pub fn set_response_timeout_padding(&mut self, padding: Duration) {
+		self.response_timeout_padding = padding;
 	}
 
 	/// Write a raw instruction to a stream, and read a single raw response.
@@ -227,9 +268,8 @@ where
 	///
 	/// The read timeout is determined by the expected number of response parameters and the baud rate of the bus.
 	pub async fn read_status_response<'a>(&'a mut self, expected_parameters: u16) -> Result<StatusPacket<'a>, ReadError<Port::Error>> {
-		// Official SDK adds a flat 34 milliseconds, so lets just mimick that.
 		let message_size = crate::bus::StatusPacket::message_len(expected_parameters as usize) as u32;
-		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + Duration::from_millis(34);
+		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + self.response_timeout_padding;
 		self.read_status_response_timeout(timeout).await
 	}
 
