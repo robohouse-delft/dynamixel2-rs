@@ -13,12 +13,27 @@
 //! The [`Client`] struct exposes functions for all supported instructions such as [`Client::ping`], [`Client::read`], [`Client::write`] and much more.
 //! Additionally, you can also transmit raw commands using [`Client::write_instruction`] and [`Client::read_status_response`], or [`Client::transfer_single`].
 //!
+//! There is also an [`AsyncClient`] for use with an asynchronous serial port,
+//! and a [`Device`] and [`AsyncDevice`] to implement the device side of the protocol.
+//!
 //! The library currently implements all instructions except for the Control Table Backup, Fast Sync Read and Fast Sync Write instructions.
 //!
 //! # Optional features
 //!
 //! You can enable the `log` feature to have the library use `log::trace!()` to log all sent instructions and received replies.
 //!
+//! # Example
+//!
+//! For example, to ping a motor using the synchronous client:
+//! ```no_run
+//! # fn do_main() -> Result<(), Box<dyn std::error::Error>> {
+//! type Client = dynamixel2::Client<serial2::SerialPort>;
+//! let mut client = Client::open("/dev/ttyUSB0", 115200)?;
+//! let response = client.ping(1)?;
+//! println!("{response:#?}");
+//! # Ok(())
+//! # }
+//! ```
 
 #![warn(missing_docs)]
 #![warn(missing_debug_implementations)]

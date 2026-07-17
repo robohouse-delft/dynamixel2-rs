@@ -98,78 +98,44 @@ where
 	}
 }
 
-macro_rules! make_sync_read_bytes_struct {
-	($($DefaultSerialPort:ty)?) => {
-		/// A sync read operation that returns the unparsed bytes from each motor, one reply at a time.
-		///
-		/// The replies must be fully consumed before the client is used again. The synchronous client is an
-		/// [`Iterator`] and drains any unread replies on drop; the asynchronous client cannot (a [`Drop`] can't
-		/// `.await`), so call [`read_next`](Self::read_next) until it returns [`None`] — dropping it early
-		/// corrupts the next transaction.
-		pub struct SyncReadBytes<'a, T, Port $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
-		where
-			T: ?Sized,
-			Port: SerialPort,
-			Buffer: AsRef<[u8]> + AsMut<[u8]>,
-		{
-			client: &'a mut Client<Port, Buffer>,
-			count: u16,
-			motor_ids: &'a [u8],
-			index: usize,
-			data: PhantomData<fn() -> T>,
-		}
-	}
+/// A sync read operation that returns the unparsed bytes from each motor, one reply at a time.
+///
+/// The replies must be fully consumed before the client is used again. The synchronous client is an
+/// [`Iterator`] and drains any unread replies on drop; the asynchronous client cannot (a [`Drop`] can't
+/// `.await`), so call [`read_next`](Self::read_next) until it returns [`None`] — dropping it early
+/// corrupts the next transaction.
+#[super::bisync]
+pub struct SyncReadBytes<'a, T, Port, Buffer = crate::bus::DefaultBuffer>
+where
+	T: ?Sized,
+	Port: SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	client: &'a mut Client<Port, Buffer>,
+	count: u16,
+	motor_ids: &'a [u8],
+	index: usize,
+	data: PhantomData<fn() -> T>,
 }
 
-#[cfg(feature = "serial2")]
-#[super::only_sync]
-make_sync_read_bytes_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2"))]
-#[super::only_sync]
-make_sync_read_bytes_struct!();
-
-#[cfg(feature = "serial2-tokio")]
-#[super::only_async]
-make_sync_read_bytes_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2-tokio"))]
-#[super::only_async]
-make_sync_read_bytes_struct!();
-
-macro_rules! make_sync_read_struct {
-	($($DefaultSerialPort:ty)?) => {
-		/// A sync read operation that returns the parsed value from each motor, one reply at a time.
-		///
-		/// The replies must be fully consumed before the client is used again. The synchronous client is an
-		/// [`Iterator`] and drains any unread replies on drop; the asynchronous client cannot (a [`Drop`] can't
-		/// `.await`), so call [`read_next`](Self::read_next) until it returns [`None`] — dropping it early
-		/// corrupts the next transaction.
-		pub struct SyncRead<'a, T, Port $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
-		where
-			T: Data,
-			Port: SerialPort,
-			Buffer: AsRef<[u8]> + AsMut<[u8]>,
-		{
-			client: &'a mut Client<Port, Buffer>,
-			motor_ids: &'a [u8],
-			index: usize,
-			data: PhantomData<fn() -> T>,
-		}
-	}
+/// A sync read operation that returns the parsed value from each motor, one reply at a time.
+///
+/// The replies must be fully consumed before the client is used again. The synchronous client is an
+/// [`Iterator`] and drains any unread replies on drop; the asynchronous client cannot (a [`Drop`] can't
+/// `.await`), so call [`read_next`](Self::read_next) until it returns [`None`] — dropping it early
+/// corrupts the next transaction.
+#[super::bisync]
+pub struct SyncRead<'a, T, Port, Buffer = crate::bus::DefaultBuffer>
+where
+	T: Data,
+	Port: SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	client: &'a mut Client<Port, Buffer>,
+	motor_ids: &'a [u8],
+	index: usize,
+	data: PhantomData<fn() -> T>,
 }
-
-#[cfg(feature = "serial2")]
-#[super::only_sync]
-make_sync_read_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2"))]
-#[super::only_sync]
-make_sync_read_struct!();
-
-#[cfg(feature = "serial2-tokio")]
-#[super::only_async]
-make_sync_read_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2-tokio"))]
-#[super::only_async]
-make_sync_read_struct!();
 
 impl<T, Port, Buffer> core::fmt::Debug for SyncReadBytes<'_, T, Port, Buffer>
 where

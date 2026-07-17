@@ -7,20 +7,17 @@ pub(crate) mod asynch {
 	use crate::bus::asynch::Bus;
 	use crate::AsyncSerialPort as SerialPort;
 	use bisync::asynchronous::*;
-	#[cfg(feature = "serial2-tokio")]
-	use serial2_tokio::SerialPort as Serial2Port;
 
 	mod client;
 	pub use client::Client;
 	pub(crate) mod instructions;
 }
+
 #[path = "."]
 pub(crate) mod sync {
 	use crate::bus::sync::Bus;
 	use crate::SerialPort;
 	use bisync::synchronous::*;
-	#[cfg(feature = "serial2")]
-	use serial2::SerialPort as Serial2Port;
 
 	mod client;
 	pub use client::Client;
