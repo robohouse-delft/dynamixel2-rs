@@ -26,6 +26,7 @@
 //!
 //! For example, to ping a motor using the synchronous client:
 //! ```no_run
+//! # #[cfg(feature = "serial2")]
 //! # fn do_main() -> Result<(), Box<dyn std::error::Error>> {
 //! type Client = dynamixel2::Client<serial2::SerialPort>;
 //! let mut client = Client::open("/dev/ttyUSB0", 115200)?;

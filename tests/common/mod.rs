@@ -1,3 +1,5 @@
+#![cfg(feature = "std")]
+
 pub mod mock;
 // The real-hardware harness uses the synchronous `serial2` backend directly.
 #[cfg(feature = "serial2")]

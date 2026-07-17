@@ -7,6 +7,7 @@ pub(crate) mod asynch {
 	mod bus;
 	pub(crate) use bus::Bus;
 }
+
 #[path = "."]
 pub(crate) mod sync {
 	use crate::SerialPort;
@@ -257,16 +258,23 @@ mod test {
 
 	#[test]
 	fn test_buffer_too_small() {
+		use crate::SerialPort;
+
 		let read_buffer = crate::static_buffer!(128);
 		let write_buffer = crate::static_buffer!(128);
 
 		// Dummy serial port used to feed packages
 		// It does not support writing them etc.
-		struct DummySerial {}
+		struct DummySerial;
+
+		#[derive(Debug)]
+		struct Error;
+		#[derive(Debug, Copy, Clone)]
+		struct Instant;
 
 		impl crate::SerialPort for DummySerial {
-			type Error = std::io::Error;
-			type Instant = std::time::Instant;
+			type Error = Error;
+			type Instant = Instant;
 
 			fn baud_rate(&self) -> Result<u32, Self::Error> {
 				Ok(115_200)
@@ -306,7 +314,7 @@ mod test {
 			}
 
 			fn make_deadline(&self, _timeout: core::time::Duration) -> Self::Instant {
-				std::time::Instant::now() + _timeout
+				Instant
 			}
 
 			fn is_timeout_error(_error: &Self::Error) -> bool {
@@ -315,10 +323,10 @@ mod test {
 		}
 
 		// Setup the bus with a dummy serial interface
-		let mut bus = sync::Bus::with_buffers(DummySerial {}, read_buffer, write_buffer).unwrap();
+		let mut bus = sync::Bus::with_buffers(DummySerial, read_buffer, write_buffer).unwrap();
 
 		// Read the corrupt package
-		let deadline = std::time::Instant::now() + Duration::from_secs(1);
+		let deadline = bus.serial_port.make_deadline(Duration::from_secs(1));
 		let result = bus.read_packet_deadline(deadline);
 		assert!(matches!(result.unwrap_err(), crate::ReadError::BufferFull(_)));
 
