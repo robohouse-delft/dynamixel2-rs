@@ -90,8 +90,8 @@ pub type DefaultBuffer = &'static mut [u8];
 /// The macro is usable as expression in const context.
 ///
 /// # Usage:
-#[cfg_attr(feature = "serial2", doc = "```no_run")]
-#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
+/// ```no_run
+/// # #[cfg(feature = "serial2")]
 /// # fn main() -> Result<(), std::io::Error> {
 /// # let serial_port = serial2::SerialPort::open("/dev/null", 57600)?;
 /// use dynamixel2::{Client, static_buffer};
