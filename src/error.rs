@@ -508,7 +508,7 @@ impl Display for InvalidMessage {
 
 impl Display for MotorError {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
-		write!(f, "motor reported error status: {:#02X}", self.raw,)
+		write!(f, "motor reported error status: 0x{:02X}", self.raw,)
 	}
 }
 
@@ -526,7 +526,7 @@ impl Display for InvalidChecksum {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(
 			f,
-			"invalid checksum, message claims {:#02X}, computed {:#02X}",
+			"invalid checksum, message claims 0x{:02X}, computed 0x{:02X}",
 			self.message, self.computed
 		)
 	}
@@ -535,9 +535,9 @@ impl Display for InvalidChecksum {
 impl Display for InvalidPacketId {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		if let Some(expected) = self.expected {
-			write!(f, "invalid packet ID, expected {:#02X}, got {:#02X}", expected, self.actual)
+			write!(f, "invalid packet ID, expected 0x{:02X}, got 0x{:02X}", expected, self.actual)
 		} else {
-			write!(f, "invalid packet ID: {:#02X}", self.actual)
+			write!(f, "invalid packet ID: 0x{:02X}", self.actual)
 		}
 	}
 }
