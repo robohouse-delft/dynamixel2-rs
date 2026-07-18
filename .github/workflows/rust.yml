@@ -31,10 +31,7 @@ jobs:
       - name: Build
         run: cargo build --workspace --color always --all-targets ${{ matrix.features }}
       - name: Clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --workspace --all-targets ${{ matrix.features }}
+        run: cargo clippy --workspace --all-targets ${{ matrix.features }}
       - name: Test
         env:
           MOCK_SERIAL_EXTRA_TIMEOUT_MS: 1000
