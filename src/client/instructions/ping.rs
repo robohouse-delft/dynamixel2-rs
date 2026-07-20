@@ -29,38 +29,21 @@ where
 	}
 }
 
-macro_rules! make_scan_struct {
-	($($DefaultSerialPort:ty)?) => {
-		/// A scan operation that yields a [`Response`] for each motor that replies to the broadcast ping.
-		///
-		/// Scanning ends when no further reply arrives within the timeout. The replies must be fully consumed
-		/// before the client is used again. The synchronous client is an [`Iterator`] and drains any unread
-		/// replies on drop; the asynchronous client cannot (a [`Drop`] can't `.await`), so call
-		/// [`scan_next`](Self::scan_next) until it returns [`None`] — dropping it early corrupts the next
-		/// transaction.
-		pub struct Scan<'a, Port $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
-		where
-			Port: SerialPort,
-			Buffer: AsRef<[u8]> + AsMut<[u8]>,
-		{
-			client: &'a mut Client<Port, Buffer>,
-		}
-	}
+/// A scan operation that yields a [`Response`] for each motor that replies to the broadcast ping.
+///
+/// Scanning ends when no further reply arrives within the timeout. The replies must be fully consumed
+/// before the client is used again. The synchronous client is an [`Iterator`] and drains any unread
+/// replies on drop; the asynchronous client cannot (a [`Drop`] can't `.await`), so call
+/// [`scan_next`](Self::scan_next) until it returns [`None`] — dropping it early corrupts the next
+/// transaction.
+#[super::bisync]
+pub struct Scan<'a, Port, Buffer = crate::bus::DefaultBuffer>
+where
+	Port: SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	client: &'a mut Client<Port, Buffer>,
 }
-
-#[cfg(feature = "serial2")]
-#[super::only_sync]
-make_scan_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2"))]
-#[super::only_sync]
-make_scan_struct!();
-
-#[cfg(feature = "serial2-tokio")]
-#[super::only_async]
-make_scan_struct!(super::super::Serial2Port);
-#[cfg(not(feature = "serial2-tokio"))]
-#[super::only_async]
-make_scan_struct!();
 
 impl<Port, Buffer> core::fmt::Debug for Scan<'_, Port, Buffer>
 where

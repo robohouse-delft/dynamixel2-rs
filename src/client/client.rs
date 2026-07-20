@@ -13,46 +13,28 @@ use super::SerialPort;
 /// The official SDK adds a flat 34 milliseconds, so we mimic that.
 const DEFAULT_RESPONSE_TIMEOUT_PADDING: Duration = Duration::from_millis(34);
 
-macro_rules! make_client_struct {
-	($($DefaultSerialPort:ty)?) => {
-		/// Client for the Dynamixel Protocol 2 communication.
-		///
-		/// Used to interact with devices on the bus.
-		///
-		/// If a serial port backend is enabled, the `Port` generic type argument defaults to that backend's
-		/// serial port type: `serial2::SerialPort` with the `"serial2"` feature, or `serial2_tokio::SerialPort`
-		/// (for the asynchronous client) with the `"serial2-tokio"` feature.
-		/// If neither is enabled, the `Port` argument must always be specified.
-		///
-		/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
-		/// and to `&'static mut [u8]` otherwise.
-		/// See the [`crate::static_buffer!()`] macro for a way to safely create a mutable static buffer.
-		pub struct Client<Port $(= $DefaultSerialPort)?, Buffer = crate::bus::DefaultBuffer>
-		where
-			Port: SerialPort,
-			Buffer: AsRef<[u8]> + AsMut<[u8]>,
-		{
-			bus: Bus<Port, Buffer>,
+/// Client for the Dynamixel Protocol 2 communication.
+///
+/// Used to interact with devices on the bus.
+///
+/// If a serial port backend is enabled, the `Port` generic type argument defaults to that backend's
+/// serial port type: `serial2::SerialPort` with the `"serial2"` feature, or `serial2_tokio::SerialPort`
+/// (for the asynchronous client) with the `"serial2-tokio"` feature.
+/// If neither is enabled, the `Port` argument must always be specified.
+///
+/// The `Buffer` generic type argument defaults to `Vec<u8>` if the `"alloc"` feature is enabled,
+/// and to `&'static mut [u8]` otherwise.
+/// See the [`crate::static_buffer!()`] macro for a way to safely create a mutable static buffer.
+pub struct Client<Port, Buffer = crate::bus::DefaultBuffer>
+where
+	Port: SerialPort,
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	bus: Bus<Port, Buffer>,
 
-			/// Additional time added to the automatically calculated read timeout of a status response.
-			response_timeout_padding: Duration,
-		}
-	};
+	/// Additional time added to the automatically calculated read timeout of a status response.
+	response_timeout_padding: Duration,
 }
-
-#[cfg(feature = "serial2")]
-#[super::only_sync]
-make_client_struct!(super::Serial2Port);
-#[cfg(not(feature = "serial2"))]
-#[super::only_sync]
-make_client_struct!();
-
-#[cfg(feature = "serial2-tokio")]
-#[super::only_async]
-make_client_struct!(super::Serial2Port);
-#[cfg(not(feature = "serial2-tokio"))]
-#[super::only_async]
-make_client_struct!();
 
 impl<Port, Buffer> core::fmt::Debug for Client<Port, Buffer>
 where
@@ -67,57 +49,87 @@ where
 	}
 }
 
-// Only invoked for whichever of the sync/async variants has its serial port backend enabled,
-// so it is legitimately unused in the other variant's compilation.
-#[allow(unused_macros)]
-macro_rules! make_serial2_client_impls {
-	($DefaultSerialPort:ty) => {
-		impl Client<$DefaultSerialPort, Vec<u8>> {
-			/// Open a serial port with the given baud rate.
-			///
-			/// This will allocate a new read and write buffer of 128 bytes each.
-			/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
-			pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
-				let serial_port = <$DefaultSerialPort>::open(path, baud_rate)?;
-				let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
-				Ok(Self {
-					bus,
-					response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
-				})
-			}
-		}
-
-		impl<Buffer> Client<$DefaultSerialPort, Buffer>
-		where
-			Buffer: AsRef<[u8]> + AsMut<[u8]>,
-		{
-			/// Open a serial port with the given baud rate.
-			///
-			/// This will allocate a new read and write buffer of 128 bytes each.
-			pub fn open_with_buffers(
-				path: impl AsRef<std::path::Path>,
-				baud_rate: u32,
-				read_buffer: Buffer,
-				write_buffer: Buffer,
-			) -> std::io::Result<Self> {
-				let serial_port = <$DefaultSerialPort>::open(path, baud_rate)?;
-				let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
-				Ok(Self {
-					bus,
-					response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
-				})
-			}
-		}
-	};
+#[cfg(feature = "serial2")]
+#[super::only_sync]
+impl Client<serial2::SerialPort, Vec<u8>> {
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
+	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
+		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
+	}
 }
 
 #[cfg(feature = "serial2")]
 #[super::only_sync]
-make_serial2_client_impls!(super::Serial2Port);
+impl<Buffer> Client<serial2::SerialPort, Buffer>
+where
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	pub fn open_with_buffers(
+		path: impl AsRef<std::path::Path>,
+		baud_rate: u32,
+		read_buffer: Buffer,
+		write_buffer: Buffer,
+	) -> std::io::Result<Self> {
+		let serial_port = serial2::SerialPort::open(path, baud_rate)?;
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
+	}
+}
 
 #[cfg(feature = "serial2-tokio")]
 #[super::only_async]
-make_serial2_client_impls!(super::Serial2Port);
+impl Client<serial2_tokio::SerialPort, Vec<u8>> {
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	/// Use [`Self::open_with_buffers()`] if you want to use a custom buffers.
+	pub fn open(path: impl AsRef<std::path::Path>, baud_rate: u32) -> std::io::Result<Self> {
+		let serial_port = serial2_tokio::SerialPort::open(path, baud_rate)?;
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, vec![0; 128], vec![0; 128], baud_rate);
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
+	}
+}
+
+#[cfg(feature = "serial2-tokio")]
+#[super::only_async]
+impl<Buffer> Client<serial2_tokio::SerialPort, Buffer>
+where
+	Buffer: AsRef<[u8]> + AsMut<[u8]>,
+{
+	/// Open a serial port with the given baud rate.
+	///
+	/// This will allocate a new read and write buffer of 128 bytes each.
+	pub fn open_with_buffers(
+		path: impl AsRef<std::path::Path>,
+		baud_rate: u32,
+		read_buffer: Buffer,
+		write_buffer: Buffer,
+	) -> std::io::Result<Self> {
+		let serial_port = serial2_tokio::SerialPort::open(path, baud_rate)?;
+		let bus = Bus::with_buffers_and_baud_rate(serial_port, read_buffer, write_buffer, baud_rate);
+		Ok(Self {
+			bus,
+			response_timeout_padding: DEFAULT_RESPONSE_TIMEOUT_PADDING,
+		})
+	}
+}
 
 #[cfg(feature = "alloc")]
 impl<Port> Client<Port, alloc::vec::Vec<u8>>

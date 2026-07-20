@@ -86,9 +86,12 @@ pub fn stuff_inplace(buffer: &mut [u8], len: usize) -> Result<usize, BufferTooSm
 }
 
 #[cfg(test)]
+#[cfg(feature = "alloc")]
 mod test {
 	use super::*;
 	use assert2::assert;
+	use alloc::vec;
+	use alloc::vec::Vec;
 
 	fn unstuff(mut data: Vec<u8>) -> Vec<u8> {
 		let new_size = unstuff_inplace(&mut data);

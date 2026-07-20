@@ -1,3 +1,5 @@
+#![cfg(feature = "std")]
+
 use assert2::{assert, let_assert};
 use dynamixel2::client::{BulkReadData, SyncWriteData};
 use test_log::test;

@@ -6,6 +6,8 @@ mod options;
 
 use options::{Command, MotorId, Options};
 
+type Client = dynamixel2::Client<serial2::SerialPort>;
+
 fn main() {
 	if let Err(()) = do_main(clap::Parser::parse()) {
 		std::process::exit(1);
@@ -178,8 +180,8 @@ fn do_main(options: Options) -> Result<(), ()> {
 	Ok(())
 }
 
-fn open_client(options: &Options) -> Result<dynamixel2::client::Client, ()> {
-	let client = dynamixel2::client::Client::open(&options.serial_port, options.baud_rate)
+fn open_client(options: &Options) -> Result<Client, ()> {
+	let client = Client::open(&options.serial_port, options.baud_rate)
 		.map_err(|e| log::error!("Failed to open serial port: {}: {}", options.serial_port.display(), e))?;
 	log::debug!(
 		"Using serial port {} with baud rate {}",

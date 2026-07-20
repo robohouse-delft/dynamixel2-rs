@@ -1,3 +1,5 @@
+#![cfg(feature = "std")]
+
 use dynamixel2::{client::Client, device::Device};
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;

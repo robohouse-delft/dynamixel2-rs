@@ -25,8 +25,8 @@ where
 	/// This function also panics if the data length for a motor exceeds the capacity of a `u16`.
 	///
 	/// # Example
-	#[cfg_attr(feature = "serial2", doc = "```no_run")]
-	#[cfg_attr(not(feature = "serial2"), doc = "```ignore")]
+	/// ```no_run
+	/// # #[cfg(feature = "serial2")]
 	/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 	/// use dynamixel2::client::BulkWriteData;
 	/// use std::time::Duration;
