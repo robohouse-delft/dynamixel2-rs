@@ -7,7 +7,7 @@ use super::Client;
 use crate::bus::data::Data;
 use crate::bus::endian::write_u16_le;
 use crate::bus::{instruction_id, packet_id};
-use crate::{MotorError, ReadError, Response, TransferError};
+use crate::{MissingResponse, MotorError, ReadError, Response, TransferError};
 
 #[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
@@ -19,11 +19,13 @@ where
 	///
 	/// Like [`Self::sync_read`], the fast sync read instruction reads the same number of bytes from the same
 	/// address from multiple motors. Unlike the regular sync read, all motors reply with a single status packet.
-	/// This reduces the communication overhead, at the cost of losing the entire response if a single motor
-	/// fails to reply.
+	/// This reduces the communication overhead.
 	///
 	/// The returned [`FastSyncRead`] is an iterator that yields the [`Response`] of each motor,
 	/// in the same order as `motor_ids`.
+	///
+	/// If a motor fails to reply, the replies of the motors before it are still yielded, and the iterator
+	/// then yields a [`MissingResponse`] error naming the first motor that did not respond.
 	///
 	/// # Panics
 	/// A status packet can hold at most a `u16` worth of parameters.
@@ -54,13 +56,17 @@ where
 		let expected_parameters = (u32::from(count) + 4) * motor_ids.len() as u32;
 		let expected_parameters = u16::try_from(expected_parameters)
 			.expect("fast_sync_read: the requested response is larger than a single status packet can hold");
-		let response = self.read_status_response(expected_parameters, false).await?;
+		let motor_count = motor_ids.len();
+		let response = self
+			.read_fast_read_response(expected_parameters, |i| (i < motor_count).then_some(usize::from(count)))
+			.await?;
 		crate::InvalidPacketId::check(response.packet_id(), packet_id::BROADCAST)?;
 
 		Ok(FastSyncRead {
 			parameters: response.error_and_parameters(),
 			count,
-			remaining: motor_ids.len(),
+			motor_ids,
+			index: 0,
 			data: PhantomData,
 		})
 	}
@@ -141,13 +147,17 @@ where
 		let expected_parameters = (u32::from(count) + 4) * motor_ids.len() as u32;
 		let expected_parameters = u16::try_from(expected_parameters)
 			.expect("fast_sync_read: the requested response is larger than a single status packet can hold");
-		let response = self.read_status_response(expected_parameters, false).await?;
+		let motor_count = motor_ids.len();
+		let response = self
+			.read_fast_read_response(expected_parameters, |i| (i < motor_count).then_some(usize::from(count)))
+			.await?;
 		crate::InvalidPacketId::check(response.packet_id(), packet_id::BROADCAST)?;
 
 		Ok(FastSyncReadBytes {
 			parameters: response.error_and_parameters(),
 			count,
-			remaining: motor_ids.len(),
+			motor_ids,
+			index: 0,
 			data: PhantomData,
 		})
 	}
@@ -165,8 +175,11 @@ pub struct FastSyncRead<'a, T, E> {
 	/// The number of data bytes in each motor block.
 	count: u16,
 
-	/// The number of motor replies that have not been yielded yet.
-	remaining: usize,
+	/// The IDs of the motors that were addressed, in reply order.
+	motor_ids: &'a [u8],
+
+	/// The index of the next motor reply to yield.
+	index: usize,
 
 	data: PhantomData<fn() -> (T, E)>,
 }
@@ -175,9 +188,17 @@ impl<T, E> core::fmt::Debug for FastSyncRead<'_, T, E> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("FastSyncRead")
 			.field("count", &self.count)
-			.field("remaining", &self.remaining)
+			.field("motor_ids", &self.motor_ids)
+			.field("index", &self.index)
 			.field("data", &format_args!("{}", core::any::type_name::<T>()))
 			.finish()
+	}
+}
+
+impl<T, E> FastSyncRead<'_, T, E> {
+	/// The number of motor replies that have not been yielded yet.
+	pub fn remaining(&self) -> usize {
+		self.motor_ids.len() - self.index
 	}
 }
 
@@ -185,34 +206,52 @@ impl<T: Data, E> Iterator for FastSyncRead<'_, T, E> {
 	type Item = Result<Response<T>, ReadError<E>>;
 
 	fn next(&mut self) -> Option<Self::Item> {
-		if self.remaining == 0 {
-			return None;
-		}
-
-		// Split off one motor block: error (1) + motor ID (1) + data (`count`).
-		let block_len = 2 + usize::from(self.count);
-		let Some((block, rest)) = self.parameters.split_at_checked(block_len) else {
-			// The response is shorter than `motor_ids` implies: a motor block is missing or truncated.
-			// Surface an error instead of silently ending iteration with motors unaccounted for.
-			self.remaining = 0;
-			return Some(Err(crate::InvalidParameterCount {
-				actual: self.parameters.len(),
-				expected: crate::ExpectedCount::Min(block_len),
-			}
-			.into()));
+		let block = match split_motor_block(&mut self.parameters, self.motor_ids, &mut self.index, usize::from(self.count))? {
+			Ok(block) => block,
+			Err(e) => return Some(Err(e)),
 		};
-
-		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
-		// stripped while reading the packet, so it may be absent for the last block.
-		self.parameters = rest.get(2..).unwrap_or(&[]);
-		self.remaining -= 1;
-
 		Some(parse_motor_block(block))
 	}
 
 	fn size_hint(&self) -> (usize, Option<usize>) {
-		(0, Some(self.remaining))
+		(0, Some(self.remaining()))
 	}
+}
+
+/// Split the next `error + motor ID + data` block off the front of a fast sync read response.
+///
+/// Advances `index` and trims `parameters`. Returns [`None`] once every motor has been accounted for. If the
+/// expected block is missing (the response ran out early) or the block belongs to a different motor than
+/// expected, the culprit is reported as a [`MissingResponse`] and iteration is ended.
+fn split_motor_block<'a, E>(
+	parameters: &mut &'a [u8],
+	motor_ids: &[u8],
+	index: &mut usize,
+	count: usize,
+) -> Option<Result<&'a [u8], ReadError<E>>> {
+	let motor_id = *motor_ids.get(*index)?;
+	*index += 1;
+
+	// Split off one motor block: error (1) + motor ID (1) + data (`count`).
+	let block_len = 2 + count;
+	let Some((block, rest)) = parameters.split_at_checked(block_len) else {
+		// The response is shorter than `motor_ids` implies: this motor's block never arrived.
+		*index = motor_ids.len();
+		return Some(Err(MissingResponse { motor_id }.into()));
+	};
+
+	// A block is present but belongs to a different motor: an earlier motor's reply is missing and the
+	// stream has desynced. Report the expected motor as missing rather than mislabelling later data.
+	if block[1] != motor_id {
+		*index = motor_ids.len();
+		return Some(Err(MissingResponse { motor_id }.into()));
+	}
+
+	// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
+	// stripped while reading the packet, so it may be absent for the last block.
+	*parameters = rest.get(2..).unwrap_or(&[]);
+
+	Some(Ok(block))
 }
 
 /// Parse a single `error + motor ID + data` block from a fast sync read response.
@@ -238,8 +277,11 @@ pub struct FastSyncReadBytes<'a, T: ?Sized, E> {
 	/// The number of data bytes in each motor block.
 	count: u16,
 
-	/// The number of motor replies that have not been yielded yet.
-	remaining: usize,
+	/// The IDs of the motors that were addressed, in reply order.
+	motor_ids: &'a [u8],
+
+	/// The index of the next motor reply to yield.
+	index: usize,
 
 	data: PhantomData<fn(&T) -> E>,
 }
@@ -248,7 +290,8 @@ impl<T: ?Sized, E> core::fmt::Debug for FastSyncReadBytes<'_, T, E> {
 	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		f.debug_struct("FastSyncReadBytes")
 			.field("count", &self.count)
-			.field("remaining", &self.remaining)
+			.field("motor_ids", &self.motor_ids)
+			.field("index", &self.index)
 			.field("data", &format_args!("{}", core::any::type_name::<T>()))
 			.finish()
 	}
@@ -257,34 +300,12 @@ impl<T: ?Sized, E> core::fmt::Debug for FastSyncReadBytes<'_, T, E> {
 impl<'a, T: ?Sized, E> FastSyncReadBytes<'a, T, E> {
 	/// The number of motor replies that have not been yielded yet.
 	pub fn remaining(&self) -> usize {
-		self.remaining
+		self.motor_ids.len() - self.index
 	}
 
 	/// Split the next `error + motor ID + data` block off the front of the buffer, advancing the state.
 	fn next_block(&mut self) -> Option<Result<&'a [u8], ReadError<E>>> {
-		if self.remaining == 0 {
-			return None;
-		}
-
-		// Each motor block is: error (1) + motor ID (1) + data (`count`).
-		let block_len = 2 + usize::from(self.count);
-		let Some((block, rest)) = self.parameters.split_at_checked(block_len) else {
-			// The response is shorter than `motor_ids` implies: a motor block is missing or truncated.
-			// Surface an error instead of silently ending iteration with motors unaccounted for.
-			self.remaining = 0;
-			return Some(Err(crate::InvalidParameterCount {
-				actual: self.parameters.len(),
-				expected: crate::ExpectedCount::Min(block_len),
-			}
-			.into()));
-		};
-
-		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
-		// stripped while reading the packet, so it may be absent for the last block.
-		self.parameters = rest.get(2..).unwrap_or(&[]);
-		self.remaining -= 1;
-
-		Some(Ok(block))
+		split_motor_block(&mut self.parameters, self.motor_ids, &mut self.index, usize::from(self.count))
 	}
 
 	/// Read the next motor reply, or [`None`] once every motor has been yielded.
@@ -321,7 +342,7 @@ where
 	}
 
 	fn size_hint(&self) -> (usize, Option<usize>) {
-		(0, Some(self.remaining))
+		(0, Some(self.remaining()))
 	}
 }
 
@@ -346,27 +367,29 @@ where
 #[super::only_sync]
 mod test {
 	use super::{FastSyncRead, FastSyncReadBytes};
-	use crate::{InvalidMessage, ReadError, Response};
+	use crate::{InvalidMessage, MissingResponse, ReadError, Response};
 	use assert2::{assert, let_assert};
 	use core::convert::Infallible;
 	use core::marker::PhantomData;
 
 	/// Build a `FastSyncRead` directly from a raw parameter buffer (the region starting at the first error byte).
-	fn fast_sync_read<T>(parameters: &[u8], count: u16, motors: usize) -> FastSyncRead<'_, T, Infallible> {
+	fn fast_sync_read<'a, T>(parameters: &'a [u8], count: u16, motor_ids: &'a [u8]) -> FastSyncRead<'a, T, Infallible> {
 		FastSyncRead {
 			parameters,
 			count,
-			remaining: motors,
+			motor_ids,
+			index: 0,
 			data: PhantomData,
 		}
 	}
 
 	/// Build a `FastSyncReadBytes` directly from a raw parameter buffer (the region starting at the first error byte).
-	fn fast_sync_read_bytes<T: ?Sized>(parameters: &[u8], count: u16, motors: usize) -> FastSyncReadBytes<'_, T, Infallible> {
+	fn fast_sync_read_bytes<'a, T: ?Sized>(parameters: &'a [u8], count: u16, motor_ids: &'a [u8]) -> FastSyncReadBytes<'a, T, Infallible> {
 		FastSyncReadBytes {
 			parameters,
 			count,
-			remaining: motors,
+			motor_ids,
+			index: 0,
 			data: PhantomData,
 		}
 	}
@@ -377,7 +400,7 @@ mod test {
 			0x00, 0x01, 0x34, 0x12, 0xAA, 0xBB, // motor 1: bytes [0x34, 0x12] + skipped CRC.
 			0x00, 0x02, 0x78, 0x56, // motor 2: bytes [0x78, 0x56], CRC stripped as the packet CRC.
 		];
-		let mut iter = fast_sync_read_bytes::<[u8]>(&parameters, 2, 2);
+		let mut iter = fast_sync_read_bytes::<[u8]>(&parameters, 2, &[1, 2]);
 
 		let_assert!(Some(Ok(response)) = iter.read_next_borrow());
 		assert!(response.motor_id == 1);
@@ -398,7 +421,7 @@ mod test {
 			0x00, 0x01, 0x34, 0x12, 0xAA, 0xBB, // motor 1: 0x1234, with a (skipped) CRC.
 			0x00, 0x02, 0x78, 0x56, // motor 2: 0x5678, CRC stripped as the packet CRC.
 		];
-		let mut iter = fast_sync_read::<u16>(&parameters, 2, 2);
+		let mut iter = fast_sync_read::<u16>(&parameters, 2, &[1, 2]);
 
 		let_assert!(Some(Ok(response)) = iter.next());
 		assert!(
@@ -430,7 +453,7 @@ mod test {
 			0x81, 0x01, 0x00, 0x00, 0xAA, 0xBB, // error 0x01 + alert bit (0x80).
 			0x00, 0x02, 0x07, 0x00,
 		];
-		let mut iter = fast_sync_read::<u16>(&parameters, 2, 2);
+		let mut iter = fast_sync_read::<u16>(&parameters, 2, &[1, 2]);
 
 		let_assert!(Some(Err(ReadError::MotorError(error))) = iter.next());
 		assert!(error.error_number() == 0x01);
@@ -448,14 +471,23 @@ mod test {
 	}
 
 	#[test]
-	fn errors_on_truncated_response() {
-		// Two motors expected, but the buffer only holds one complete block: the second motor is missing.
-		let parameters = [0x00, 0x01, 0x34, 0x12];
-		let mut iter = fast_sync_read::<u16>(&parameters, 2, 2);
+	fn recovers_leading_motors_and_names_missing_one() {
+		// Three motors expected, but the buffer only holds the first two complete blocks: motor 3 is missing.
+		let parameters = [
+			0x00, 0x01, 0x34, 0x12, 0xAA, 0xBB, // motor 1: 0x1234, with a (skipped) CRC.
+			0x00, 0x02, 0x78, 0x56, // motor 2: 0x5678, its CRC coincides with the (stripped) packet CRC.
+		];
+		let mut iter = fast_sync_read::<u16>(&parameters, 2, &[1, 2, 3]);
 
-		let_assert!(Some(Ok(_)) = iter.next());
-		// The missing motor surfaces as an error rather than a silent end of iteration.
-		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::InvalidParameterCount(_)))) = iter.next());
+		// The motors that did reply are yielded first.
+		let_assert!(Some(Ok(response)) = iter.next());
+		assert!(response.motor_id == 1 && response.data == 0x1234);
+		let_assert!(Some(Ok(response)) = iter.next());
+		assert!(response.motor_id == 2 && response.data == 0x5678);
+
+		// The missing motor is named rather than silently ending iteration.
+		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::MissingResponse(MissingResponse { motor_id })))) = iter.next());
+		assert!(motor_id == 3);
 		assert!(let None = iter.next());
 	}
 }

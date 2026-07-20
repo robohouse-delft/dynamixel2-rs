@@ -156,6 +156,43 @@ where
 
 	/// Read a raw packet from the bus with the given deadline.
 	pub async fn read_packet_deadline(&mut self, deadline: Port::Instant) -> Result<Packet<'_>, ReadError<Port::Error>> {
+		// A regular read expects the whole packet: a read timeout is a genuine failure, never salvaged.
+		self.read_packet_deadline_inner(deadline, |_| None).await
+	}
+
+	/// Read a fast sync/bulk read status response, tolerating a missing motor reply.
+	///
+	/// Fast reads combine every motor's reply into a single status packet. When a motor does not reply, its
+	/// block is absent and the packet arrives shorter than its length field promises, so [`Self::read_packet_deadline`]
+	/// would wait for bytes that never come and time out, discarding the blocks that *did* arrive.
+	///
+	/// This variant salvages those blocks instead: on a read timeout it trims the response to the end of the last
+	/// complete motor block and validates that block's CRC. Because each block's CRC is computed over the whole
+	/// packet up to and including that block, a single check confirms every preceding block at once.
+	///
+	/// `block_data_len(index)` returns the number of data bytes in the block of the `index`-th addressed motor,
+	/// or [`None`] once past the last motor. Each block on the wire is `error (1) + motor ID (1) + data (n) + CRC (2)`.
+	///
+	/// At least one complete block must be recovered; otherwise the timeout is propagated unchanged.
+	pub async fn read_fast_read_response_deadline(
+		&mut self,
+		deadline: Port::Instant,
+		mut block_data_len: impl FnMut(usize) -> Option<usize>,
+	) -> Result<Packet<'_>, ReadError<Port::Error>> {
+		self.read_packet_deadline_inner(deadline, |read_len| salvaged_message_len(read_len, &mut block_data_len))
+			.await
+	}
+
+	/// Read a raw packet from the bus with the given deadline, deciding how to react to a read timeout.
+	///
+	/// `salvage_on_timeout` is called with the number of bytes received so far when a read times out. It returns
+	/// `Some(len)` to accept the first `len` bytes as a (short) message, or `None` to propagate the timeout.
+	/// A regular read passes `|_| None`; a fast read passes [`salvaged_message_len`] to recover complete blocks.
+	async fn read_packet_deadline_inner(
+		&mut self,
+		deadline: Port::Instant,
+		mut salvage_on_timeout: impl FnMut(usize) -> Option<usize>,
+	) -> Result<Packet<'_>, ReadError<Port::Error>> {
 		// Check that the read buffer is large enough to hold atleast a instruction packet with 0 parameters.
 		crate::error::BufferTooSmallError::check(HEADER_SIZE + 3, self.read_buffer.as_mut().len())?;
 
@@ -179,13 +216,19 @@ where
 			}
 
 			// Try to read more data into the buffer.
-			let new_data = self
+			// On a timeout, `salvage_on_timeout` decides whether to accept a short message or propagate the error.
+			match self
 				.serial_port
 				.read(&mut self.read_buffer.as_mut()[self.read_len..], &deadline)
 				.await
-				.map_err(ReadError::Io)?;
-
-			self.read_len += new_data;
+			{
+				Ok(new_data) => self.read_len += new_data,
+				Err(e) if Port::is_timeout_error(&e) => match salvage_on_timeout(self.read_len) {
+					Some(len) => break len,
+					None => return Err(ReadError::Io(e)),
+				},
+				Err(e) => return Err(ReadError::Io(e)),
+			}
 		};
 
 		let buffer = self.read_buffer.as_mut();
@@ -246,4 +289,30 @@ where
 		self.used_bytes = self.used_bytes.saturating_sub(len);
 		self.read_len -= len;
 	}
+}
+
+/// Length of the largest prefix of a fast-read response (within `read_len` received bytes) that ends on a
+/// complete motor block.
+///
+/// Walks the addressed motors in order, summing the wire size of each block, and returns the buffer offset
+/// just past the last block that fits entirely within the received bytes. Returns [`None`] if not even one
+/// complete block was received.
+///
+/// `block_data_len(index)` returns the number of data bytes in the block of the `index`-th addressed motor,
+/// or [`None`] once past the last motor.
+///
+/// The block boundaries are computed as if no byte-stuffing occurred. If stuffing did shift the layout, the
+/// trimmed length lands on the wrong byte and the subsequent CRC check fails, so no incorrect data is returned.
+fn salvaged_message_len(read_len: usize, block_data_len: impl FnMut(usize) -> Option<usize>) -> Option<usize> {
+	// Walk the addressed motors, accumulating the end offset of each block. Each block on the wire is
+	// error (1) + motor ID (1) + data (count) + CRC (2), and the first block's error byte follows the header
+	// and the STATUS instruction byte. Keep only the blocks that fit entirely, and return the last one's end.
+	(0usize..)
+		.map_while(block_data_len)
+		.scan(HEADER_SIZE + 1, |offset, count| {
+			*offset += 2 + count + 2;
+			Some(*offset)
+		})
+		.take_while(|&block_end| block_end <= read_len)
+		.last()
 }

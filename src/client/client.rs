@@ -301,6 +301,34 @@ where
 		self.read_status_response_timeout(timeout, check_error).await
 	}
 
+	/// Read the combined status response of a fast sync/bulk read, tolerating a missing motor reply.
+	///
+	/// Unlike [`Self::read_status_response`], a missing motor block does not discard the whole response: the
+	/// complete blocks that arrived are recovered and returned, and the parser identifies the first motor that
+	/// did not reply while iterating. The per-motor error fields are *not* checked here (that happens per motor
+	/// while iterating), matching `check_error == false`.
+	///
+	/// `block_data_len(index)` returns the number of data bytes in the block of the `index`-th addressed motor,
+	/// or [`None`] once past the last motor. `expected_parameters` is used only to size the read timeout.
+	pub async fn read_fast_read_response<'a>(
+		&'a mut self,
+		expected_parameters: u16,
+		block_data_len: impl FnMut(usize) -> Option<usize>,
+	) -> Result<StatusPacket<'a>, ReadError<Port::Error>> {
+		let message_size = crate::bus::StatusPacket::message_len(expected_parameters as usize) as u32;
+		let timeout = crate::bus::message_transfer_time(message_size, self.bus.baud_rate) + self.response_timeout_padding;
+		let deadline = self.serial_port().make_deadline(timeout);
+		let packet = self.bus.read_fast_read_response_deadline(deadline, block_data_len).await?;
+		match packet.as_status() {
+			Some(status) => Ok(status),
+			None => Err(crate::InvalidInstruction {
+				actual: packet.instruction_id(),
+				expected: instruction_id::STATUS,
+			}
+			.into()),
+		}
+	}
+
 	/// Read an empty response from the bus if the motor ID is not the broadcast ID.
 	///
 	/// If the motor ID is the broadcast ID, return a fake response from the broadcast ID.

@@ -75,6 +75,9 @@ pub enum InvalidMessage {
 
 	/// The message has an invalid parameter count.
 	InvalidParameterCount(InvalidParameterCount),
+
+	/// A motor addressed by a fast sync/bulk read did not include a reply in the combined response.
+	MissingResponse(MissingResponse),
 }
 
 /// An error reported by the motor.
@@ -173,6 +176,17 @@ pub struct InvalidParameterCount {
 
 	/// The expected parameter count.
 	pub expected: ExpectedCount,
+}
+
+/// A motor addressed by a fast sync/bulk read did not reply.
+///
+/// The fast sync and bulk read instructions combine the replies of all addressed motors into a single
+/// status packet. If a motor does not contribute its block, this error identifies the first such motor.
+/// Replies from motors earlier in the request are still yielded before this error is returned.
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct MissingResponse {
+	/// The ID of the motor that did not respond.
+	pub motor_id: u8,
 }
 
 impl BufferTooSmallError {
@@ -298,6 +312,7 @@ impl core::error::Error for InvalidChecksum {}
 impl core::error::Error for InvalidPacketId {}
 impl core::error::Error for InvalidInstruction {}
 impl core::error::Error for InvalidParameterCount {}
+impl core::error::Error for MissingResponse {}
 
 impl<E> From<WriteError<E>> for TransferError<E> {
 	fn from(other: WriteError<E>) -> Self {
@@ -349,6 +364,12 @@ impl<E> From<InvalidInstruction> for TransferError<E> {
 
 impl<E> From<InvalidParameterCount> for TransferError<E> {
 	fn from(other: InvalidParameterCount) -> Self {
+		Self::ReadError(other.into())
+	}
+}
+
+impl<E> From<MissingResponse> for TransferError<E> {
+	fn from(other: MissingResponse) -> Self {
 		Self::ReadError(other.into())
 	}
 }
@@ -407,6 +428,12 @@ impl<E> From<InvalidParameterCount> for ReadError<E> {
 	}
 }
 
+impl<E> From<MissingResponse> for ReadError<E> {
+	fn from(other: MissingResponse) -> Self {
+		Self::InvalidMessage(other.into())
+	}
+}
+
 impl From<InvalidHeaderPrefix> for InvalidMessage {
 	fn from(other: InvalidHeaderPrefix) -> Self {
 		Self::InvalidHeaderPrefix(other)
@@ -434,6 +461,12 @@ impl From<InvalidInstruction> for InvalidMessage {
 impl From<InvalidParameterCount> for InvalidMessage {
 	fn from(other: InvalidParameterCount) -> Self {
 		Self::InvalidParameterCount(other)
+	}
+}
+
+impl From<MissingResponse> for InvalidMessage {
+	fn from(other: MissingResponse) -> Self {
+		Self::MissingResponse(other)
 	}
 }
 
@@ -502,6 +535,7 @@ impl Display for InvalidMessage {
 			Self::InvalidPacketId(e) => write!(f, "{}", e),
 			Self::InvalidInstruction(e) => write!(f, "{}", e),
 			Self::InvalidParameterCount(e) => write!(f, "{}", e),
+			Self::MissingResponse(e) => write!(f, "{}", e),
 		}
 	}
 }
@@ -561,5 +595,11 @@ impl Display for ExpectedCount {
 impl Display for InvalidParameterCount {
 	fn fmt(&self, f: &mut Formatter) -> FmtResult {
 		write!(f, "invalid parameter count, expected {}, got {}", self.expected, self.actual)
+	}
+}
+
+impl Display for MissingResponse {
+	fn fmt(&self, f: &mut Formatter) -> FmtResult {
+		write!(f, "no response from motor with ID 0x{:02X}", self.motor_id)
 	}
 }

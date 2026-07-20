@@ -7,7 +7,7 @@ use super::Client;
 use crate::bus::endian::{write_u16_le, write_u8_le};
 use crate::bus::{instruction_id, packet_id};
 use crate::client::BulkReadData;
-use crate::{MotorError, ReadError, Response, TransferError};
+use crate::{MissingResponse, MotorError, ReadError, Response, TransferError};
 
 #[super::bisync]
 impl<SerialPort, Buffer> Client<SerialPort, Buffer>
@@ -19,11 +19,13 @@ where
 	///
 	/// Like [`Self::bulk_read_bytes`], a bulk read can read a different amount of data from a different address
 	/// for each motor. Unlike the regular bulk read, all motors reply with a single status packet.
-	/// This reduces the communication overhead, at the cost of losing the entire response if a single motor
-	/// fails to reply.
+	/// This reduces the communication overhead.
 	///
 	/// The returned [`FastBulkRead`] is an iterator that yields the [`Response`] of each motor,
 	/// in the same order as `reads`. The data of each response is returned as unparsed bytes.
+	///
+	/// If a motor fails to reply, the replies of the motors before it are still yielded, and the iterator
+	/// then yields a [`MissingResponse`] error naming the first motor that did not respond.
 	///
 	/// # Panics
 	/// The protocol forbids specifying the same motor ID multiple times.
@@ -102,7 +104,9 @@ where
 		let expected_parameters = reads.iter().fold(0u32, |acc, read| acc + u32::from(read.count) + 4);
 		let expected_parameters = u16::try_from(expected_parameters)
 			.expect("fast_bulk_read: the requested response is larger than a single status packet can hold");
-		let response = self.read_status_response(expected_parameters, false).await?;
+		let response = self
+			.read_fast_read_response(expected_parameters, |i| reads.get(i).map(|read| usize::from(read.count)))
+			.await?;
 		crate::InvalidPacketId::check(response.packet_id(), packet_id::BROADCAST)?;
 
 		Ok(FastBulkRead {
@@ -150,21 +154,25 @@ impl<'a, T: ?Sized, E> FastBulkRead<'a, T, E> {
 
 	/// Split the next `error + motor ID + data` block off the front of the buffer, advancing the state.
 	fn next_block(&mut self) -> Option<Result<&'a [u8], ReadError<E>>> {
-		let count = usize::from(self.reads.get(self.index)?.count);
+		let read = self.reads.get(self.index)?;
+		let motor_id = read.motor_id;
+		let count = usize::from(read.count);
 		self.index += 1;
 
 		// Each motor block is: error (1) + motor ID (1) + data (`count`).
 		let block_len = 2 + count;
 		let Some((block, rest)) = self.parameters.split_at_checked(block_len) else {
-			// The response is shorter than `reads` implies: a motor block is missing or truncated.
-			// Surface an error instead of silently ending iteration with motors unaccounted for.
+			// The response is shorter than `reads` implies: this motor's block never arrived.
 			self.index = self.reads.len();
-			return Some(Err(crate::InvalidParameterCount {
-				actual: self.parameters.len(),
-				expected: crate::ExpectedCount::Min(block_len),
-			}
-			.into()));
+			return Some(Err(MissingResponse { motor_id }.into()));
 		};
+
+		// A block is present but belongs to a different motor: an earlier motor's reply is missing and the
+		// stream has desynced. Report the expected motor as missing rather than mislabelling later data.
+		if block[1] != motor_id {
+			self.index = self.reads.len();
+			return Some(Err(MissingResponse { motor_id }.into()));
+		}
 
 		// Skip the per-motor CRC (2 bytes). The final motor's CRC doubles as the packet CRC and is
 		// stripped while reading the packet, so it may be absent for the last block.
@@ -233,7 +241,7 @@ where
 mod test {
 	use super::FastBulkRead;
 	use crate::client::BulkReadData;
-	use crate::{InvalidMessage, ReadError, Response};
+	use crate::{InvalidMessage, MissingResponse, ReadError, Response};
 	use alloc::vec;
 	use alloc::vec::Vec;
 	use assert2::{assert, let_assert};
@@ -326,7 +334,7 @@ mod test {
 	}
 
 	#[test]
-	fn errors_on_truncated_response() {
+	fn recovers_leading_motors_and_names_missing_one() {
 		let reads = [
 			BulkReadData {
 				motor_id: 1,
@@ -339,7 +347,7 @@ mod test {
 				count: 3,
 			},
 		];
-		// Two motors expected, but the buffer only holds the first block: the second motor is missing.
+		// Two motors expected, but the buffer only holds the first block: motor 2 is missing.
 		let parameters = [0x00, 0x01, 0xAA, 0xBB];
 		let mut iter = FastBulkRead::<Vec<u8>, Infallible> {
 			parameters: &parameters,
@@ -348,9 +356,13 @@ mod test {
 			data: PhantomData,
 		};
 
-		let_assert!(Some(Ok(_)) = iter.next());
-		// The missing motor surfaces as an error rather than a silent end of iteration.
-		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::InvalidParameterCount(_)))) = iter.next());
+		// The motor that did reply is yielded first.
+		let_assert!(Some(Ok(response)) = iter.next());
+		assert!(response.motor_id == 1 && response.data == vec![0xAA, 0xBB]);
+
+		// The missing motor is named rather than silently ending iteration.
+		let_assert!(Some(Err(ReadError::InvalidMessage(InvalidMessage::MissingResponse(MissingResponse { motor_id })))) = iter.next());
+		assert!(motor_id == 2);
 		assert!(let None = iter.next());
 	}
 }
