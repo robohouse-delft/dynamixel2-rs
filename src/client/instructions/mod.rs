@@ -6,6 +6,8 @@ pub(crate) mod bulk_read;
 mod bulk_write;
 mod clear;
 mod factory_reset;
+pub(crate) mod fast_bulk_read;
+pub(crate) mod fast_sync_read;
 pub(crate) mod ping;
 mod read;
 mod reboot;

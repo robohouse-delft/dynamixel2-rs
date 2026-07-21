@@ -213,7 +213,7 @@ where
 	where
 		T: From<&'a [u8]>,
 	{
-		let response = self.client.read_status_response(self.count).await?;
+		let response = self.client.read_status_response(self.count, true).await?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -225,7 +225,7 @@ where
 	where
 		[u8]: core::borrow::Borrow<T>,
 	{
-		let response = self.client.read_status_response(self.count).await?;
+		let response = self.client.read_status_response(self.count, true).await?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -259,7 +259,7 @@ where
 	}
 
 	async fn next_response(&mut self, motor_id: u8) -> Result<Response<T>, ReadError<Port::Error>> {
-		let response = self.client.read_status_response(T::ENCODED_SIZE).await?;
+		let response = self.client.read_status_response(T::ENCODED_SIZE, true).await?;
 		// TODO: Allow a response from a motor later in the list (meaning we missed an earlier motor response).
 		// We need to report a timeout or something for the missed motor though.
 		crate::InvalidPacketId::check(response.packet_id(), motor_id)?;
@@ -298,7 +298,7 @@ where
 {
 	fn drop(&mut self) {
 		while self.pop_motor_id().is_some() {
-			self.client.read_status_response(self.count).ok();
+			self.client.read_status_response(self.count, true).ok();
 		}
 	}
 }
