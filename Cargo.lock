@@ -85,19 +85,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "bisync"
-version = "0.3.0"
+name = "bisync2"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5020822f6d6f23196ccaf55e228db36f9de1cf788052b37992e17cbc96ec41a7"
+checksum = "658874e13c636fdc15ecf8216421aec97113dc6256c1d2d506cd9b8f50b726e6"
 dependencies = [
- "bisync_macros",
+ "bisync2-macros",
 ]
 
 [[package]]
-name = "bisync_macros"
-version = "0.2.3"
+name = "bisync2-macros"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d21f40d350a700f6aa107e45fb26448cf489d34794b2ba4522181dc9f1173af6"
+checksum = "74205a74ee286fb937a71ab95ad3ebddf3c34650ae45dd755a3617c7c7dd1a26"
 
 [[package]]
 name = "cfg-if"
@@ -171,7 +171,7 @@ name = "dynamixel2"
 version = "0.9.1"
 dependencies = [
  "assert2",
- "bisync",
+ "bisync2",
  "env_logger",
  "log",
  "serial2",

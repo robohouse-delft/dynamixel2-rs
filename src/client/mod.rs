@@ -6,7 +6,7 @@ use crate::{bus::StatusPacket, Response};
 pub(crate) mod asynch {
 	use crate::bus::asynch::Bus;
 	use crate::AsyncSerialPort as SerialPort;
-	use bisync::asynchronous::*;
+	use bisync2::asynchronous::*;
 
 	mod client;
 	pub use client::Client;
@@ -17,7 +17,7 @@ pub(crate) mod asynch {
 pub(crate) mod sync {
 	use crate::bus::sync::Bus;
 	use crate::SerialPort;
-	use bisync::synchronous::*;
+	use bisync2::synchronous::*;
 
 	mod client;
 	pub use client::Client;

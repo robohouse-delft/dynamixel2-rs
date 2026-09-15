@@ -1,11 +1,11 @@
 #[path = "."]
 mod asynch {
-	use bisync::asynchronous::*;
+	use bisync2::asynchronous::*;
 	pub(super) mod serial_port;
 }
 #[path = "."]
 mod sync {
-	use bisync::synchronous::*;
+	use bisync2::synchronous::*;
 	pub(super) mod serial_port;
 }
 

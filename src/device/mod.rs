@@ -11,7 +11,7 @@ use alloc::borrow::ToOwned;
 pub(crate) mod asynch {
 	use crate::bus::asynch::Bus;
 	use crate::AsyncSerialPort as SerialPort;
-	use bisync::asynchronous::*;
+	use bisync2::asynchronous::*;
 
 	pub(super) mod device;
 }
@@ -19,7 +19,7 @@ pub(crate) mod asynch {
 pub(super) mod sync {
 	use crate::bus::sync::Bus;
 	use crate::SerialPort;
-	use bisync::synchronous::*;
+	use bisync2::synchronous::*;
 
 	pub(super) mod device;
 }

@@ -3,7 +3,7 @@
 #[path = "."]
 pub(crate) mod asynch {
 	use crate::AsyncSerialPort as SerialPort;
-	use bisync::asynchronous::*;
+	use bisync2::asynchronous::*;
 	mod bus;
 	pub(crate) use bus::Bus;
 }
@@ -11,7 +11,7 @@ pub(crate) mod asynch {
 #[path = "."]
 pub(crate) mod sync {
 	use crate::SerialPort;
-	use bisync::synchronous::*;
+	use bisync2::synchronous::*;
 	mod bus;
 	pub(crate) use bus::Bus;
 }
