@@ -80,6 +80,15 @@ impl<'a> StatusPacket<'a> {
 		&self.packet.data[super::HEADER_SIZE + 2..]
 	}
 
+	/// The error field followed by the parameters.
+	///
+	/// Used by the fast sync/bulk read instructions, where the response packs a per-motor error byte,
+	/// motor ID, data and CRC for each motor. The first motor's error byte coincides with the packet
+	/// error field, so the fast read parsers need the raw region starting at the error byte.
+	pub(crate) fn error_and_parameters(self) -> &'a [u8] {
+		&self.packet.data[super::HEADER_SIZE + 1..]
+	}
+
 	/// Calculate the size of a (unstuffed) status message with the given number of parameters.
 	pub(crate) const fn message_len(parameters: usize) -> usize {
 		super::HEADER_SIZE + 2 + parameters + 2

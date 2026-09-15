@@ -26,10 +26,17 @@ pub(crate) mod sync {
 
 pub use asynch::instructions::bulk_read::BulkReadBytes as AsyncBulkReadBytes;
 pub use asynch::instructions::ping::Scan as AsyncScan;
+pub use asynch::instructions::{
+	fast_bulk_read::FastBulkRead as AsyncFastBulkRead, fast_sync_read::FastSyncRead as AsyncFastSyncRead,
+	fast_sync_read::FastSyncReadBytes as AsyncFastSyncReadBytes,
+};
 pub use asynch::instructions::{sync_read::SyncRead as AsyncSyncRead, sync_read::SyncReadBytes as AsyncSyncReadBytes};
 pub use asynch::Client as AsyncClient;
 
-pub use sync::instructions::{bulk_read::BulkReadBytes, ping::Scan, sync_read::SyncRead, sync_read::SyncReadBytes};
+pub use sync::instructions::{
+	bulk_read::BulkReadBytes, fast_bulk_read::FastBulkRead, fast_sync_read::FastSyncRead, fast_sync_read::FastSyncReadBytes, ping::Scan,
+	sync_read::SyncRead, sync_read::SyncReadBytes,
+};
 pub use sync::Client;
 
 /// Sync data for a specific motor.

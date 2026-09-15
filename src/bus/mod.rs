@@ -44,8 +44,10 @@ pub mod instruction_id {
 	pub const CLEAR         : u8 = 0x10;
 	pub const SYNC_READ     : u8 = 0x82;
 	pub const SYNC_WRITE    : u8 = 0x83;
+	pub const FAST_SYNC_READ: u8 = 0x8A;
 	pub const BULK_READ     : u8 = 0x92;
 	pub const BULK_WRITE    : u8 = 0x93;
+	pub const FAST_BULK_READ: u8 = 0x9A;
 	pub const STATUS        : u8 = 0x55;
 }
 
